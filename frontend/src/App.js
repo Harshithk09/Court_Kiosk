@@ -6,8 +6,12 @@ import Results from './pages/Results';
 import CourtKiosk from './pages/CourtKiosk';
 import Learn from './pages/Learn';
 import Contact from './pages/Contact';
+import Forms from './pages/Forms';
+import Process from './pages/Process';
 import ComingSoon from './pages/ComingSoon';
 import NotFound from './pages/NotFound';
+import CourtServices from './pages/CourtServices';
+import LegalResources from './pages/LegalResources';
 
 function App() {
   return (
@@ -20,11 +24,13 @@ function App() {
             <Route path="/results" element={<Results />} />
             <Route path="/learn" element={<Learn />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/services" element={<ComingSoon />} />
-            <Route path="/forms" element={<ComingSoon />} />
+            <Route path="/services" element={<CourtServices />} />
+            <Route path="/forms" element={<Forms />} />
+            <Route path="/process" element={<Process />} />
             <Route path="/self-help" element={<ComingSoon />} />
             <Route path="/divisions" element={<ComingSoon />} />
             <Route path="/info" element={<ComingSoon />} />
+            <Route path="/legal-resources" element={<LegalResources />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

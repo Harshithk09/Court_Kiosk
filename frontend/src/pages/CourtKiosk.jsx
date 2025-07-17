@@ -1,36 +1,26 @@
 import React, { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Scale, 
-  MessageSquare, 
-  FileText, 
-  GraduationCap, 
-  Users, 
-  Phone, 
-  MapPin, 
-  Clock,
+import {
+  Scale,
+  MessageSquare,
+  FileText,
+  GraduationCap,
+  Users,
   ArrowRight,
   AlertTriangle,
-  Home,
-  HelpCircle,
   DollarSign,
   Shield,
   Calendar,
-  Search,
-  Zap
+  Search
 } from 'lucide-react';
 
 const CourtKiosk = () => {
-  const navigate = useNavigate();
   const serviceCardsRef = useRef([]);
 
   useEffect(() => {
-    // Add animation to service cards on scroll
     const observerOptions = {
       threshold: 0.1,
       rootMargin: '0px 0px -50px 0px'
     };
-
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -39,120 +29,124 @@ const CourtKiosk = () => {
         }
       });
     }, observerOptions);
-
-    // Observe service cards
     serviceCardsRef.current.forEach(card => {
       if (card) {
         card.style.opacity = '0';
         card.style.transform = 'translateY(30px)';
-        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        card.style.transition = 'opacity 0.6s cubic-bezier(.4,0,.2,1), transform 0.6s cubic-bezier(.4,0,.2,1)';
         observer.observe(card);
       }
     });
-
     return () => observer.disconnect();
   }, []);
+
+  const navigate = (route) => {
+    window.location.href = route;
+  };
 
   const services = [
     {
       icon: MessageSquare,
-      title: 'Interactive Q&A Guide',
-      description: 'Answer a few simple questions to get personalized guidance and find exactly what you need for your case.',
-      route: '/learn',
-      emoji: '💬'
+      title: 'Interactive Q&A System',
+      description: 'Answer guided questions to receive personalized legal guidance tailored to your specific case and circumstances.',
+      route: '/qna/divorce',
+      color: 'from-amber-400 to-yellow-500'
     },
     {
       icon: FileText,
-      title: 'Find Court Forms',
-      description: 'Search our comprehensive database of court forms with easy-to-understand instructions and examples.',
+      title: 'Court Forms & Documents',
+      description: 'Access official court forms with detailed instructions and examples to complete your legal documentation.',
       route: '/forms',
-      emoji: '📄'
+      color: 'from-blue-700 to-blue-900'
     },
     {
       icon: GraduationCap,
-      title: 'Learn the Process',
-      description: 'Step-by-step guides explaining court procedures, deadlines, and what to expect at each stage.',
+      title: 'Legal Process Education',
+      description: 'Comprehensive guides explaining court procedures, legal requirements, and what to expect during proceedings.',
       route: '/learn',
-      emoji: '🎓'
+      color: 'from-slate-600 to-slate-800'
     },
     {
       icon: Users,
-      title: 'Get Support',
-      description: 'Connect with free legal aid, mediation services, and other community resources available to you.',
+      title: 'Support Services',
+      description: 'Connect with legal aid organizations, mediation services, and community resources in San Mateo County.',
       route: '/contact',
-      emoji: '🤝'
+      color: 'from-emerald-500 to-emerald-700'
     }
   ];
 
   const quickLinks = [
     {
       icon: Users,
-      title: 'Child Custody',
-      description: 'Forms and guidance for custody arrangements',
-      route: '/qna/custody',
-      emoji: '👨‍👩‍👧‍👦'
+      title: 'Child Custody & Visitation',
+      description: 'Custody arrangements and parenting plans',
+      route: '/qna/divorce',
+      color: 'bg-blue-700'
     },
     {
       icon: DollarSign,
-      title: 'Child Support',
-      description: 'Calculate and modify support payments',
-      route: '/qna/support',
-      emoji: '💰'
+      title: 'Child Support Services',
+      description: 'Support calculations and modifications',
+      route: '/qna/divorce',
+      color: 'bg-amber-500'
     },
     {
       icon: FileText,
-      title: 'Divorce Papers',
-      description: 'Complete divorce filing process',
+      title: 'Divorce & Separation',
+      description: 'Dissolution of marriage proceedings',
       route: '/qna/divorce',
-      emoji: '📋'
+      color: 'bg-slate-700'
     },
     {
       icon: Shield,
-      title: 'Domestic Violence',
-      description: 'Restraining orders and protection',
+      title: 'Domestic Violence Protection',
+      description: 'Restraining orders and safety resources',
       route: '/qna/restraining',
-      emoji: '🛡️'
+      color: 'bg-red-600'
     },
     {
       icon: Calendar,
-      title: 'Court Hearings',
-      description: 'Prepare for your court appearance',
+      title: 'Court Appearance Prep',
+      description: 'Guidance for your court hearing',
       route: '/learn',
-      emoji: '👨‍⚖️'
+      color: 'bg-emerald-600'
     },
     {
       icon: Search,
-      title: 'Case Status',
-      description: 'Check your case information online',
+      title: 'Case Information',
+      description: 'Check case status and schedules',
       route: '/services',
-      emoji: '🔍'
+      color: 'bg-indigo-600'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md shadow-lg sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                ⚖️
+      <header className="bg-white/95 backdrop-blur-md shadow-md sticky top-0 z-50 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="flex items-center justify-between py-3 md:py-4">
+            <div className="flex items-center gap-3 md:gap-5">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-slate-900 to-slate-700 rounded-xl flex items-center justify-center text-white shadow-lg">
+                <Scale className="w-7 h-7 md:w-8 md:h-8" />
               </div>
-              <div className="text-2xl font-bold text-gray-800">Court Self-Help</div>
+              <div>
+                <div className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">San Mateo County Court</div>
+                <div className="text-xs md:text-sm text-slate-500">Self-Help Services</div>
+              </div>
             </div>
-            <nav className="hidden md:flex gap-8">
+            <nav className="hidden md:flex gap-4 lg:gap-6">
               {[
                 { name: 'Home', route: '/' },
-                { name: 'Services', route: '/services' },
+                { name: 'Court Services', route: '/services' },
                 { name: 'Forms', route: '/forms' },
-                { name: 'Get Help', route: '/contact' },
-                { name: 'Information', route: '/learn' }
+                { name: 'Legal Resources', route: '/legal-resources' },
+                { name: 'Information', route: '/contact' }
               ].map((item) => (
                 <button
                   key={item.name}
                   onClick={() => navigate(item.route)}
-                  className="text-gray-600 hover:text-blue-600 font-medium px-4 py-2 rounded-lg hover:bg-blue-50 transition-all duration-300 hover:-translate-y-0.5"
+                  className="text-slate-700 hover:text-amber-500 font-medium px-3 py-2 rounded-lg hover:bg-slate-100 transition-all duration-200 border border-transparent hover:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 >
                   {item.name}
                 </button>
@@ -163,69 +157,71 @@ const CourtKiosk = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 text-center text-white">
-        <div className="max-w-6xl mx-auto px-5">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-100 bg-clip-text text-transparent">
-            We're Here to Help You Navigate Family Court
+      <section className="py-14 md:py-20 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 text-white relative">
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+          <h1 className="text-3xl md:text-5xl font-extrabold mb-5 leading-tight tracking-tight">
+            Welcome to the San Mateo County Court Self-Help Center
           </h1>
-          <p className="text-xl md:text-2xl mb-12 opacity-90 max-w-4xl mx-auto leading-relaxed">
-            Get step-by-step guidance, find the right forms, and access the support you need to represent yourself in court with confidence.
+          <p className="text-lg md:text-2xl mb-8 opacity-90 max-w-2xl mx-auto leading-relaxed">
+            Access legal resources, court forms, and guidance to navigate the legal system. Our self-help services are designed to assist you with your legal proceedings.
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => navigate('/learn')}
-              className="group bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-3"
+              onClick={() => navigate('/legal-resources')}
+              className="group bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-8 py-4 rounded-lg text-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
-              🚀 Start Your Journey
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              Begin Self-Help Process
             </button>
             <button
               onClick={() => navigate('/forms')}
-              className="group bg-white/20 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white/30 transition-all duration-300 border-2 border-white/30 backdrop-blur-sm transform hover:-translate-y-1 flex items-center justify-center gap-3"
+              className="group bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 border border-white/30 backdrop-blur-sm flex items-center justify-center gap-3 focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
-              📋 Browse Forms
+              <FileText className="w-5 h-5" />
+              Access Court Forms
             </button>
           </div>
         </div>
+        {/* Decorative gradient circle */}
+        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-96 h-40 bg-amber-400/10 rounded-full blur-2xl z-0" />
       </section>
 
       {/* Main Content */}
-      <main className="bg-gray-50 relative -mt-8 rounded-t-3xl">
-        <div className="max-w-6xl mx-auto px-5 py-16">
+      <main className="bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-16">
           {/* Emergency Banner */}
-          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-6 rounded-2xl mb-16 text-center animate-pulse">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-xl font-bold">⚠️ Need Immediate Help?</h3>
-            </div>
-            <p className="text-lg">
-              If you're facing domestic violence or need emergency protection,{' '}
-              <strong>call 911</strong> or contact our emergency resources immediately.
-            </p>
+          <div className="bg-amber-100 text-amber-900 p-5 rounded-xl mb-14 text-center border-l-4 border-amber-400 flex flex-col md:flex-row items-center justify-center gap-3 shadow">
+            <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0" />
+            <span className="font-semibold text-lg">Emergency Assistance Required?</span>
+            <span className="text-base">If you are experiencing domestic violence or require immediate legal protection, <strong>call 911</strong> or contact emergency services immediately.</span>
           </div>
 
           {/* Services Section */}
           <section className="mb-20">
-            <h2 className="text-4xl font-bold text-center mb-16 text-gray-800">
-              How Can We Help You Today?
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-4 text-slate-900">
+              How May We Assist You Today?
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <p className="text-center text-slate-600 mb-10 max-w-2xl mx-auto">
+              Select from our comprehensive self-help services designed to guide you through legal processes
+            </p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-7">
               {services.map((service, index) => {
                 const Icon = service.icon;
                 return (
                   <div
                     key={service.title}
                     ref={el => serviceCardsRef.current[index] = el}
-                    className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 text-center border-2 border-transparent hover:border-blue-200 transform hover:-translate-y-2 cursor-pointer"
+                    className="bg-white p-7 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-amber-400 cursor-pointer group flex flex-col items-center text-center"
                     onClick={() => navigate(service.route)}
                   >
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg text-3xl">
-                      {service.emoji}
+                    <div className={`w-16 h-16 bg-gradient-to-br ${service.color} rounded-xl flex items-center justify-center mb-5 shadow group-hover:scale-105 transition-transform`}>
+                      <Icon className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold mb-4 text-gray-800">{service.title}</h3>
-                    <p className="text-gray-600 mb-6 leading-relaxed">{service.description}</p>
-                    <button className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-full font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-lg">
-                      Get Started
-                    </button>
+                    <h3 className="text-lg font-bold mb-2 text-slate-900 group-hover:text-amber-600 transition-colors">{service.title}</h3>
+                    <p className="text-slate-600 mb-4 leading-relaxed text-sm">{service.description}</p>
+                    <span className="inline-flex items-center gap-2 text-amber-600 font-semibold text-sm group-hover:underline">
+                      Get Started <ArrowRight className="w-4 h-4" />
+                    </span>
                   </div>
                 );
               })}
@@ -233,26 +229,30 @@ const CourtKiosk = () => {
           </section>
 
           {/* Quick Links Section */}
-          <section className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl p-12 -mx-5">
-            <h2 className="text-4xl font-bold text-center mb-12 text-white">
-              Popular Resources
+          <section className="bg-white rounded-2xl shadow-xl p-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 text-slate-900">
+              Frequently Requested Services
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p className="text-center text-slate-600 mb-10 max-w-2xl mx-auto">
+              Quick access to commonly needed legal resources and information
+            </p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-7">
               {quickLinks.map((link, index) => {
                 const Icon = link.icon;
                 return (
                   <button
                     key={link.title}
                     onClick={() => navigate(link.route)}
-                    className="group bg-white/10 p-6 rounded-2xl text-left text-white hover:bg-white/20 transition-all duration-300 backdrop-blur-sm transform hover:-translate-y-1"
+                    className="group bg-slate-100 hover:bg-amber-50 p-6 rounded-2xl text-left text-slate-900 transition-all duration-300 border border-slate-200 hover:border-amber-400 flex gap-4 items-center shadow-sm hover:shadow-md"
                   >
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform text-2xl">
-                        {link.emoji}
-                      </div>
-                      <h4 className="text-lg font-semibold">{link.title}</h4>
-                    </div>
-                    <p className="text-blue-100 text-sm leading-relaxed">{link.description}</p>
+                    <span className={`w-14 h-14 ${link.color} rounded-full flex items-center justify-center text-white text-2xl shadow group-hover:scale-110 transition-transform`}>
+                      <Icon className="w-7 h-7" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block text-lg font-semibold mb-1 group-hover:text-amber-600 transition-colors">{link.title}</span>
+                      <span className="block text-slate-600 text-sm">{link.description}</span>
+                    </span>
+                    <ArrowRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform" />
                   </button>
                 );
               })}
@@ -262,26 +262,31 @@ const CourtKiosk = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-12">
-        <div className="max-w-6xl mx-auto px-5 text-center">
-          <p className="text-lg font-semibold mb-3">
-            Superior Court of California - County of San Mateo
-          </p>
-          <p className="text-gray-300 mb-8">
-            Providing accessible justice and support for all community members
-          </p>
-          <div className="flex flex-wrap justify-center gap-8">
+      <footer className="bg-slate-900 text-white py-10 border-t-2 border-slate-800 mt-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-8">
+            <p className="text-xl font-semibold mb-2 text-amber-400">
+              Superior Court of California
+            </p>
+            <p className="text-lg text-slate-300 mb-4">
+              County of San Mateo
+            </p>
+            <p className="text-slate-400">
+              Committed to providing accessible justice and comprehensive legal support for all community members
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-8 pt-8 border-t border-slate-800">
             {[
-              { name: 'Contact Us', route: '/contact' },
-              { name: 'Hours & Location', route: '/contact' },
-              { name: 'Accessibility', route: '/learn' },
+              { name: 'Contact Information', route: '/contact' },
+              { name: 'Hours & Locations', route: '/contact' },
+              { name: 'Accessibility Services', route: '/learn' },
               { name: 'Privacy Policy', route: '/services' },
-              { name: 'Site Map', route: '/' }
+              { name: 'Site Directory', route: '/' }
             ].map((link) => (
               <button
                 key={link.name}
                 onClick={() => navigate(link.route)}
-                className="text-gray-400 hover:text-blue-400 transition-colors duration-300"
+                className="text-slate-400 hover:text-amber-400 transition-colors duration-300 font-medium"
               >
                 {link.name}
               </button>
