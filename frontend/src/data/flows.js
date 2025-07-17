@@ -236,7 +236,7 @@ export const topics = {
     ],
     forms: {
       child_support: {
-        establish: [
+        new: [
           { number: "FL-150", name: "Property Declaration", description: "Financial information", required: true },
           { number: "FL-155", name: "Income and Expense Declaration", description: "Detailed financial information", required: true },
           { number: "FL-300", name: "Request for Order", description: "Request for child support order", required: true }
@@ -284,6 +284,7 @@ export const getFormsForTopic = (topicId, answers) => {
     }
   } else if (topicId === 'support') {
     if (answers.support_type === 'child') {
+      // Map 'new' toestablish' and 'modify' to 'modify     const formKey = answers.case_status === new' ? establish' : 'modify';
       return topic.forms.child_support[answers.case_status] || [];
     } else if (answers.support_type === 'spousal') {
       return topic.forms.spousal_support;
@@ -301,21 +302,65 @@ export const getFormsForTopic = (topicId, answers) => {
 // Helper function to get next steps based on topic and answers
 export const getNextStepsForTopic = (topicId, answers) => {
   const baseSteps = [
-    'Complete all required forms',
-    'Make 2 copies of each form',
-    'File original forms with the court clerk',
-    'Pay filing fee (check with clerk for current amount)',
-    'Serve the other party with copies of all forms',
-    'File proof of service with the court'
+    { title: 'Complete all required forms', description: 'Fill out all forms completely and accurately. Don\'t leave any blanks.' },
+    { title: 'Make 2 copies of each form', description: 'Keep one copy for yourself and prepare one for the other party.' },
+    { title: 'File original forms with the court clerk', description: 'Take the original forms to the San Mateo County courthouse clerk\'s office.' },
+    { title: 'Pay filing fee (check with clerk for current amount)', description: 'Filing fees vary by case type. Ask about fee waiver if you cannot afford it.' },
+    { title: 'Serve the other party with copies of all forms', description: 'Have someone (not you) serve the other party with copies of all filed documents.' },
+    { title: 'File proof of service with the court', description: 'Submit the completed proof of service form to show the other party was served.' }
   ];
 
   if (topicId === 'restraining' && answers.immediate_danger === 'yes') {
     return [
-      'Call 911 immediately if in danger',
-      'Go to police station for emergency protection',
-      'Complete restraining order forms',
-      'File with court clerk immediately',
-      'Attend court hearing (usually within 21 days)'
+      { title: 'Call 911 immediately if in danger', description: 'If you are in immediate danger, call 911 away for emergency assistance.' },
+      { title: 'Go to police station for emergency protection', description: 'Visit your local police station to request emergency protection while waiting for court order.' },
+      { title: 'Complete restraining order forms', description: 'Fill out the DV-100 (Request for Domestic Violence Restraining Order) form completely.' },
+      { title: 'File with court clerk immediately', description: 'Take completed forms to the courthouse clerk\'s office for immediate filing.' },
+      { title: 'Attend court hearing (usually within 21 days)', description: 'You will receive a hearing date. Attend court on that date with all evidence and witnesses.' }
+    ];
+  }
+
+  if (topicId === 'restraining') {
+    return [
+      { title: 'Complete restraining order forms', description: 'Fill out the DV-100 (Request for Domestic Violence Restraining Order) form completely.' },
+      { title: 'File forms with court clerk', description: 'Take completed forms to the San Mateo County courthouse clerk\'s office.' },
+      { title: 'Request temporary restraining order', description: 'Ask the clerk about getting a temporary restraining order for immediate protection.' },
+      { title: 'Serve the other party', description: 'Have someone (18 years or older) serve the other party with copies of all filed documents.' },
+      { title: 'File proof of service', description: 'Submit proof of service form to show the other party was served.' },
+      { title: 'Attend court hearing', description: 'Attend the scheduled hearing with all evidence, witnesses, and documentation.' }
+    ];
+  }
+
+  if (topicId === 'divorce') {
+    return [
+      { title: 'Complete divorce petition forms', description: 'Fill out FL-100 (Petition) and FL-110 (Summons) completely.' },
+      { title: 'File with court clerk', description: 'Submit original forms to the family law clerk\'s office with filing fee.' },
+      { title: 'Serve your spouse', description: 'Have someone (18+ years) serve your spouse with copies of all filed documents.' },
+      { title: 'File proof of service', description: 'Submit proof of service within 60 days of filing.' },
+      { title: 'Complete financial disclosures', description: 'Fill out FL-150 (Income and Expense) and FL-142 (Assets and Debts) forms.' },
+      { title: 'Attend court hearings', description: 'Attend all scheduled hearings and mediation sessions.' }
+    ];
+  }
+
+  if (topicId === 'custody') {
+    return [
+      { title: 'Complete custody petition', description: 'Fill out FL-200(Petition for Custody) form completely.' },
+      { title: 'File with court clerk', description: 'Submit original forms to the family law clerk\'s office.' },
+      { title: 'Serve the other parent', description: 'Have someone (18 years) serve the other parent with copies of all documents.' },
+      { title: 'Attend mediation (if required)', description: 'Many courts require mediation before custody hearings.' },
+      { title: 'Prepare for court hearing', description: 'Gather evidence, witnesses, and prepare your case presentation.' },
+      { title: 'Attend court hearing', description: 'Attend the scheduled custody hearing with all documentation.' }
+    ];
+  }
+
+  if (topicId === 'support') {
+    return [
+      { title: 'Complete support request forms', description: 'Fill out FL-300 (Request for Order) and FL-150 (Income and Expense) forms.' },
+      { title: 'Gather financial documents', description: 'Collect pay stubs, tax returns, and other income documentation.' },
+      { title: 'File with court clerk', description: 'Submit original forms to the family law clerk\'s office.' },
+      { title: 'Serve the other party', description: 'Have someone (18 years) serve the other party with copies of all documents.' },
+      { title: 'Attend support hearing', description: 'Attend the scheduled support hearing with all financial documentation.' },
+      { title: 'Follow up on order', description: 'Once order is issued, ensure payments are made according to the court order.' }
     ];
   }
 
