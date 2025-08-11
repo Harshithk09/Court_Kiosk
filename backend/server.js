@@ -78,6 +78,9 @@ const generatePDF = (topic, answers, forms, nextSteps, location) => {
   });
 };
 
+const semanticSearchRouter = require('./routes/semanticSearch');
+app.use(semanticSearchRouter);
+
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
