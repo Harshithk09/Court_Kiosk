@@ -151,7 +151,7 @@ npm test
 
 ### Core Endpoints
 - `GET /api/health`: Health check
-- `POST /api/generate-queue`: Generate queue number
+- `POST /api/generate-queue`: Generate queue number (alphanumeric, multi-character `case_type` supported)
 - `GET /api/queue`: Get current queue
 - `POST /api/call-next`: Call next person
 - `POST /api/complete-case`: Complete case

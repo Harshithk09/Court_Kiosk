@@ -2,7 +2,8 @@ import unittest
 import json
 import tempfile
 import os
-from app import app, db, Config
+from app import app, db
+from config import Config
 
 class CourtKioskTestCase(unittest.TestCase):
     def setUp(self):
@@ -39,7 +40,7 @@ class CourtKioskTestCase(unittest.TestCase):
     
     def test_generate_queue_success(self):
         """Test successful queue generation"""
-        response = self.app.post('/api/generate-queue', 
+        response = self.app.post('/api/generate-queue',
                                json={
                                    'case_type': 'DVRO',
                                    'priority': 'A',
@@ -109,5 +110,18 @@ class CourtKioskTestCase(unittest.TestCase):
         data2 = json.loads(response2.data)
         self.assertTrue(data2['queue_number'].startswith('DVRO'))
 
+    def test_generate_queue_invalid_case_type(self):
+        """Test queue generation with invalid case type"""
+        response = self.app.post('/api/generate-queue',
+                               json={
+                                   'case_type': 'DV-1',
+                                   'priority': 'A',
+                                   'language': 'en'
+                               })
+        data = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', data)
+
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()
