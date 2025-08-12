@@ -36,6 +36,16 @@ EMAIL_USER = os.getenv('EMAIL_USER')
 EMAIL_PASS = os.getenv('EMAIL_PASS')
 FACILITATOR_EMAIL = os.getenv('FACILITATOR_EMAIL')
 
+
+class Config:
+    """Minimal configuration object exposed for tests."""
+    SQLALCHEMY_DATABASE_URI = app.config['SQLALCHEMY_DATABASE_URI']
+    EMAIL_HOST = EMAIL_HOST
+
+    @staticmethod
+    def get_search_url(query: str) -> str:
+        return f"https://www.google.com/search?q={query}"
+
 SYSTEM_PROMPTS = {
     'en': """You are a helpful legal information assistant for a court kiosk. \
     Provide accurate, helpful information about court procedures, forms, and legal processes.\
@@ -361,14 +371,15 @@ def dvro_rag():
 
     # Load flowchart data with error handling
     try:
-        with open('flowchart.json', 'r') as f:
+        flowchart_path = os.path.join(app.root_path, 'flowchart.json')
+        with open(flowchart_path, 'r') as f:
             flowchart = json.load(f)
-    except FileNotFoundError:
-        return jsonify({'error': 'Flowchart data not found'}), 404
-    except json.JSONDecodeError:
-        return jsonify({'error': 'Invalid flowchart data format'}), 500
-    except Exception as e:
-        return jsonify({'error': f'Error reading flowchart data: {str(e)}'}), 500
+    except (OSError, json.JSONDecodeError) as e:
+        return jsonify({'error': f'Error loading flowchart data: {str(e)}'}), 500
+
+    # Validate basic JSON structure before proceeding
+    if not isinstance(flowchart, dict) or not isinstance(flowchart.get('flowchart'), dict):
+        return jsonify({'error': 'Invalid flowchart structure'}), 500
 
     # Simple retrieval: collect all steps and documents for DVRO
     steps = []
