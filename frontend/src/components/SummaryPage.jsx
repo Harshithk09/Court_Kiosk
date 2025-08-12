@@ -1,299 +1,527 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export default function SummaryPage({ caseNumber, answers, forms, onBack, onPrint }) {
-  const getFormDisplayName = (formNumber) => {
-    const formNames = {
-      'DV-100': 'Request for Domestic Violence Restraining Order',
-      'CLETS-001': 'Confidential CLETS Information',
-      'DV-109': 'Notice of Court Hearing',
-      'DV-110': 'Temporary Restraining Order',
-      'DV-105': 'Request for Child Custody and Visitation Orders',
-      'DV-140': 'Child Custody and Visitation Order',
-      'DV-200': 'Proof of Personal Service',
-      'FL-150': 'Income and Expense Declaration',
-      'DV-120': 'Response to Request for Domestic Violence Restraining Order',
-      'CH-100': 'Request for Civil Harassment Restraining Order',
-      'CH-110': 'Temporary Restraining Order (Civil Harassment)'
-    };
-    return formNames[formNumber] || formNumber;
+function getFormDisplayName(formNumber, formsCatalog) {
+  const form = formsCatalog.find(f => f.number === formNumber);
+  return form ? `${form.number} - ${form.name}` : formNumber;
+}
+
+function getFormExplanation(formNumber) {
+  const explanations = {
+    'DV-100': 'This is the main form to request a restraining order. It explains your situation and what protection you need.',
+    'CLETS-001': 'Confidential form for law enforcement. Contains information that helps police enforce your restraining order.',
+    'DV-109': 'Tells you when and where your court hearing will be. You must attend this hearing.',
+    'DV-110': 'The actual restraining order that the judge signs. This is what protects you legally.',
+    'DV-105': 'If you have children, this form asks for custody and visitation orders to protect them.',
+    'DV-140': 'The judge\'s decision about child custody and visitation, if children are involved.',
+    'DV-200': 'Proof that the other person was served with your papers. Required for the restraining order to be valid.',
+    'FL-150': 'Financial information form. Required if you are asking for child or spousal support.',
+    'DV-120': 'Response form for the person you filed against. They use this to tell their side of the story.',
+    'CH-100': 'Civil harassment restraining order form. Used when the person is not a family member or partner.',
+    'CH-110': 'Temporary civil harassment restraining order. Provides immediate protection while waiting for hearing.'
   };
+  return explanations[formNumber] || 'Required form for your case.';
+}
 
-  const getPriorityColor = () => {
-    return 'bg-gradient-to-r from-red-500 to-red-600';
-  };
+function getPriorityColor(priority) {
+  switch (priority) {
+    case 'A': return 'bg-red-100 text-red-800';
+    case 'B': return 'bg-yellow-100 text-yellow-800';
+    case 'C': return 'bg-green-100 text-green-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+}
 
-  const getRelationshipText = () => {
-    if (answers['relationship'] === 'domestic') {
-      return 'Spouse/Partner or Family Member';
-    } else if (answers['relationship'] === 'non_domestic') {
-      return 'Other (Neighbor, Co-worker, etc.)';
+function getRelationshipText(relationship) {
+  switch (relationship) {
+    case 'domestic': return 'Domestic Relationship (Spouse/Partner/Family)';
+    case 'non_domestic': return 'Non-Domestic Relationship (Civil Harassment)';
+    default: return 'Not specified';
+  }
+}
+
+function getSupportText(support) {
+  if (!support || support === 'none') return 'No support requested';
+  switch (support) {
+    case 'child': return 'Child Support';
+    case 'spousal': return 'Spousal Support';
+    case 'both': return 'Child and Spousal Support';
+    default: return support;
+  }
+}
+
+export default function SummaryPage({ answers, forms, flow, onBack, onHome, onEmail }) {
+  const [currentPage, setCurrentPage] = useState('summary'); // 'summary' or 'nextSteps'
+  const [email, setEmail] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setIsSending(true);
+    setEmailError('');
+
+    try {
+      const response = await fetch('/api/send-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          answers,
+          forms,
+          summary: generateSummary(answers, forms, flow)
+        }),
+      });
+
+      if (response.ok) {
+        setEmailSent(true);
+      } else {
+        setEmailError('Failed to send email. Please try again.');
+      }
+    } catch (error) {
+      setEmailError('Network error. Please try again.');
+    } finally {
+      setIsSending(false);
     }
-    return 'Not specified';
   };
 
-  const getSupportText = () => {
-    const support = answers['support'];
-    if (support === 'child') return 'Child Support';
-    if (support === 'spousal') return 'Spousal Support';
-    if (support === 'both') return 'Both Child and Spousal Support';
-    return 'No Support Requested';
-  };
-
-  const getImmediateSteps = () => {
-    const steps = [];
+  const generateSummary = (answers, forms, flow) => {
+    const summary = [];
     
-    if (answers['immediate_danger'] === 'yes') {
-      steps.push('Call 911 immediately if you are still in danger');
-      steps.push('Go to a safe location');
-      steps.push('Ask police about Emergency Protective Order (EPO)');
+    summary.push(`Case Type: Domestic Violence Restraining Order`);
+    summary.push(`Priority: A (High Priority)`);
+    
+    if (answers['relationship']) {
+      summary.push(`Relationship: ${getRelationshipText(answers['relationship'])}`);
     }
     
-    steps.push('Complete all required forms (see list below)');
-    steps.push('Make 3 copies of each form');
-    steps.push('File forms with court clerk');
-    steps.push('Ask clerk about TRO pickup time and hearing date');
+    if (answers['children'] === 'yes') {
+      summary.push('Children: Yes - Child custody/visitation included');
+    }
     
-    return steps;
+    if (answers['support'] && answers['support'] !== 'none') {
+      summary.push(`Support: ${getSupportText(answers['support'])}`);
+    }
+    
+    if (answers['service_method']) {
+      summary.push(`Service Method: ${answers['service_method']}`);
+    }
+    
+    summary.push(`Total Forms Required: ${forms.length}`);
+    forms.forEach(form => {
+      const formInfo = flow.forms_catalog.find(f => f.number === form);
+      summary.push(`- ${form}: ${formInfo ? formInfo.name : 'Form'}`);
+    });
+    
+    return summary.join('\n');
   };
 
-  const getServiceSteps = () => {
-    return [
-      'Choose how to serve the other party (Sheriff, process server, or adult)',
-      'Ensure service happens at least 5 days before hearing',
-      'Have server complete DV-200 (Proof of Service)',
-      'File DV-200 with court before hearing'
-    ];
-  };
-
-  const getHearingSteps = () => {
-    return [
-      'Bring all forms and copies to court',
-      'Bring any evidence (photos, messages, medical records)',
-      'Bring witnesses who can testify',
-      'Arrive 15 minutes early',
-      'Dress appropriately for court'
-    ];
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
+  // Summary Page
+  if (currentPage === 'summary') {
+    return (
+      <div className="h-screen flex flex-col bg-gray-50">
         {/* Header */}
-        <div className={`${getPriorityColor()} text-white p-6 rounded-t-xl`}>
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{caseNumber}</h1>
-              <h2 className="text-2xl font-semibold mb-1">Domestic Violence Restraining Order</h2>
-              <p className="text-red-100">Priority A - Immediate attention required</p>
-            </div>
-            <div className="text-right">
-              <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
-                Priority A
-              </div>
-            </div>
+        <div className="flex justify-between items-center px-6 py-3 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={onBack}
+              className="px-3 py-1.5 text-gray-600 hover:text-gray-800 transition-colors text-sm font-medium flex items-center"
+            >
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Questions
+            </button>
+            <h1 className="text-lg font-bold text-gray-900">Case Summary</h1>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={onHome}
+              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm font-medium"
+            >
+              Home
+            </button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-b-xl shadow-lg">
-          <div className="p-6">
-            {/* Case Summary */}
-            <div className="mb-8">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+        <div className="flex-1 flex">
+          {/* Left Panel - Case Summary */}
+          <div className="w-1/2 bg-white border-r border-gray-200 flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 bg-green-50">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Your Case Summary
+              </h2>
+            </div>
+            
+            <div className="flex-1 px-6 py-4 overflow-y-auto">
+              {/* Case Details */}
+              <div className="space-y-4 mb-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2">Case Information</h4>
+                  <ul className="space-y-1 text-sm text-gray-700">
+                    <li><span className="font-medium">Type:</span> Domestic Violence Restraining Order</li>
+                    <li><span className="font-medium">Priority:</span> 
+                      <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${getPriorityColor('A')}`}>
+                        Priority A
+                      </span>
+                    </li>
+                    {answers['relationship'] && (
+                      <li><span className="font-medium">Relationship:</span> {getRelationshipText(answers['relationship'])}</li>
+                    )}
+                    {answers['children'] === 'yes' && (
+                      <li><span className="font-medium">Children:</span> Yes - Custody/visitation included</li>
+                    )}
+                    {answers['support'] && answers['support'] !== 'none' && (
+                      <li><span className="font-medium">Support:</span> {getSupportText(answers['support'])}</li>
+                    )}
+                  </ul>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">Case Summary</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Case Type:</span>
-                    <span className="font-medium">Domestic Violence</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Relationship:</span>
-                    <span className="font-medium">{getRelationshipText()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Children Involved:</span>
-                    <span className="font-medium">{answers['children'] === 'yes' ? 'Yes' : 'No'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Support Requested:</span>
-                    <span className="font-medium">{getSupportText()}</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Immediate Danger:</span>
-                    <span className="font-medium">{answers['immediate_danger'] === 'yes' ? 'Yes - Emergency' : 'No'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Forms Required:</span>
-                    <span className="font-medium">{forms.length} forms</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Status:</span>
-                    <span className="font-medium text-green-600">Ready for Processing</span>
+
+                {/* Required Forms with Explanations */}
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                    <svg className="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Required Forms ({forms.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {forms.map(form => (
+                      <div key={form} className="bg-yellow-100 p-3 rounded border border-yellow-300">
+                        <div className="font-semibold text-yellow-800 mb-1">
+                          {getFormDisplayName(form, flow.forms_catalog)}
+                        </div>
+                        <div className="text-sm text-yellow-700">
+                          {getFormExplanation(form)}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Required Forms */}
-            <div className="mb-8">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Required Forms</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {forms.map((form, index) => (
-                  <div key={form} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-sm font-bold text-purple-600">{index + 1}</span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{form}</div>
-                      <div className="text-sm text-gray-600">{getFormDisplayName(form)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Right Panel - Quick Overview */}
+          <div className="w-1/2 bg-gray-50 flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 bg-white">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                What's Next?
+              </h2>
             </div>
-
-            {/* Action Steps */}
-            <div className="mb-8">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Immediate Action Steps</h3>
-              </div>
-              
-              <div className="space-y-3">
-                {getImmediateSteps().map((step, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-sm font-bold text-green-600">{index + 1}</span>
-                    </div>
-                    <span className="text-gray-700">{step}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Service Process */}
-            <div className="mb-8">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Service Process</h3>
-              </div>
-              
-              <div className="space-y-3">
-                {getServiceSteps().map((step, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-sm font-bold text-orange-600">{index + 1}</span>
-                    </div>
-                    <span className="text-gray-700">{step}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Hearing Preparation */}
-            <div className="mb-8">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Hearing Preparation</h3>
-              </div>
-              
-              <div className="space-y-3">
-                {getHearingSteps().map((step, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                      <span className="text-sm font-bold text-blue-600">{index + 1}</span>
-                    </div>
-                    <span className="text-gray-700">{step}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Important Information */}
-            <div className="mb-8">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Important Information</h3>
-              </div>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li>• Keep copies of all forms with you at all times</li>
-                  <li>• If you are in immediate danger, call 911</li>
-                  <li>• The facilitator will call your number when ready</li>
-                  <li>• Bring your current order if modifying an existing one</li>
-                  <li>• Ask about fee waivers if you cannot afford filing fees</li>
+            
+            <div className="flex-1 px-6 py-4 flex flex-col">
+              <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                <h4 className="font-semibold text-gray-900 mb-4 text-lg">Your Next Steps</h4>
+                <ul className="space-y-2 text-sm text-gray-700 mb-6">
+                  <li className="flex items-start">
+                    <span className="text-blue-600 mr-2 mt-1">1.</span>
+                    Complete all required forms
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-blue-600 mr-2 mt-1">2.</span>
+                    Make copies of all documents
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-blue-600 mr-2 mt-1">3.</span>
+                    File forms with the court clerk
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-blue-600 mr-2 mt-1">4.</span>
+                    Arrange for service of the other party
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-blue-600 mr-2 mt-1">5.</span>
+                    Attend your court hearing
+                  </li>
                 </ul>
-              </div>
-            </div>
-
-            {/* Wait for Call */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg">
-              <div className="flex items-center mb-3">
-                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <h5 className="font-semibold text-blue-900 mb-2">Need Help?</h5>
+                  <p className="text-sm text-blue-800 mb-3">
+                    We can email you a detailed summary and all required forms to help you get started.
+                  </p>
+                  <button
+                    onClick={() => setCurrentPage('nextSteps')}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all duration-200"
+                  >
+                    Get Detailed Next Steps & Forms
+                  </button>
                 </div>
-                <h3 className="text-xl font-semibold">Please Wait to be Called</h3>
               </div>
-              <p className="text-green-100 mb-2">
-                A facilitator will assist you shortly. Your information has been sent to the facilitator office.
-              </p>
-              <p className="text-green-100 text-sm">
-                Your case number <span className="font-bold">{caseNumber}</span> will be called when ready.
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-between items-center mt-6">
-          <button
-            onClick={onBack}
-            className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+        {/* Footer */}
+        <div className="flex justify-between items-center px-6 py-3 bg-white border-t border-gray-200 shadow-sm">
+          <div className="text-sm text-gray-600">
+            Summary completed
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={onBack}
+              className="px-5 py-2 bg-gray-600 text-white rounded-lg font-semibold text-sm hover:bg-gray-700 transition-all duration-200"
+            >
+              Back to Questions
+            </button>
+            <button
+              onClick={() => setCurrentPage('nextSteps')}
+              className="px-5 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all duration-200"
+            >
+              Next Steps & Forms
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Next Steps Page
+  return (
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="flex justify-between items-center px-6 py-3 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center space-x-4">
+          <button 
+            onClick={() => setCurrentPage('summary')}
+            className="px-3 py-1.5 text-gray-600 hover:text-gray-800 transition-colors text-sm font-medium flex items-center"
           >
-            ← Back to Questions
+            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Summary
+          </button>
+          <h1 className="text-lg font-bold text-gray-900">Next Steps & Forms</h1>
+        </div>
+        <div className="flex items-center space-x-3">
+          <button 
+            onClick={onHome}
+            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm font-medium"
+          >
+            Home
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex">
+        {/* Left Panel - Detailed Steps */}
+        <div className="w-1/2 bg-white border-r border-gray-200 flex flex-col">
+          <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center">
+              <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Detailed Next Steps
+            </h2>
+          </div>
+          
+          <div className="flex-1 px-6 py-4 overflow-y-auto">
+            {/* Immediate Steps */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <svg className="w-4 h-4 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                Immediate Steps
+              </h4>
+              <ul className="space-y-1 text-sm text-gray-700">
+                <li className="flex items-start">
+                  <span className="text-blue-600 mr-2">•</span>
+                  Complete all required forms (see list on right)
+                </li>
+                <li className="flex items-start">
+                  <span className="text-blue-600 mr-2">•</span>
+                  Make 3 copies of each form
+                </li>
+                <li className="flex items-start">
+                  <span className="text-blue-600 mr-2">•</span>
+                  File forms with the court clerk
+                </li>
+                <li className="flex items-start">
+                  <span className="text-blue-600 mr-2">•</span>
+                  Ask clerk about hearing date and time
+                </li>
+              </ul>
+            </div>
+
+            {/* Service Process */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <svg className="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Service Process
+              </h4>
+              <ul className="space-y-1 text-sm text-gray-700">
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">•</span>
+                  Someone 18+ (not you) must serve the other party
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">•</span>
+                  Service must be completed at least 5 days before hearing
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">•</span>
+                  Server completes DV-200 (Proof of Service)
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">•</span>
+                  File DV-200 with court before hearing
+                </li>
+              </ul>
+            </div>
+
+            {/* Hearing Preparation */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <svg className="w-4 h-4 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Hearing Preparation
+              </h4>
+              <ul className="space-y-1 text-sm text-gray-700">
+                <li className="flex items-start">
+                  <span className="text-purple-600 mr-2">•</span>
+                  Arrive 15 minutes early to court
+                </li>
+                <li className="flex items-start">
+                  <span className="text-purple-600 mr-2">•</span>
+                  Bring all original forms and copies
+                </li>
+                <li className="flex items-start">
+                  <span className="text-purple-600 mr-2">•</span>
+                  Bring evidence (photos, documents, witnesses)
+                </li>
+                <li className="flex items-start">
+                  <span className="text-purple-600 mr-2">•</span>
+                  Dress appropriately for court
+                </li>
+                <li className="flex items-start">
+                  <span className="text-purple-600 mr-2">•</span>
+                  Be prepared to testify
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Panel - Forms & Email */}
+        <div className="w-1/2 bg-gray-50 flex flex-col">
+          <div className="px-6 py-4 border-b border-gray-200 bg-white">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center">
+              <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Forms & Email
+            </h2>
+          </div>
+          
+          <div className="flex-1 px-6 py-4 overflow-y-auto">
+            {/* Forms List */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
+              <h4 className="font-semibold text-gray-900 mb-3">Your Required Forms</h4>
+              <div className="space-y-2">
+                {forms.map((form, index) => (
+                  <div key={form} className="bg-gray-50 p-3 rounded border">
+                    <div className="font-medium text-gray-900 mb-1">
+                      {index + 1}. {getFormDisplayName(form, flow.forms_catalog)}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {getFormExplanation(form)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Email Section */}
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Get Forms by Email
+              </h4>
+              
+              {emailSent ? (
+                <div className="bg-green-100 border border-green-200 p-3 rounded">
+                  <p className="text-green-800 text-sm font-medium">
+                    ✓ Summary and forms sent to {email}
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleEmailSubmit} className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="your.email@example.com"
+                      required
+                    />
+                  </div>
+                  
+                  {emailError && (
+                    <p className="text-red-600 text-sm">{emailError}</p>
+                  )}
+                  
+                  <button
+                    type="submit"
+                    disabled={isSending || !email}
+                    className={`w-full px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
+                      isSending || !email
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    {isSending ? 'Sending...' : 'Send Summary & Forms'}
+                  </button>
+                  
+                  <p className="text-xs text-gray-600">
+                    We'll email you a detailed summary and all required forms as PDF attachments.
+                  </p>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex justify-between items-center px-6 py-3 bg-white border-t border-gray-200 shadow-sm">
+        <div className="text-sm text-gray-600">
+          Ready to proceed
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setCurrentPage('summary')}
+            className="px-5 py-2 bg-gray-600 text-white rounded-lg font-semibold text-sm hover:bg-gray-700 transition-all duration-200"
+          >
+            Back to Summary
           </button>
           <button
-            onClick={onPrint}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={onHome}
+            className="px-5 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all duration-200"
           >
-            Print Summary
+            Start New Case
           </button>
         </div>
       </div>

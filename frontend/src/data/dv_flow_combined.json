@@ -15,13 +15,15 @@
     { "number": "DV-140", "name": "Child Custody and Visitation Order" },
     { "number": "DV-200", "name": "Proof of Personal Service" },
     { "number": "FL-150", "name": "Income and Expense Declaration" },
-    { "number": "DV-120", "name": "Response to Request for Domestic Violence Restraining Order" }
+    { "number": "DV-120", "name": "Response to Request for Domestic Violence Restraining Order" },
+    { "number": "CH-100", "name": "Request for Civil Harassment Restraining Order" },
+    { "number": "CH-110", "name": "Temporary Civil Harassment Restraining Order" }
   ],
   "pages": {
     "menu": {
       "type": "question",
       "info": {
-        "en": "Select what you want to do. You’ll see short explanations next to every question so you don’t have to guess.",
+        "en": "Select what you want to do. You'll see short explanations next to every question so you don't have to guess.",
         "es": "Seleccione lo que desea hacer. Verá explicaciones junto a cada pregunta para que no tenga que adivinar."
       },
       "question": {
@@ -51,12 +53,19 @@
       ]
     },
     "safety_steps": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "1) Call 911. 2) Go to a safe location. 3) Ask police about an EPO. When you are safe, return to start a court request for a longer order.",
         "es": "1) Llame al 911. 2) Vaya a un lugar seguro. 3) Pregunte a la policía sobre una EPO. Cuando esté a salvo, regrese para iniciar una solicitud judicial para una orden más larga."
       },
-      "next": "relationship"
+      "question": {
+        "en": "Have you taken these safety steps?",
+        "es": "¿Ha tomado estos pasos de seguridad?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, I'm safe now", "es": "Sí, estoy seguro ahora" }, "next": "relationship" },
+        { "value": "no", "label": { "en": "No, I need more help", "es": "No, necesito más ayuda" }, "next": "relationship" }
+      ]
     },
     "relationship": {
       "type": "question",
@@ -74,13 +83,20 @@
       ]
     },
     "civil_harassment_path": {
-      "type": "info",
+      "type": "question",
       "info": {
-        "en": "For non-domestic relationships, use civil harassment forms (CH-100, CH-110). We’ll still help you with copies, filing, service and hearing steps.",
+        "en": "For non-domestic relationships, use civil harassment forms (CH-100, CH-110). We'll still help you with copies, filing, service and hearing steps.",
         "es": "Para relaciones no domésticas, use formularios de acoso civil (CH-100, CH-110). Aun así le ayudaremos con copias, presentación, notificación y audiencia."
       },
       "forms_add": ["CH-100", "CH-110"],
-      "next": "children"
+      "question": {
+        "en": "Do you understand you'll use Civil Harassment forms?",
+        "es": "¿Entiende que usará formularios de Acoso Civil?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, continue", "es": "Sí, continuar" }, "next": "children" },
+        { "value": "no", "label": { "en": "No, go back", "es": "No, regresar" }, "next": "relationship" }
+      ]
     },
     "children": {
       "type": "question",
@@ -115,48 +131,84 @@
       ]
     },
     "forms_overview": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "You will complete: DV-100 (request), CLETS-001, DV-109 (Notice of Court Hearing), and DV-110 (Temporary Restraining Order). If children are included: DV-105 and DV-140. If requesting support: FL-150.",
         "es": "Completará: DV-100 (solicitud), CLETS-001, DV-109 (Aviso de audiencia) y DV-110 (Orden de restricción temporal). Si incluye niños: DV-105 y DV-140. Si solicita manutención: FL-150."
       },
-      "next": "dv100_intro"
+      "forms_add": ["DV-100", "CLETS-001", "DV-109", "DV-110"],
+      "question": {
+        "en": "Do you understand which forms you need?",
+        "es": "¿Entiende qué formularios necesita?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, continue", "es": "Sí, continuar" }, "next": "dv100_intro" },
+        { "value": "no", "label": { "en": "No, explain more", "es": "No, explicar más" }, "next": "dv100_intro" }
+      ]
     },
     "dv100_intro": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "DV-100 — Describe recent abuse, relationship, and orders you want. Be specific about dates and incidents.",
         "es": "DV-100 — Describa el abuso reciente, la relación y las órdenes que desea. Sea específico sobre fechas e incidentes."
       },
       "forms_add": ["DV-100"],
-      "next": "clets_intro"
+      "question": {
+        "en": "Are you ready to start DV-100?",
+        "es": "¿Está listo para comenzar DV-100?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, continue", "es": "Sí, continuar" }, "next": "clets_intro" },
+        { "value": "no", "label": { "en": "No, I need help", "es": "No, necesito ayuda" }, "next": "clets_intro" }
+      ]
     },
     "clets_intro": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "CLETS-001 — Confidential information for law enforcement systems.",
         "es": "CLETS-001 — Información confidencial para sistemas de fuerzas del orden."
       },
       "forms_add": ["CLETS-001"],
-      "next": "dv109_intro"
+      "question": {
+        "en": "Do you understand CLETS-001?",
+        "es": "¿Entiende CLETS-001?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, continue", "es": "Sí, continuar" }, "next": "dv109_intro" },
+        { "value": "no", "label": { "en": "No, explain more", "es": "No, explicar más" }, "next": "dv109_intro" }
+      ]
     },
     "dv109_intro": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "DV-109 — Notice of Court Hearing: lists your court date and what the judge will consider.",
         "es": "DV-109 — Aviso de audiencia: incluye la fecha de su audiencia y lo que el juez considerará."
       },
       "forms_add": ["DV-109"],
-      "next": "dv110_intro"
+      "question": {
+        "en": "Do you understand DV-109?",
+        "es": "¿Entiende DV-109?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, continue", "es": "Sí, continuar" }, "next": "dv110_intro" },
+        { "value": "no", "label": { "en": "No, explain more", "es": "No, explicar más" }, "next": "dv110_intro" }
+      ]
     },
     "dv110_intro": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "DV-110 — Temporary Restraining Order: judge-signed temporary orders that last until the hearing.",
         "es": "DV-110 — Orden de restricción temporal: órdenes firmadas por el juez que duran hasta la audiencia."
       },
       "forms_add": ["DV-110"],
-      "next": "copies"
+      "question": {
+        "en": "Do you understand DV-110?",
+        "es": "¿Entiende DV-110?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, continue", "es": "Sí, continuar" }, "next": "copies" },
+        { "value": "no", "label": { "en": "No, explain more", "es": "No, explicar más" }, "next": "copies" }
+      ]
     },
     "copies": {
       "type": "question",
@@ -183,12 +235,19 @@
       ]
     },
     "tro_pickup": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "Ask the clerk when your TRO (DV-110) and hearing notice (DV-109) will be ready. Keep copies with you.",
         "es": "Pregunte al secretario cuándo estarán listas su TRO (DV-110) y el aviso de audiencia (DV-109). Guarde copias con usted."
       },
-      "next": "service_method"
+      "question": {
+        "en": "Have you picked up your TRO and hearing notice?",
+        "es": "¿Ha recogido su TRO y aviso de audiencia?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "service_method" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "service_method" }
+      ]
     },
     "service_method": {
       "type": "question",
@@ -201,7 +260,7 @@
         { "value": "sheriff", "label": { "en": "Sheriff", "es": "Sheriff" }, "next": "served" },
         { "value": "server", "label": { "en": "Process server", "es": "Gestor de notificaciones" }, "next": "served" },
         { "value": "adult", "label": { "en": "Adult (18+) not in the case", "es": "Adulto (18+) que no es parte" }, "next": "served" },
-        { "value": "unknown", "label": { "en": "I don’t know yet", "es": "Aún no sé" }, "next": "served" }
+        { "value": "unknown", "label": { "en": "I don't know yet", "es": "Aún no sé" }, "next": "served" }
       ]
     },
     "served": {
@@ -248,42 +307,63 @@
       },
       "question": { "en": "Are firearms involved that must be surrendered?", "es": "¿Hay armas de fuego que deban entregarse?" },
       "options": [
-        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "summary" },
-        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "summary" }
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "final_summary" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "final_summary" }
       ]
     },
-    "summary": {
-      "type": "info",
-      "info": {
-        "en": "You’re ready for the hearing steps. The facilitator can help review your packet and next steps.",
-        "es": "Está listo para los pasos de la audiencia. La oficina de facilitación puede ayudar a revisar su paquete y los próximos pasos."
-      },
-      "next": null
-    },
     "respond_intro": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "To respond to a DVRO request, use DV-120 (Response). You must be served by someone 18+ who is not a party. After responding, attend the hearing listed on the DV-109 you received.",
         "es": "Para responder a una solicitud de DVRO, use DV-120 (Respuesta). Debe ser notificado por alguien de 18+ que no sea parte. Después de responder, asista a la audiencia indicada en el DV-109 que recibió."
       },
       "forms_add": ["DV-120"],
-      "next": "summary"
+      "question": {
+        "en": "Do you understand the response process?",
+        "es": "¿Entiende el proceso de respuesta?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, continue", "es": "Sí, continuar" }, "next": "final_summary" },
+        { "value": "no", "label": { "en": "No, explain more", "es": "No, explicar más" }, "next": "final_summary" }
+      ]
     },
     "change_intro": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "To change or end an existing order, you typically file a request with the court explaining what changes you need and why. Bring your current order to the facilitator.",
         "es": "Para cambiar o terminar una orden existente, normalmente presenta una solicitud al tribunal explicando qué cambios necesita y por qué. Lleve su orden actual a la oficina de facilitación."
       },
-      "next": "summary"
+      "question": {
+        "en": "Do you have your current order with you?",
+        "es": "¿Tiene su orden actual con usted?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "final_summary" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "final_summary" }
+      ]
     },
     "renew_intro": {
-      "type": "info",
+      "type": "question",
       "info": {
         "en": "You may ask to renew a DVRO before it expires. Renewals can be for 5 years or permanent in some cases. Start early to allow time for filing and service.",
         "es": "Puede pedir renovar una DVRO antes de que venza. Las renovaciones pueden ser por 5 años o permanentes en algunos casos. Comience temprano para tener tiempo de presentar y notificar."
       },
-      "next": "summary"
+      "question": {
+        "en": "Do you understand the renewal process?",
+        "es": "¿Entiende el proceso de renovación?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, continue", "es": "Sí, continuar" }, "next": "final_summary" },
+        { "value": "no", "label": { "en": "No, explain more", "es": "No, explicar más" }, "next": "final_summary" }
+      ]
+    },
+    "final_summary": {
+      "type": "info",
+      "info": {
+        "en": "You're ready for the next steps. The facilitator can help review your packet and provide detailed guidance.",
+        "es": "Está listo para los próximos pasos. La oficina de facilitación puede ayudar a revisar su paquete y proporcionar orientación detallada."
+      },
+      "next": null
     }
   },
   "rules": {

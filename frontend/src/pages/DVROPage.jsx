@@ -1,161 +1,240 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import DVROInformation from '../components/DVROInformation';
-import DVROWizard from '../components/DVROWizard';
-import DVROResults from '../components/DVROResults';
-import Logo from '../components/Logo';
-import { Info, HelpCircle, ArrowLeft, Shield, Globe, Home } from 'lucide-react';
+import FlowRunner from '../components/FlowRunner';
+import flowData from '../data/dv_flow_combined.json';
+import { Shield, Globe, Home, ArrowLeft } from 'lucide-react';
 
-const DVROPage = () => {
+export default function DVROPage() {
   const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
-  const [currentMode, setCurrentMode] = useState('menu');
-  const [wizardResults, setWizardResults] = useState(null);
-  const [currentWizardStep, setCurrentWizardStep] = useState(0);
+  const [showFlow, setShowFlow] = useState(false);
 
-  const handleWizardComplete = (results) => {
-    setWizardResults(results);
-    setCurrentMode('results');
+  const handleFinish = ({ answers, forms }) => {
+    console.log('User completed the DVRO flow with:', { answers, forms });
+
+    const payload = {
+      caseType: 'DVRO',
+      priority: 'A',
+      answers,
+      recommendedForms: forms,
+      summary: generateSummary(answers, forms),
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('Backend payload:', payload);
+
+    // The FlowRunner will now handle showing the summary page
+    // No need to navigate away - the summary is displayed within the flow
   };
 
-  const handleBack = () => {
-    if (currentMode === 'results') {
-      setCurrentMode('wizard');
-      setWizardResults(null);
-    } else if (currentMode === 'wizard') {
-      setCurrentMode('menu');
-    } else if (currentMode === 'info') {
-      setCurrentMode('menu');
+  const generateSummary = (answers, forms) => {
+    const summary = [];
+
+    if (answers['immediate_danger'] === 'yes') {
+      summary.push('User reported immediate danger - emergency protocols activated');
     }
-  };
 
-  const handleBackToHome = () => {
-    navigate('/');
-  };
-
-  const renderMenu = () => (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Shield className="w-10 h-10 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          {language === 'es' ? 'Órdenes de Restricción' : 'Restraining Orders'}
-        </h1>
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          {language === 'es' 
-            ? 'Obtenga ayuda para solicitar una orden de restricción por violencia doméstica. Le guiaremos a través del proceso paso a paso.'
-            : 'Get help applying for a domestic violence restraining order. We\'ll guide you through the process step by step.'
-          }
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-        <button
-          onClick={() => setCurrentMode('info')}
-          className="flex items-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-all border-2 border-transparent hover:border-red-200"
-        >
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-            <Info className="w-6 h-6 text-blue-600" />
-          </div>
-          <div className="text-left">
-            <h3 className="font-semibold text-gray-800 mb-1">
-              {language === 'es' ? 'Información' : 'Information'}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {language === 'es' 
-                ? 'Aprenda sobre órdenes de restricción y el proceso'
-                : 'Learn about restraining orders and the process'
-              }
-            </p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => setCurrentMode('wizard')}
-          className="flex items-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-all border-2 border-transparent hover:border-red-200"
-        >
-          <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
-            <HelpCircle className="w-6 h-6 text-red-600" />
-          </div>
-          <div className="text-left">
-            <h3 className="font-semibold text-gray-800 mb-1">
-              {language === 'es' ? 'Comenzar' : 'Get Started'}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {language === 'es' 
-                ? 'Responda preguntas para obtener ayuda personalizada'
-                : 'Answer questions to get personalized help'
-              }
-            </p>
-          </div>
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderContent = () => {
-    switch (currentMode) {
-      case 'info':
-        return <DVROInformation />;
-      case 'wizard':
-        return (
-          <DVROWizard 
-            onComplete={handleWizardComplete}
-            onStepChange={setCurrentWizardStep}
-          />
-        );
-      case 'results':
-        return (
-          <DVROResults 
-            results={wizardResults} 
-            onBack={handleBack}
-            onPrint={() => window.print()}
-          />
-        );
-      default:
-        return renderMenu();
+    if (answers['relationship'] === 'domestic') {
+      summary.push('Domestic relationship - using DVRO forms');
+    } else if (answers['relationship'] === 'non_domestic') {
+      summary.push('Non-domestic relationship - using Civil Harassment forms');
     }
+
+    if (answers['children'] === 'yes') {
+      summary.push('Children involved - child custody/visitation forms included');
+    }
+
+    if (answers['support'] && answers['support'] !== 'none') {
+      summary.push(`Support requested: ${answers['support']} - income forms included`);
+    }
+
+    summary.push(`Total forms recommended: ${forms.length}`);
+
+    return summary.join('. ');
   };
 
+  // If flow is active, show the FlowRunner without any wrapper
+  if (showFlow) {
+    return (
+      <FlowRunner
+        flow={flowData}
+        locale={language}
+        onFinish={handleFinish}
+        onBack={() => setShowFlow(false)}
+        onHome={() => navigate('/')}
+      />
+    );
+  }
+
+  // Show the simplified landing page
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Simple Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button onClick={handleBackToHome} className="flex items-center text-gray-600 hover:text-gray-800 transition-colors">
-                <Home className="w-5 h-5 mr-2" />
-                {language === 'es' ? 'Inicio' : 'Home'}
-              </button>
-              {currentMode !== 'menu' && (
-                <button onClick={handleBack} className="flex items-center text-gray-600 hover:text-gray-800 transition-colors">
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  {language === 'es' ? 'Volver al menú' : 'Back to menu'}
-                </button>
-              )}
-            </div>
-            <div className="flex items-center space-x-4">
-              <Logo size="small" />
+        <div className="max-w-7xl mx-auto px-8 py-4">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center text-gray-600 hover:text-gray-800 transition-colors font-medium"
+            >
+              <Home className="w-5 h-5 mr-2" />
+              Back to Home
+            </button>
+
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-white" />
+                </div>
+                <span className="font-semibold text-gray-900">Family Court Clinic</span>
+              </div>
+
               <button
                 onClick={toggleLanguage}
-                className="flex items-center space-x-1 px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
               >
-                <Globe className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  {language === 'es' ? 'EN' : 'ES'}
-                </span>
+                {language === 'es' ? 'EN' : 'ES'}
               </button>
             </div>
           </div>
         </div>
       </div>
-      <div className="py-8">
-        {renderContent()}
+
+      {/* Main Content - Expanded and Better Utilized */}
+      <div className="max-w-7xl mx-auto px-8 py-16">
+        {/* Hero Section - Wider and More Prominent */}
+        <div className="text-center mb-16">
+          <h1 className="text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            {language === 'es' ? 'Órdenes de Restricción' : 'Domestic Violence Restraining Orders'}
+          </h1>
+
+          <p className="text-xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
+            {language === 'es'
+              ? 'Obtenga ayuda para solicitar una orden de restricción. Le guiaremos paso a paso con información y formularios específicos.'
+              : 'Get help applying for a restraining order. We\'ll guide you step by step with information and specific forms.'
+            }
+          </p>
+        </div>
+
+        {/* Compact Emergency Notice - Wider */}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-12 max-w-4xl mx-auto">
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <p className="text-red-800 text-base">
+              {language === 'es'
+                ? 'Si está en peligro inmediato, llame al 911. '
+                : 'If you are in immediate danger, call 911. '
+              }
+              <span className="font-medium">
+                {language === 'es'
+                  ? 'Ahora puede comenzar su solicitud.'
+                  : 'You can now begin your application.'
+                }
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Main Action - Prominent and Centered */}
+        <div className="text-center mb-16">
+          <button
+            onClick={() => setShowFlow(true)}
+            className="inline-flex items-center px-12 py-6 bg-red-600 text-white font-semibold text-lg rounded-lg hover:bg-red-700 transition-colors shadow-lg"
+          >
+            <Shield className="w-6 h-6 mr-3" />
+            {language === 'es' ? 'Comenzar Solicitud' : 'Start Application'}
+          </button>
+
+          <p className="text-base text-gray-500 mt-4">
+            {language === 'es'
+              ? 'Gratis y confidencial • 15-20 minutos'
+              : 'Free and confidential • 15-20 minutes'
+            }
+          </p>
+        </div>
+
+        {/* Quick Info - Wider Grid */}
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-100">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-blue-600 font-bold text-lg">1</span>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3 text-center">
+              {language === 'es' ? 'Información' : 'Information'}
+            </h3>
+            <p className="text-gray-600 text-center leading-relaxed">
+              {language === 'es'
+                ? 'Aprenda sobre el proceso legal, sus derechos y las opciones disponibles para su situación específica.'
+                : 'Learn about the legal process, your rights, and the options available for your specific situation.'
+              }
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-100">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-green-600 font-bold text-lg">2</span>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3 text-center">
+              {language === 'es' ? 'Preguntas' : 'Questions'}
+            </h3>
+            <p className="text-gray-600 text-center leading-relaxed">
+              {language === 'es'
+                ? 'Responda preguntas simples sobre su situación para recibir orientación personalizada y específica.'
+                : 'Answer simple questions about your situation to receive personalized and specific guidance.'
+              }
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-100">
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-purple-600 font-bold text-lg">3</span>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3 text-center">
+              {language === 'es' ? 'Formularios' : 'Forms'}
+            </h3>
+            <p className="text-gray-600 text-center leading-relaxed">
+              {language === 'es'
+                ? 'Obtenga los formularios específicos que necesita para su caso, con instrucciones detalladas.'
+                : 'Get the specific forms you need for your case, with detailed instructions.'
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* Additional Information Section */}
+        <div className="mt-20 max-w-5xl mx-auto">
+          <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              {language === 'es' ? '¿Por qué usar este sistema?' : 'Why use this system?'}
+            </h2>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  {language === 'es' ? 'Información Completa' : 'Complete Information'}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {language === 'es'
+                    ? 'Cada pregunta incluye información contextual para que comprenda completamente antes de tomar decisiones.'
+                    : 'Every question includes contextual information so you understand completely before making decisions.'
+                  }
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  {language === 'es' ? 'Formularios Específicos' : 'Specific Forms'}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {language === 'es'
+                    ? 'Reciba solo los formularios que necesita para su situación específica, sin confusión.'
+                    : 'Receive only the forms you need for your specific situation, without confusion.'
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default DVROPage; 
+} 
