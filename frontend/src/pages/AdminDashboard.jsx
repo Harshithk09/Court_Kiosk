@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe } from 'lucide-react';
 
+const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
+  process.env.REACT_APP_API_URL ||
+  'http://localhost:5001';
+
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
   const [queue, setQueue] = useState([]);
@@ -16,7 +21,7 @@ const AdminDashboard = () => {
 
   const fetchQueue = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/queue');
+      const response = await fetch(`${API_BASE_URL}/api/queue`);
       if (response.ok) {
         const data = await response.json();
         setQueue(data.queue);
@@ -31,7 +36,7 @@ const AdminDashboard = () => {
 
   const callNext = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/call-next', {
+      const response = await fetch(`${API_BASE_URL}/api/call-next`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,7 +52,7 @@ const AdminDashboard = () => {
 
   const completeCase = async (queueNumber) => {
     try {
-      const response = await fetch('http://localhost:5001/api/complete-case', {
+      const response = await fetch(`${API_BASE_URL}/api/complete-case`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

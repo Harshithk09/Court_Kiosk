@@ -13,6 +13,11 @@ import {
   FileText as FileTextIcon
 } from 'lucide-react';
 
+const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
+  process.env.REACT_APP_API_URL ||
+  'http://localhost:5001';
+
 const UserKiosk = () => {
   const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
@@ -85,7 +90,7 @@ const UserKiosk = () => {
       }
 
       // For other cases, use the existing queue system
-      const response = await fetch('http://localhost:5001/api/generate-queue', {
+      const response = await fetch(`${API_BASE_URL}/api/generate-queue`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -310,4 +315,4 @@ const UserKiosk = () => {
   );
 };
 
-export default UserKiosk; 
+export default UserKiosk;
