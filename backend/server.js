@@ -43,8 +43,9 @@ const generatePDF = (topic, answers, forms, nextSteps, location) => {
     doc.fontSize(16).text('Required Forms:', { underline: true });
     doc.moveDown();
     
-    if (Array.isArray(forms)) {
-      forms.forEach((form, index) => {
+    const formsArray = Array.isArray(forms) ? forms : [];
+    if (formsArray.length > 0) {
+      (Array.isArray(forms) ? forms : []).forEach((form, index) => {
         doc.fontSize(12).text(`${index + 1}. ${form.number} - ${form.name}`);
         doc.fontSize(10).text(`   ${form.description}`, { color: 'gray' });
         if (form.required) {
@@ -60,9 +61,10 @@ const generatePDF = (topic, answers, forms, nextSteps, location) => {
     doc.moveDown();
     doc.fontSize(16).text('Next Steps:', { underline: true });
     doc.moveDown();
-    
-    if (Array.isArray(nextSteps)) {
-      nextSteps.forEach((step, index) => {
+
+    const nextStepsArray = Array.isArray(nextSteps) ? nextSteps : [];
+    if (nextStepsArray.length > 0) {
+      (Array.isArray(nextSteps) ? nextSteps : []).forEach((step, index) => {
         doc.fontSize(12).text(`${index + 1}. ${step}`);
         doc.moveDown();
       });
@@ -96,6 +98,21 @@ app.post('/api/send-email', async (req, res) => {
   try {
     const { email, topic, answers, forms, nextSteps, location } = req.body;
 
+    if (forms && !Array.isArray(forms)) {
+      return res.status(400).json({ success: false, message: 'forms must be an array' });
+    }
+    if (nextSteps && !Array.isArray(nextSteps)) {
+      return res.status(400).json({ success: false, message: 'nextSteps must be an array' });
+    }
+
+    const formsHtml = Array.isArray(forms)
+      ? forms.map(form => `<li><strong>${form.number}</strong> - ${form.name}<br><em>${form.description}</em></li>`).join('')
+      : '<li>No forms specified</li>';
+
+    const nextStepsHtml = Array.isArray(nextSteps)
+      ? nextSteps.map(step => `<li>${step}</li>`).join('')
+      : '<li>No next steps specified</li>';
+
     // Generate PDF
     const pdfBuffer = await generatePDF(topic, answers, forms, nextSteps, location);
 
@@ -107,17 +124,17 @@ app.post('/api/send-email', async (req, res) => {
       html: `
         <h2>Court Self-Help Center</h2>
         <p>Thank you for using our self-help system. Here are your personalized form recommendations for ${topic}.</p>
-        
+
         <h3>Required Forms:</h3>
         <ul>
-          ${Array.isArray(forms) ? forms.map(form => `<li><strong>${form.number}</strong> - ${form.name}<br><em>${form.description}</em></li>`).join('') : '<li>No forms specified</li>'}
+          ${formsHtml}
         </ul>
-        
+
         <h3>Next Steps:</h3>
         <ol>
-          ${Array.isArray(nextSteps) ? nextSteps.map(step => `<li>${step}</li>`).join('') : '<li>No next steps specified</li>'}
+          ${nextStepsHtml}
         </ol>
-        
+
         ${location ? `
         <h3>Court Information:</h3>
         <p><strong>${location.name}</strong><br>
@@ -125,7 +142,7 @@ app.post('/api/send-email', async (req, res) => {
         Phone: ${location.phone}<br>
         Hours: ${location.hours}</p>
         ` : ''}
-        
+
         <p><em>Disclaimer: This information is provided for general guidance only and does not constitute legal advice.</em></p>
       `,
       attachments: [
