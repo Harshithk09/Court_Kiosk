@@ -39,27 +39,37 @@ const generatePDF = (topic, answers, forms, nextSteps, location) => {
     doc.fontSize(18).text(`${topic} - Form Recommendations`, { align: 'center' });
     doc.moveDown(2);
 
-    // Add forms section
+    // Add forms section with null checks
     doc.fontSize(16).text('Required Forms:', { underline: true });
     doc.moveDown();
     
-    forms.forEach((form, index) => {
-      doc.fontSize(12).text(`${index + 1}. ${form.number} - ${form.name}`);
-      doc.fontSize(10).text(`   ${form.description}`, { color: 'gray' });
-      if (form.required) {
-        doc.fontSize(10).text('   Required', { color: 'red' });
-      }
+    if (Array.isArray(forms)) {
+      forms.forEach((form, index) => {
+        doc.fontSize(12).text(`${index + 1}. ${form.number} - ${form.name}`);
+        doc.fontSize(10).text(`   ${form.description}`, { color: 'gray' });
+        if (form.required) {
+          doc.fontSize(10).text('   Required', { color: 'red' });
+        }
+        doc.moveDown();
+      });
+    } else {
+      doc.fontSize(12).text('No forms specified');
       doc.moveDown();
-    });
+    }
 
     doc.moveDown();
     doc.fontSize(16).text('Next Steps:', { underline: true });
     doc.moveDown();
     
-    nextSteps.forEach((step, index) => {
-      doc.fontSize(12).text(`${index + 1}. ${step}`);
+    if (Array.isArray(nextSteps)) {
+      nextSteps.forEach((step, index) => {
+        doc.fontSize(12).text(`${index + 1}. ${step}`);
+        doc.moveDown();
+      });
+    } else {
+      doc.fontSize(12).text('No next steps specified');
       doc.moveDown();
-    });
+    }
 
     if (location) {
       doc.moveDown();
@@ -81,16 +91,6 @@ const generatePDF = (topic, answers, forms, nextSteps, location) => {
 const semanticSearchRouter = require('./routes/semanticSearch');
 app.use(semanticSearchRouter);
 
-module.exports = {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-
 // Routes
 app.post('/api/send-email', async (req, res) => {
   try {
@@ -99,7 +99,7 @@ app.post('/api/send-email', async (req, res) => {
     // Generate PDF
     const pdfBuffer = await generatePDF(topic, answers, forms, nextSteps, location);
 
-    // Email options
+    // Email options with null checks
     const mailOptions = {
       from: process.env.EMAIL_USER || 'your-email@gmail.com',
       to: email,
@@ -110,12 +110,12 @@ app.post('/api/send-email', async (req, res) => {
         
         <h3>Required Forms:</h3>
         <ul>
-          ${forms.map(form => `<li><strong>${form.number}</strong> - ${form.name}<br><em>${form.description}</em></li>`).join('')}
+          ${Array.isArray(forms) ? forms.map(form => `<li><strong>${form.number}</strong> - ${form.name}<br><em>${form.description}</em></li>`).join('') : '<li>No forms specified</li>'}
         </ul>
         
         <h3>Next Steps:</h3>
         <ol>
-          ${nextSteps.map(step => `<li>${step}</li>`).join('')}
+          ${Array.isArray(nextSteps) ? nextSteps.map(step => `<li>${step}</li>`).join('') : '<li>No next steps specified</li>'}
         </ol>
         
         ${location ? `

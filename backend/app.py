@@ -359,9 +359,16 @@ def dvro_rag():
     user_question = data.get('question', '')
     language = data.get('language', 'en')
 
-    # Load flowchart data
-    with open('flowchart.json', 'r') as f:
-        flowchart = json.load(f)
+    # Load flowchart data with error handling
+    try:
+        with open('flowchart.json', 'r') as f:
+            flowchart = json.load(f)
+    except FileNotFoundError:
+        return jsonify({'error': 'Flowchart data not found'}), 404
+    except json.JSONDecodeError:
+        return jsonify({'error': 'Invalid flowchart data format'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Error reading flowchart data: {str(e)}'}), 500
 
     # Simple retrieval: collect all steps and documents for DVRO
     steps = []
@@ -410,7 +417,12 @@ def dvro_rag():
 
 @app.route('/api/flowchart', methods=['GET'])
 def api_flowchart():
-    return send_file('flowchart.json', mimetype='application/json')
+    try:
+        return send_file('flowchart.json', mimetype='application/json')
+    except FileNotFoundError:
+        return jsonify({'error': 'Flowchart data not found'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Error serving flowchart data: {str(e)}'}), 500
 
 @app.route('/api/generate-queue', methods=['POST'])
 def generate_queue():
@@ -425,8 +437,23 @@ def generate_queue():
     # Generate queue number (format: A001, B002, etc.)
     last_entry = QueueEntry.query.filter_by(case_type=case_type).order_by(QueueEntry.id.desc()).first()
     if last_entry:
-        last_num = int(last_entry.queue_number[1:])
-        new_num = last_num + 1
+        # Extract numeric portion more robustly
+        queue_num = last_entry.queue_number
+        # Find the first digit in the queue number
+        numeric_start = None
+        for i, char in enumerate(queue_num):
+            if char.isdigit():
+                numeric_start = i
+                break
+        
+        if numeric_start is not None:
+            try:
+                last_num = int(queue_num[numeric_start:])
+                new_num = last_num + 1
+            except ValueError:
+                new_num = 1
+        else:
+            new_num = 1
     else:
         new_num = 1
     

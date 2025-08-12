@@ -1,220 +1,183 @@
-# Court Kiosk System
+# Court Kiosk System - DVRO Flow
 
-A **Kaiser-style kiosk system** for family court clinics that helps manage client queues with priority-based scheduling and guided question flows.
+A comprehensive court kiosk system for Domestic Violence Restraining Orders (DVRO) with improved error handling, configuration management, and testing.
 
-## 🎯 **System Overview**
+## Recent Fixes Applied
 
-### **Priority Queue System**
-- **A (Red)**: Domestic Violence cases - Immediate attention
-- **B (Orange)**: Custody/Support cases - High priority  
-- **C (Yellow)**: Divorce cases - Medium priority
-- **D (Blue)**: Other cases - Standard priority
+### Backend Issues Fixed:
+1. **Tailwind Config Issue**: Removed embedded Tailwind configuration from `server.js` that was overriding Express module exports
+2. **Form Handling**: Added null checks for forms and nextSteps arrays to prevent runtime errors
+3. **Hard-coded Endpoints**: Created `config.py` with configurable service endpoints via environment variables
+4. **Unprotected File Reads**: Added proper error handling for `flowchart.json` file operations
+5. **Queue Numbering**: Fixed queue number extraction to handle case types with multiple characters
+6. **Testing**: Added comprehensive test suite for both backend and frontend
 
-### **Two Interfaces**
-1. **User Kiosk** (`/`) - Simple touch interface for clients
-2. **Admin Dashboard** (`/admin`) - For facilitators to manage queue
+### Frontend Issues Fixed:
+1. **Missing Components**: Recreated `SummaryPage.jsx` component that was accidentally deleted
+2. **Type Safety**: Added proper null checks and error handling
+3. **Testing**: Added basic frontend tests
 
-## 🚀 **Features**
+## Quick Start
 
-### **User Kiosk**
-- ✅ **Simple Case Selection** - 4 clear categories with priority indicators
-- ✅ **Guided Questions** - Structured questions based on case type
-- ✅ **Queue Number Generation** - Priority-based numbering (A001, B002, etc.)
-- ✅ **Case Summary** - AI-generated summary sent to facilitators
-- ✅ **Next Steps** - Personalized guidance for clients
-- ✅ **Bilingual Support** - English/Spanish interface
-- ✅ **Emergency Information** - Clear emergency contact display
-
-### **Admin Dashboard**
-- ✅ **Real-time Queue Management** - Live updates every 5 seconds
-- ✅ **Priority-based Display** - Organized by case priority
-- ✅ **Call Next Function** - Facilitators can call next person
-- ✅ **Case Completion** - Mark cases as completed
-- ✅ **Queue Statistics** - Visual count by priority
-- ✅ **Bilingual Interface** - English/Spanish support
-
-### **Backend Features**
-- ✅ **Priority Queue Logic** - A > B > C > D ordering
-- ✅ **AI Integration** - LLM for case summaries and next steps
-- ✅ **Database Storage** - SQLite with SQLAlchemy
-- ✅ **Email Notifications** - Send summaries to facilitators
-- ✅ **Guided Questions** - Structured question flows
-
-## 🛠️ **Installation**
-
-### **Prerequisites**
-- Python 3.8+
-- Node.js 16+
+### Prerequisites
+- Node.js (v16 or higher)
+- Python 3.8 or higher
 - npm or yarn
 
-### **Backend Setup**
+### Installation
+
+1. **Clone and navigate to the project:**
 ```bash
-cd court-kiosk/backend
-pip install -r requirements.txt
+cd court-kiosk
 ```
 
-### **Frontend Setup**
+2. **Install frontend dependencies:**
 ```bash
-cd court-kiosk/frontend
+cd frontend
 npm install
 ```
 
-### **Environment Variables**
-Create `.env` file in `backend/`:
-```env
-OPENAI_API_KEY=your_openai_api_key
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
-FACILITATOR_EMAIL=facilitator@court.gov
+3. **Install backend dependencies:**
+```bash
+cd ../backend
+npm install
+pip install -r requirements.txt
 ```
 
-## 🚀 **Running the Application**
+### Running the Application
 
-### **Option 1: Using the provided script**
+1. **Start the frontend (React):**
 ```bash
-cd court-kiosk
-chmod +x run.sh
-./run.sh
-```
-
-### **Option 2: Manual start**
-```bash
-# Terminal 1 - Backend
-cd court-kiosk/backend
-python app.py
-
-# Terminal 2 - Frontend
-cd court-kiosk/frontend
+cd frontend
 npm start
 ```
+The frontend will be available at `http://localhost:3000`
 
-### **Access Points**
-- **User Kiosk**: http://localhost:3000
-- **Admin Dashboard**: http://localhost:3000/admin
-- **Backend API**: http://localhost:5001
-
-## 📋 **API Endpoints**
-
-### **Queue Management**
-- `POST /api/generate-queue` - Generate queue number
-- `GET /api/queue` - Get current queue status
-- `POST /api/call-next` - Call next person in queue
-- `POST /api/complete-case` - Mark case as completed
-
-### **Guided Questions**
-- `POST /api/guided-questions` - Get questions for case type
-- `POST /api/process-answers` - Process answers and generate summary
-
-### **Legacy Endpoints** (still available)
-- `POST /api/ask` - AI chat assistant
-- `POST /api/submit-session` - Submit session summary
-- `GET /api/forms` - Get court forms
-- `GET /api/staff` - Get staff directory
-
-## 🎨 **User Experience Flow**
-
-### **Client Journey**
-1. **Select Case Type** - Choose from 4 priority categories
-2. **Answer Questions** - Guided questions based on case type
-3. **Get Queue Number** - Priority-based number (A001, B002, etc.)
-4. **View Summary** - AI-generated case summary
-5. **See Next Steps** - Personalized guidance
-6. **Wait for Call** - Facilitator will call number
-
-### **Facilitator Workflow**
-1. **View Dashboard** - See organized queue by priority
-2. **Call Next** - Call next person in priority order
-3. **Review Case** - See AI-generated summary and next steps
-4. **Complete Case** - Mark case as completed
-5. **Monitor Statistics** - Track queue by priority
-
-## 🔧 **Database Schema**
-
-### **QueueEntry**
-- `id` - Primary key
-- `queue_number` - Unique queue number (A001, B002, etc.)
-- `case_type` - Case category (A, B, C, D)
-- `priority` - Priority level (A, B, C, D)
-- `status` - waiting, called, completed
-- `timestamp` - When entry was created
-- `language` - en/es
-- `summary` - AI-generated case summary
-- `next_steps` - AI-generated next steps
-
-### **GuidedQuestion**
-- `id` - Primary key
-- `case_type` - Case category
-- `question_text` - Question content
-- `language` - en/es
-- `order_num` - Question order
-
-## 🎯 **Priority System**
-
-### **Priority A (Red) - Domestic Violence**
-- **Immediate attention required**
-- **Emergency cases**
-- **Restraining orders**
-- **Protection orders**
-
-### **Priority B (Orange) - Custody & Support**
-- **Child custody cases**
-- **Child support matters**
-- **Visitation rights**
-- **High priority family matters**
-
-### **Priority C (Yellow) - Divorce & Separation**
-- **Divorce proceedings**
-- **Legal separation**
-- **Property division**
-- **Medium priority cases**
-
-### **Priority D (Blue) - Other Family Law**
-- **Adoption**
-- **Guardianship**
-- **Name changes**
-- **Other family matters**
-
-## 🔒 **Security & Privacy**
-
-- **No personal data stored** - Only case type and queue numbers
-- **Anonymous queue system** - No names or personal identifiers
-- **Secure API endpoints** - CORS enabled for local development
-- **Email notifications** - Optional facilitator notifications
-
-## 🚀 **Deployment**
-
-### **Production Setup**
-1. Set up production database (PostgreSQL recommended)
-2. Configure environment variables
-3. Set up reverse proxy (nginx)
-4. Use PM2 or similar for process management
-5. Enable HTTPS
-
-### **Docker Deployment** (Optional)
+2. **Start the backend (Flask):**
 ```bash
-docker-compose up -d
+cd backend
+python app.py
+```
+The backend will be available at `http://localhost:5000`
+
+3. **Access the DVRO Flow:**
+Navigate to `http://localhost:3000/dvro` to access the DVRO flow system.
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file in the backend directory:
+
+```env
+# Database
+DATABASE_URL=sqlite:///court_kiosk.db
+
+# Email Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+FACILITATOR_EMAIL=facilitator@court.gov
+
+# Service Endpoints
+SEARCH_SERVICE_URL=http://localhost:8000
+QUEUE_SERVICE_URL=http://localhost:5001
+RAG_SERVICE_URL=http://localhost:8000
+
+# OpenAI
+OPENAI_API_KEY=your-openai-api-key
+
+# Security
+SECRET_KEY=your-secret-key-here
+
+# CORS
+CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 ```
 
-## 🐛 **Troubleshooting**
+## Testing
 
-### **Common Issues**
-1. **Port 5001 in use** - Change port in `app.py`
-2. **OpenAI API errors** - Check API key in `.env`
-3. **Database errors** - Delete `court_kiosk.db` to reset
-4. **CORS errors** - Ensure backend is running on correct port
+### Backend Tests
+```bash
+cd backend
+npm test
+# or
+python test_app.py
+```
 
-### **Development Tips**
-- Backend auto-reloads with `debug=True`
-- Frontend hot-reloads with `npm start`
-- Check browser console for frontend errors
-- Check terminal for backend errors
+### Frontend Tests
+```bash
+cd frontend
+npm test
+```
 
-## 📞 **Support**
+## Features
 
-For technical support or feature requests, please contact the development team.
+### DVRO Flow System
+- **Guided Questions**: Step-by-step questionnaire with contextual information
+- **Bilingual Support**: English and Spanish language support
+- **Form Recommendations**: Automatic form suggestions based on user answers
+- **Priority Queue**: Automatic Priority A assignment for DVRO cases
+- **Comprehensive Summary**: Detailed end summary with action steps
 
----
+### Key Components
+- `FlowRunner.jsx`: Main flow controller component
+- `SummaryPage.jsx`: End summary display
+- `dv_flow_combined.json`: Flow configuration
+- `app.py`: Backend API with improved error handling
+- `config.py`: Centralized configuration management
 
-**Built for Family Court Clinics** 🏛️
+### Flow Structure
+1. **Menu**: Choose DVRO action (new, respond, change/end, renew)
+2. **Safety Check**: Immediate danger assessment
+3. **Relationship**: Domestic vs non-domestic relationship
+4. **Children**: Child custody considerations
+5. **Support**: Financial support requests
+6. **Forms Overview**: Required forms explanation
+7. **Process Steps**: Filing, service, hearing preparation
+8. **Summary**: Comprehensive case summary
+
+## API Endpoints
+
+### Core Endpoints
+- `GET /api/health`: Health check
+- `POST /api/generate-queue`: Generate queue number
+- `GET /api/queue`: Get current queue
+- `POST /api/call-next`: Call next person
+- `POST /api/complete-case`: Complete case
+- `POST /api/dvro_rag`: DVRO RAG system
+- `GET /api/flowchart`: Get flowchart data
+
+### Form Endpoints
+- `POST /api/send-email`: Send form recommendations
+- `POST /api/generate-pdf`: Generate PDF summary
+
+## Error Handling
+
+The system now includes comprehensive error handling:
+- File read operations with proper error messages
+- Null checks for all array operations
+- Configurable service endpoints
+- Graceful degradation for missing services
+- Proper HTTP status codes and error responses
+
+## Queue System
+
+The queue system supports:
+- Multiple case types (DVRO, Civil Harassment, etc.)
+- Priority-based ordering (A, B, C)
+- Multi-language support
+- Robust queue number generation
+- Status tracking (waiting, called, completed)
+
+## Contributing
+
+1. Follow the existing code structure
+2. Add tests for new features
+3. Update configuration as needed
+4. Ensure error handling is in place
+5. Test in both English and Spanish
+
+## License
+
+This project is for court system use and should be deployed according to local court policies and security requirements.
