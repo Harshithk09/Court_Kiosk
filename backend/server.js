@@ -43,13 +43,17 @@ const generatePDF = (topic, answers, forms, nextSteps, location) => {
     doc.fontSize(16).text('Required Forms:', { underline: true });
     doc.moveDown();
     
-    if (Array.isArray(forms)) {
-      forms.forEach((form, index) => {
-        doc.fontSize(12).text(`${index + 1}. ${form.number} - ${form.name}`);
-        doc.fontSize(10).text(`   ${form.description}`, { color: 'gray' });
-        if (form.required) {
-          doc.fontSize(10).text('   Required', { color: 'red' });
-        }
+    const formsArray = Array.isArray(forms) ? forms : [];
+    if (formsArray.length > 0) {
+      formsArray.forEach((form, index) => {
+        const number = form?.number ?? 'N/A';
+        const name = form?.name ?? 'Unnamed form';
+        const description = form?.description ?? '';
+        const required = !!form?.required;
+
+        doc.fontSize(12).text(`${index + 1}. ${number} - ${name}`);
+        if (description) doc.fontSize(10).text(`   ${description}`, { color: 'gray' });
+        if (required) doc.fontSize(10).text('   Required', { color: 'red' });
         doc.moveDown();
       });
     } else {
@@ -60,9 +64,10 @@ const generatePDF = (topic, answers, forms, nextSteps, location) => {
     doc.moveDown();
     doc.fontSize(16).text('Next Steps:', { underline: true });
     doc.moveDown();
-    
-    if (Array.isArray(nextSteps)) {
-      nextSteps.forEach((step, index) => {
+
+    const nextStepsArray = Array.isArray(nextSteps) ? nextSteps : [];
+    if (nextStepsArray.length > 0) {
+      nextStepsArray.forEach((step, index) => {
         doc.fontSize(12).text(`${index + 1}. ${step}`);
         doc.moveDown();
       });
@@ -75,10 +80,10 @@ const generatePDF = (topic, answers, forms, nextSteps, location) => {
       doc.moveDown();
       doc.fontSize(16).text('Court Information:', { underline: true });
       doc.moveDown();
-      doc.fontSize(12).text(location.name);
-      doc.fontSize(10).text(location.address);
-      doc.fontSize(10).text(`Phone: ${location.phone}`);
-      doc.fontSize(10).text(`Hours: ${location.hours}`);
+      if (location.name) doc.fontSize(12).text(location.name);
+      if (location.address) doc.fontSize(10).text(location.address);
+      if (location.phone) doc.fontSize(10).text(`Phone: ${location.phone}`);
+      if (location.hours) doc.fontSize(10).text(`Hours: ${location.hours}`);
     }
 
     doc.moveDown(2);
@@ -96,8 +101,32 @@ app.post('/api/send-email', async (req, res) => {
   try {
     const { email, topic, answers, forms, nextSteps, location } = req.body;
 
-    // Generate PDF
-    const pdfBuffer = await generatePDF(topic, answers, forms, nextSteps, location);
+    // Validate array types; return 400 on invalid
+    if (forms !== undefined && !Array.isArray(forms)) {
+      return res.status(400).json({ success: false, message: 'forms must be an array' });
+    }
+    if (nextSteps !== undefined && !Array.isArray(nextSteps)) {
+      return res.status(400).json({ success: false, message: 'nextSteps must be an array' });
+    }
+
+    const formsArray = Array.isArray(forms) ? forms : [];
+    const nextStepsArray = Array.isArray(nextSteps) ? nextSteps : [];
+
+    const formsHtml = formsArray.length > 0
+      ? formsArray.map(form => {
+          const number = form?.number ?? 'N/A';
+          const name = form?.name ?? 'Unnamed form';
+          const description = form?.description ?? '';
+          return `<li><strong>${number}</strong> - ${name}${description ? `<br><em>${description}</em>` : ''}</li>`;
+        }).join('')
+      : '<li>No forms specified</li>';
+
+    const nextStepsHtml = nextStepsArray.length > 0
+      ? nextStepsArray.map(step => `<li>${step}</li>`).join('')
+      : '<li>No next steps specified</li>';
+
+    // Generate PDF (with guarded arrays)
+    const pdfBuffer = await generatePDF(topic, answers, formsArray, nextStepsArray, location);
 
     // Email options with null checks
     const mailOptions = {
@@ -107,25 +136,25 @@ app.post('/api/send-email', async (req, res) => {
       html: `
         <h2>Court Self-Help Center</h2>
         <p>Thank you for using our self-help system. Here are your personalized form recommendations for ${topic}.</p>
-        
+
         <h3>Required Forms:</h3>
         <ul>
-          ${Array.isArray(forms) ? forms.map(form => `<li><strong>${form.number}</strong> - ${form.name}<br><em>${form.description}</em></li>`).join('') : '<li>No forms specified</li>'}
+          ${formsHtml}
         </ul>
-        
+
         <h3>Next Steps:</h3>
         <ol>
-          ${Array.isArray(nextSteps) ? nextSteps.map(step => `<li>${step}</li>`).join('') : '<li>No next steps specified</li>'}
+          ${nextStepsHtml}
         </ol>
-        
+
         ${location ? `
         <h3>Court Information:</h3>
-        <p><strong>${location.name}</strong><br>
-        ${location.address}<br>
-        Phone: ${location.phone}<br>
-        Hours: ${location.hours}</p>
+        <p><strong>${location.name ?? ''}</strong><br>
+        ${location.address ?? ''}<br>
+        ${location.phone ? `Phone: ${location.phone}<br>` : ''}
+        ${location.hours ? `Hours: ${location.hours}` : ''}</p>
         ` : ''}
-        
+
         <p><em>Disclaimer: This information is provided for general guidance only and does not constitute legal advice.</em></p>
       `,
       attachments: [
@@ -151,8 +180,12 @@ app.post('/api/generate-pdf', async (req, res) => {
   try {
     const { topic, answers, forms, nextSteps, location } = req.body;
 
+    // Guard non-array inputs
+    const formsArray = Array.isArray(forms) ? forms : [];
+    const nextStepsArray = Array.isArray(nextSteps) ? nextSteps : [];
+
     // Generate PDF
-    const pdfBuffer = await generatePDF(topic, answers, forms, nextSteps, location);
+    const pdfBuffer = await generatePDF(topic, answers, formsArray, nextStepsArray, location);
 
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
@@ -170,7 +203,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Backend server is running' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on port ${PORT}`);
-});
+// Start only when run directly; always export app for tests/importers
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Backend server running on port ${PORT}`);
+  });
+}
 module.exports = app;
+
