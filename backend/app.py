@@ -430,29 +430,20 @@ def generate_queue():
     case_type = data.get('case_type')
     priority = data.get('priority')
     language = data.get('language', 'en')
-    
+
     if not case_type or not priority:
         return jsonify({'error': 'Missing case type or priority'}), 400
-    
-    # Generate queue number (format: A001, B002, etc.)
+    if not case_type.isalnum():
+        return jsonify({'error': 'Invalid case type'}), 400
+
+    # Generate queue number (format: A001, DVRO001, etc.)
+    # Supports multi-character case types by slicing based on case_type length
     last_entry = QueueEntry.query.filter_by(case_type=case_type).order_by(QueueEntry.id.desc()).first()
     if last_entry:
-        # Extract numeric portion more robustly
-        queue_num = last_entry.queue_number
-        # Find the first digit in the queue number
-        numeric_start = None
-        for i, char in enumerate(queue_num):
-            if char.isdigit():
-                numeric_start = i
-                break
-        
-        if numeric_start is not None:
-            try:
-                last_num = int(queue_num[numeric_start:])
-                new_num = last_num + 1
-            except ValueError:
-                new_num = 1
-        else:
+        try:
+            last_num = int(last_entry.queue_number[len(case_type):])
+            new_num = last_num + 1
+        except (ValueError, TypeError):
             new_num = 1
     else:
         new_num = 1
