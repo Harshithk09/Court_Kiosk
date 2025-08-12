@@ -36,6 +36,16 @@ EMAIL_USER = os.getenv('EMAIL_USER')
 EMAIL_PASS = os.getenv('EMAIL_PASS')
 FACILITATOR_EMAIL = os.getenv('FACILITATOR_EMAIL')
 
+
+class Config:
+    """Minimal configuration object exposed for tests."""
+    SQLALCHEMY_DATABASE_URI = app.config['SQLALCHEMY_DATABASE_URI']
+    EMAIL_HOST = EMAIL_HOST
+
+    @staticmethod
+    def get_search_url(query: str) -> str:
+        return f"https://www.google.com/search?q={query}"
+
 SYSTEM_PROMPTS = {
     'en': """You are a helpful legal information assistant for a court kiosk. \
     Provide accurate, helpful information about court procedures, forms, and legal processes.\
@@ -361,14 +371,15 @@ def dvro_rag():
 
     # Load flowchart data with error handling
     try:
-        with open('flowchart.json', 'r') as f:
+        flowchart_path = os.path.join(app.root_path, 'flowchart.json')
+        with open(flowchart_path, 'r') as f:
             flowchart = json.load(f)
-    except FileNotFoundError:
-        return jsonify({'error': 'Flowchart data not found'}), 404
-    except json.JSONDecodeError:
-        return jsonify({'error': 'Invalid flowchart data format'}), 500
-    except Exception as e:
-        return jsonify({'error': f'Error reading flowchart data: {str(e)}'}), 500
+    except (OSError, json.JSONDecodeError) as e:
+        return jsonify({'error': f'Error loading flowchart data: {str(e)}'}), 500
+
+    # Validate basic JSON structure before proceeding
+    if not isinstance(flowchart, dict) or not isinstance(flowchart.get('flowchart'), dict):
+        return jsonify({'error': 'Invalid flowchart structure'}), 500
 
     # Simple retrieval: collect all steps and documents for DVRO
     steps = []
@@ -430,29 +441,20 @@ def generate_queue():
     case_type = data.get('case_type')
     priority = data.get('priority')
     language = data.get('language', 'en')
-    
+
     if not case_type or not priority:
         return jsonify({'error': 'Missing case type or priority'}), 400
-    
-    # Generate queue number (format: A001, B002, etc.)
+    if not case_type.isalnum():
+        return jsonify({'error': 'Invalid case type'}), 400
+
+    # Generate queue number (format: A001, DVRO001, etc.)
+    # Supports multi-character case types by slicing based on case_type length
     last_entry = QueueEntry.query.filter_by(case_type=case_type).order_by(QueueEntry.id.desc()).first()
     if last_entry:
-        # Extract numeric portion more robustly
-        queue_num = last_entry.queue_number
-        # Find the first digit in the queue number
-        numeric_start = None
-        for i, char in enumerate(queue_num):
-            if char.isdigit():
-                numeric_start = i
-                break
-        
-        if numeric_start is not None:
-            try:
-                last_num = int(queue_num[numeric_start:])
-                new_num = last_num + 1
-            except ValueError:
-                new_num = 1
-        else:
+        try:
+            last_num = int(last_entry.queue_number[len(case_type):])
+            new_num = last_num + 1
+        except (ValueError, TypeError):
             new_num = 1
     else:
         new_num = 1

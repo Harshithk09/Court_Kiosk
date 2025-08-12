@@ -85,6 +85,9 @@ SEARCH_SERVICE_URL=http://localhost:8000
 QUEUE_SERVICE_URL=http://localhost:5001
 RAG_SERVICE_URL=http://localhost:8000
 
+# Base URL for semantic search service
+API_BASE_URL=http://localhost:8000
+
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
 
@@ -93,6 +96,13 @@ SECRET_KEY=your-secret-key-here
 
 # CORS
 CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+```
+
+Create a `.env` file in the frontend directory:
+
+```env
+# Base URL for API requests
+VITE_API_URL=http://localhost:5001
 ```
 
 ## Testing
@@ -141,7 +151,7 @@ npm test
 
 ### Core Endpoints
 - `GET /api/health`: Health check
-- `POST /api/generate-queue`: Generate queue number
+- `POST /api/generate-queue`: Generate queue number (alphanumeric, multi-character `case_type` supported)
 - `GET /api/queue`: Get current queue
 - `POST /api/call-next`: Call next person
 - `POST /api/complete-case`: Complete case
