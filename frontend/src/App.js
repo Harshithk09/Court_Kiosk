@@ -4,6 +4,7 @@ import './App.css';
 import UserKiosk from './pages/UserKiosk';
 import AdminDashboard from './pages/AdminDashboard';
 import DVROPage from './pages/DVROPage';
+import DVFlowRunnerPage from './pages/DVFlowRunnerPage';
 import { LanguageProvider } from './contexts/LanguageContext';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
             <Route path="/" element={<UserKiosk />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/dvro" element={<DVROPage />} />
+            <Route path="/dvro-flow" element={<DVFlowRunnerPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
