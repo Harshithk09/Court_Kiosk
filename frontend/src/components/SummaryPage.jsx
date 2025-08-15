@@ -7,17 +7,43 @@ function getFormDisplayName(formNumber, formsCatalog) {
 
 function getFormExplanation(formNumber) {
   const explanations = {
-    'DV-100': 'This is the main form to request a restraining order. It explains your situation and what protection you need.',
+    'DV-100': 'Main form to request a Domestic Violence Restraining Order. Describe your situation and what protection you need.',
     'CLETS-001': 'Confidential form for law enforcement. Contains information that helps police enforce your restraining order.',
-    'DV-109': 'Tells you when and where your court hearing will be. You must attend this hearing.',
-    'DV-110': 'The actual restraining order that the judge signs. This is what protects you legally.',
-    'DV-105': 'If you have children, this form asks for custody and visitation orders to protect them.',
-    'DV-140': 'The judge\'s decision about child custody and visitation, if children are involved.',
-    'DV-200': 'Proof that the other person was served with your papers. Required for the restraining order to be valid.',
-    'FL-150': 'Financial information form. Required if you are asking for child or spousal support.',
-    'DV-120': 'Response form for the person you filed against. They use this to tell their side of the story.',
-    'CH-100': 'Civil harassment restraining order form. Used when the person is not a family member or partner.',
-    'CH-110': 'Temporary civil harassment restraining order. Provides immediate protection while waiting for hearing.'
+    'DV-109': 'Notice of Court Hearing. Tells you when and where your court hearing will be. You must attend this hearing.',
+    'DV-110': 'Temporary Restraining Order. The actual restraining order that the judge signs. This is what protects you legally.',
+    'DV-105': 'Request for Child Custody and Visitation Orders. Required if you have children and want custody protection.',
+    'DV-140': 'Child Custody and Visitation Order. The judge\'s decision about child custody and visitation.',
+    'DV-200': 'Proof of Personal Service. Proof that the other person was served with your papers. Required for the restraining order to be valid.',
+    'FL-150': 'Income and Expense Declaration. Required if you are asking for child or spousal support.',
+    'DV-120': 'Response to Request for Domestic Violence Restraining Order. Used by the person you filed against to tell their side.',
+    'DV-125': 'Response to Request for Child Custody & Visitation Orders. Used when responding to custody requests.',
+    'DV-250': 'Proof of Service by Mail. Used when serving documents by mail instead of in person.',
+    'DV-300': 'Request to Change or End Restraining Order. Used to modify or terminate an existing order.',
+    'DV-310': 'Notice of Court Hearing and Temporary Order to Change or End Restraining Order.',
+    'DV-305': 'Request to Change Child Custody and Visitation Orders. Used to modify custody arrangements.',
+    'DV-330': 'Order to Change or End Restraining Order. The judge\'s decision on modification requests.',
+    'DV-700': 'Request to Renew Restraining Order. Used to extend an existing order before it expires.',
+    'DV-710': 'Notice of Hearing to Renew Restraining Order. Court hearing notice for renewal.',
+    'DV-720': 'Response to Request to Renew Restraining Order. Used by the other party to respond to renewal.',
+    'DV-800': 'Receipt for Firearms, Firearm Parts, and Ammunition. Required when surrendering firearms.',
+    'SER-001': 'Request for Sheriff to Serve Court Papers. Used when asking the sheriff to serve documents.',
+    'MC-025': 'Attachment Form. Used when you need more space to write additional information.',
+    'DV-108': 'Request for Orders to Prevent Child Abduction. Used when concerned about child abduction.',
+    'DV-145': 'Order to Prevent Child Abduction. The judge\'s decision on abduction prevention.',
+    'CH-100': 'Request for Civil Harassment Restraining Order. Used when the person is not a family member or partner.',
+    'CH-110': 'Temporary Civil Harassment Restraining Order. Provides immediate protection for civil harassment cases.',
+    'CH-109': 'Notice of Court Hearing (Civil Harassment). Court hearing notice for civil harassment cases.',
+    'CH-120': 'Response to Civil Harassment Restraining Order. Used to respond to civil harassment orders.',
+    'CH-130': 'Civil Harassment Restraining Order. The actual civil harassment restraining order.',
+    'CH-250': 'Proof of Service by Mail (Civil Harassment). Proof of service for civil harassment cases.',
+    'CH-700': 'Request to Renew Civil Harassment Restraining Order. Used to renew civil harassment orders.',
+    'CH-710': 'Notice of Hearing to Renew Civil Harassment Restraining Order. Hearing notice for civil harassment renewal.',
+    'CH-720': 'Response to Request to Renew Civil Harassment Restraining Order. Response to civil harassment renewal.',
+    'CH-730': 'Order Renewing Civil Harassment Restraining Order. Judge\'s decision on civil harassment renewal.',
+    'CH-800': 'Receipt for Firearms, Firearm Parts, and Ammunition (Civil Harassment). Firearms receipt for civil harassment cases.',
+    'CM-010': 'Civil Case Cover Sheet. Tells the court the type of case you are filing.',
+    'FW-001': 'Request to Waive Court Fees. Used to ask the court to waive filing fees.',
+    'FW-003': 'Order on Request to Waive Court Fees. Judge\'s decision on fee waiver request.'
   };
   return explanations[formNumber] || 'Required form for your case.';
 }
@@ -33,8 +59,9 @@ function getPriorityColor(priority) {
 
 function getRelationshipText(relationship) {
   switch (relationship) {
-    case 'domestic': return 'Domestic Relationship (Spouse/Partner/Family)';
-    case 'non_domestic': return 'Non-Domestic Relationship (Civil Harassment)';
+    case 'close_relationship': return 'Domestic Relationship (Spouse/Partner/Family)';
+    case 'elder_disabled': return 'Elder or Dependent Adult';
+    case 'other': return 'Non-Domestic Relationship (Civil Harassment)';
     default: return 'Not specified';
   }
 }
@@ -47,6 +74,26 @@ function getSupportText(support) {
     case 'both': return 'Child and Spousal Support';
     default: return support;
   }
+}
+
+function getCaseType(answers) {
+  // Determine case type based on user answers
+  if (answers['respond_intro'] === 'yes') {
+    return 'Response to Domestic Violence Restraining Order';
+  }
+  if (answers['change_intro'] === 'yes') {
+    return 'Modification of Domestic Violence Restraining Order';
+  }
+  if (answers['renew_intro'] === 'yes') {
+    return 'Renewal of Domestic Violence Restraining Order';
+  }
+  if (answers['triage_start'] === 'elder_disabled') {
+    return 'Elder or Dependent Adult Abuse Restraining Order';
+  }
+  if (answers['triage_start'] === 'other') {
+    return 'Civil Harassment Restraining Order';
+  }
+  return 'Domestic Violence Restraining Order';
 }
 
 export default function SummaryPage({ answers, forms, flow, onBack, onHome, onEmail }) {
@@ -92,29 +139,33 @@ export default function SummaryPage({ answers, forms, flow, onBack, onHome, onEm
   const generateSummary = (answers, forms, flow) => {
     const summary = [];
     
-    summary.push(`Case Type: Domestic Violence Restraining Order`);
+    const caseType = getCaseType(answers);
+    summary.push(`Case Type: ${caseType}`);
     summary.push(`Priority: A (High Priority)`);
     
-    if (answers['relationship']) {
-      summary.push(`Relationship: ${getRelationshipText(answers['relationship'])}`);
+    if (answers['triage_start']) {
+      summary.push(`Relationship: ${getRelationshipText(answers['triage_start'])}`);
     }
     
     if (answers['children'] === 'yes') {
-      summary.push('Children: Yes - Child custody/visitation included');
+      summary.push(`Children Involved: Yes`);
     }
     
     if (answers['support'] && answers['support'] !== 'none') {
-      summary.push(`Support: ${getSupportText(answers['support'])}`);
+      summary.push(`Support Requested: ${getSupportText(answers['support'])}`);
     }
     
-    if (answers['service_method']) {
-      summary.push(`Service Method: ${answers['service_method']}`);
+    if (answers['abduction_check'] === 'yes') {
+      summary.push(`Child Abduction Protection: Requested`);
     }
     
-    summary.push(`Total Forms Required: ${forms.length}`);
+    if (answers['firearms'] === 'yes' || answers['firearms_details'] === 'yes') {
+      summary.push(`Firearms Surrender: Required`);
+    }
+    
+    summary.push(`\nRequired Forms:`);
     forms.forEach(form => {
-      const formInfo = flow.forms_catalog.find(f => f.number === form);
-      summary.push(`- ${form}: ${formInfo ? formInfo.name : 'Form'}`);
+      summary.push(`- ${getFormDisplayName(form, flow.forms_catalog)}`);
     });
     
     return summary.join('\n');

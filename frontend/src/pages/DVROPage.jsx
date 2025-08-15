@@ -14,7 +14,7 @@ export default function DVROPage() {
     console.log('User completed the DVRO flow with:', { answers, forms });
 
     const payload = {
-      caseType: 'DVRO',
+      caseType: getCaseType(answers),
       priority: 'A',
       answers,
       recommendedForms: forms,
@@ -28,25 +28,64 @@ export default function DVROPage() {
     // No need to navigate away - the summary is displayed within the flow
   };
 
+  const getCaseType = (answers) => {
+    // Determine case type based on user answers
+    if (answers['respond_intro'] === 'yes') {
+      return 'Response to Domestic Violence Restraining Order';
+    }
+    if (answers['change_intro'] === 'yes') {
+      return 'Modification of Domestic Violence Restraining Order';
+    }
+    if (answers['renew_intro'] === 'yes') {
+      return 'Renewal of Domestic Violence Restraining Order';
+    }
+    if (answers['triage_start'] === 'elder_disabled') {
+      return 'Elder or Dependent Adult Abuse Restraining Order';
+    }
+    if (answers['triage_start'] === 'other') {
+      return 'Civil Harassment Restraining Order';
+    }
+    return 'Domestic Violence Restraining Order';
+  };
+
   const generateSummary = (answers, forms) => {
     const summary = [];
+
+    const caseType = getCaseType(answers);
+    summary.push(`Case Type: ${caseType}`);
 
     if (answers['immediate_danger'] === 'yes') {
       summary.push('User reported immediate danger - emergency protocols activated');
     }
 
-    if (answers['relationship'] === 'domestic') {
-      summary.push('Domestic relationship - using DVRO forms');
-    } else if (answers['relationship'] === 'non_domestic') {
-      summary.push('Non-domestic relationship - using Civil Harassment forms');
+    if (answers['triage_start']) {
+      switch (answers['triage_start']) {
+        case 'close_relationship':
+          summary.push('Domestic relationship - using DVRO forms');
+          break;
+        case 'elder_disabled':
+          summary.push('Elder or dependent adult - using Elder Abuse forms');
+          break;
+        case 'other':
+          summary.push('Non-domestic relationship - using Civil Harassment forms');
+          break;
+      }
     }
 
     if (answers['children'] === 'yes') {
       summary.push('Children involved - child custody/visitation forms included');
     }
 
+    if (answers['abduction_check'] === 'yes') {
+      summary.push('Child abduction protection requested');
+    }
+
     if (answers['support'] && answers['support'] !== 'none') {
       summary.push(`Support requested: ${answers['support']} - income forms included`);
+    }
+
+    if (answers['firearms'] === 'yes' || answers['firearms_details'] === 'yes') {
+      summary.push('Firearms surrender required - DV-800 form included');
     }
 
     summary.push(`Total forms recommended: ${forms.length}`);

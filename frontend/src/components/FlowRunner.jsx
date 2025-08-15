@@ -4,30 +4,68 @@ import SummaryPage from './SummaryPage';
 function computeRecommendations(flow, answers) {
   const forms = new Set();
   
-  // Always add core forms
-  forms.add('DV-100');
-  forms.add('CLETS-001');
-  forms.add('DV-109');
-  forms.add('DV-110');
-  forms.add('DV-200');
+  // Add forms based on page-specific forms_add
+  Object.keys(answers).forEach(pageId => {
+    const page = flow.pages[pageId];
+    if (page && page.forms_add) {
+      page.forms_add.forEach(form => forms.add(form));
+    }
+  });
   
-  // Add conditional forms based on answers
-  if (answers['children'] === 'yes') {
-    forms.add('DV-105');
-    forms.add('DV-140');
-  }
-  
-  if (answers['support'] && answers['support'] !== 'none') {
-    forms.add('FL-150');
-  }
-  
-  // Apply rules from flow
+  // Apply flow rules for conditional forms
   if (flow.rules) {
-    flow.rules.forEach(rule => {
-      if (rule.condition && rule.condition(answers)) {
-        rule.forms.forEach(form => forms.add(form));
-      }
-    });
+    // Add forms based on children
+    if (answers['children'] === 'yes' && flow.rules.add_if_children) {
+      flow.rules.add_if_children.forEach(form => forms.add(form));
+    }
+    
+    // Add forms based on support requests
+    if (answers['support'] && answers['support'] !== 'none' && flow.rules.add_if_support_requested) {
+      flow.rules.add_if_support_requested.forEach(form => forms.add(form));
+    }
+    
+    // Always add proof of service
+    if (flow.rules.always_add_proof) {
+      flow.rules.always_add_proof.forEach(form => forms.add(form));
+    }
+  }
+  
+  // Add abduction protection forms if needed
+  if (answers['abduction_check'] === 'yes') {
+    forms.add('DV-108');
+    forms.add('DV-145');
+  }
+  
+  // Add firearms forms if applicable
+  if (answers['firearms'] === 'yes' || answers['firearms_details'] === 'yes') {
+    forms.add('DV-800');
+  }
+  
+  // Add response forms if this is a response process
+  if (answers['respond_intro'] === 'yes') {
+    forms.add('DV-120');
+    if (answers['respond_custody'] === 'yes') {
+      forms.add('DV-125');
+    }
+    if (answers['respond_firearms_surrender'] === 'yes') {
+      forms.add('DV-800');
+    }
+  }
+  
+  // Add change/modify forms if applicable
+  if (answers['change_intro'] === 'yes') {
+    forms.add('DV-300');
+    forms.add('DV-310');
+    if (answers['change_custody'] === 'yes') {
+      forms.add('DV-305');
+    }
+  }
+  
+  // Add renewal forms if applicable
+  if (answers['renew_intro'] === 'yes') {
+    forms.add('DV-700');
+    forms.add('DV-710');
+    forms.add('CLETS-001');
   }
   
   return Array.from(forms);
@@ -40,17 +78,43 @@ function getFormDisplayName(formNumber, formsCatalog) {
 
 function getFormExplanation(formNumber) {
   const explanations = {
-    'DV-100': 'This is the main form to request a restraining order. It explains your situation and what protection you need.',
+    'DV-100': 'Main form to request a Domestic Violence Restraining Order. Describe your situation and what protection you need.',
     'CLETS-001': 'Confidential form for law enforcement. Contains information that helps police enforce your restraining order.',
-    'DV-109': 'Tells you when and where your court hearing will be. You must attend this hearing.',
-    'DV-110': 'The actual restraining order that the judge signs. This is what protects you legally.',
-    'DV-105': 'If you have children, this form asks for custody and visitation orders to protect them.',
-    'DV-140': 'The judge\'s decision about child custody and visitation, if children are involved.',
-    'DV-200': 'Proof that the other person was served with your papers. Required for the restraining order to be valid.',
-    'FL-150': 'Financial information form. Required if you are asking for child or spousal support.',
-    'DV-120': 'Response form for the person you filed against. They use this to tell their side of the story.',
-    'CH-100': 'Civil harassment restraining order form. Used when the person is not a family member or partner.',
-    'CH-110': 'Temporary civil harassment restraining order. Provides immediate protection while waiting for hearing.'
+    'DV-109': 'Notice of Court Hearing. Tells you when and where your court hearing will be. You must attend this hearing.',
+    'DV-110': 'Temporary Restraining Order. The actual restraining order that the judge signs. This is what protects you legally.',
+    'DV-105': 'Request for Child Custody and Visitation Orders. Required if you have children and want custody protection.',
+    'DV-140': 'Child Custody and Visitation Order. The judge\'s decision about child custody and visitation.',
+    'DV-200': 'Proof of Personal Service. Proof that the other person was served with your papers. Required for the restraining order to be valid.',
+    'FL-150': 'Income and Expense Declaration. Required if you are asking for child or spousal support.',
+    'DV-120': 'Response to Request for Domestic Violence Restraining Order. Used by the person you filed against to tell their side.',
+    'DV-125': 'Response to Request for Child Custody & Visitation Orders. Used when responding to custody requests.',
+    'DV-250': 'Proof of Service by Mail. Used when serving documents by mail instead of in person.',
+    'DV-300': 'Request to Change or End Restraining Order. Used to modify or terminate an existing order.',
+    'DV-310': 'Notice of Court Hearing and Temporary Order to Change or End Restraining Order.',
+    'DV-305': 'Request to Change Child Custody and Visitation Orders. Used to modify custody arrangements.',
+    'DV-330': 'Order to Change or End Restraining Order. The judge\'s decision on modification requests.',
+    'DV-700': 'Request to Renew Restraining Order. Used to extend an existing order before it expires.',
+    'DV-710': 'Notice of Hearing to Renew Restraining Order. Court hearing notice for renewal.',
+    'DV-720': 'Response to Request to Renew Restraining Order. Used by the other party to respond to renewal.',
+    'DV-800': 'Receipt for Firearms, Firearm Parts, and Ammunition. Required when surrendering firearms.',
+    'SER-001': 'Request for Sheriff to Serve Court Papers. Used when asking the sheriff to serve documents.',
+    'MC-025': 'Attachment Form. Used when you need more space to write additional information.',
+    'DV-108': 'Request for Orders to Prevent Child Abduction. Used when concerned about child abduction.',
+    'DV-145': 'Order to Prevent Child Abduction. The judge\'s decision on abduction prevention.',
+    'CH-100': 'Request for Civil Harassment Restraining Order. Used when the person is not a family member or partner.',
+    'CH-110': 'Temporary Civil Harassment Restraining Order. Provides immediate protection for civil harassment cases.',
+    'CH-109': 'Notice of Court Hearing (Civil Harassment). Court hearing notice for civil harassment cases.',
+    'CH-120': 'Response to Civil Harassment Restraining Order. Used to respond to civil harassment orders.',
+    'CH-130': 'Civil Harassment Restraining Order. The actual civil harassment restraining order.',
+    'CH-250': 'Proof of Service by Mail (Civil Harassment). Proof of service for civil harassment cases.',
+    'CH-700': 'Request to Renew Civil Harassment Restraining Order. Used to renew civil harassment orders.',
+    'CH-710': 'Notice of Hearing to Renew Civil Harassment Restraining Order. Hearing notice for civil harassment renewal.',
+    'CH-720': 'Response to Request to Renew Civil Harassment Restraining Order. Response to civil harassment renewal.',
+    'CH-730': 'Order Renewing Civil Harassment Restraining Order. Judge\'s decision on civil harassment renewal.',
+    'CH-800': 'Receipt for Firearms, Firearm Parts, and Ammunition (Civil Harassment). Firearms receipt for civil harassment cases.',
+    'CM-010': 'Civil Case Cover Sheet. Tells the court the type of case you are filing.',
+    'FW-001': 'Request to Waive Court Fees. Used to ask the court to waive filing fees.',
+    'FW-003': 'Order on Request to Waive Court Fees. Judge\'s decision on fee waiver request.'
   };
   return explanations[formNumber] || 'Required form for your case.';
 }
@@ -66,8 +130,9 @@ function getPriorityColor(priority) {
 
 function getRelationshipText(relationship) {
   switch (relationship) {
-    case 'domestic': return 'Domestic Relationship (Spouse/Partner/Family)';
-    case 'non_domestic': return 'Non-Domestic Relationship (Civil Harassment)';
+    case 'close_relationship': return 'Domestic Relationship (Spouse/Partner/Family)';
+    case 'elder_disabled': return 'Elder or Dependent Adult';
+    case 'other': return 'Non-Domestic Relationship (Civil Harassment)';
     default: return 'Not specified';
   }
 }
@@ -105,6 +170,7 @@ function getServiceSteps(answers) {
     switch (answers['service_method']) {
       case 'sheriff':
         steps.push('Contact Sheriff\'s office for service (often free)');
+        steps.push('Complete SER-001 form for sheriff service');
         break;
       case 'server':
         steps.push('Hire professional process server');
@@ -118,7 +184,7 @@ function getServiceSteps(answers) {
   }
   
   steps.push('Ensure service at least 5 days before hearing');
-  steps.push('Complete DV-200 (Proof of Service)');
+  steps.push('Complete DV-200 (Proof of Service) or DV-250 (Proof of Service by Mail)');
   
   return steps;
 }
@@ -132,9 +198,10 @@ function getHearingSteps(answers) {
   steps.push('Dress appropriately for court');
   steps.push('Be prepared to testify');
   
-  if (answers['firearms'] === 'yes') {
+  if (answers['firearms'] === 'yes' || answers['firearms_details'] === 'yes') {
     steps.push('Surrender firearms by court deadline');
-    steps.push('File proof of surrender with court');
+    steps.push('Complete DV-800 form for firearms surrender');
+    steps.push('File proof of surrender with court within 48 hours');
   }
   
   return steps;

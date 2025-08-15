@@ -1,0 +1,296 @@
+{
+  "meta": {
+    "id": "dvro-combined",
+    "version": "1.0.0",
+    "case_type": "Domestic Violence Restraining Order",
+    "locales": ["en", "es"],
+    "start": "menu"
+  },
+  "forms_catalog": [
+    { "number": "DV-100", "name": "Request for Domestic Violence Restraining Order" },
+    { "number": "CLETS-001", "name": "Confidential CLETS Information" },
+    { "number": "DV-109", "name": "Notice of Court Hearing" },
+    { "number": "DV-110", "name": "Temporary Restraining Order" },
+    { "number": "DV-105", "name": "Request for Child Custody and Visitation Orders" },
+    { "number": "DV-140", "name": "Child Custody and Visitation Order" },
+    { "number": "DV-200", "name": "Proof of Personal Service" },
+    { "number": "FL-150", "name": "Income and Expense Declaration" },
+    { "number": "DV-120", "name": "Response to Request for Domestic Violence Restraining Order" },
+    { "number": "CH-100", "name": "Request for Civil Harassment Restraining Order" },
+    { "number": "CH-110", "name": "Temporary Restraining Order (Civil Harassment)" }
+  ],
+  "pages": {
+    "menu": {
+      "type": "question",
+      "info": {
+        "en": "Welcome to the Family Court Clinic. We'll help you understand your options and guide you through the process step by step. Each question will include important information to help you make informed decisions.",
+        "es": "Bienvenido a la Clínica de la Corte Familiar. Le ayudaremos a entender sus opciones y le guiaremos a través del proceso paso a paso. Cada pregunta incluirá información importante para ayudarle a tomar decisiones informadas."
+      },
+      "question": {
+        "en": "What do you need help with today?",
+        "es": "¿Con qué necesita ayuda hoy?"
+      },
+      "options": [
+        { "value": "new", "label": { "en": "Ask for a new restraining order", "es": "Solicitar una nueva orden de restricción" }, "next": "immediate_danger" },
+        { "value": "respond", "label": { "en": "Respond to a restraining order someone else filed", "es": "Responder a una orden de restricción presentada por otra persona" }, "next": "respond_intro" },
+        { "value": "change_end", "label": { "en": "Change or end an existing restraining order", "es": "Cambiar o terminar una orden existente" }, "next": "change_intro" },
+        { "value": "renew", "label": { "en": "Renew a restraining order before it expires", "es": "Renovar una orden de restricción antes de que venza" }, "next": "renew_intro" }
+      ]
+    },
+    "immediate_danger": {
+      "type": "question",
+      "info": {
+        "en": "If you are in immediate danger, call 911 right away. Police can request an Emergency Protective Order (EPO) from a judge for immediate protection. This is separate from the court process we'll help you with.",
+        "es": "Si está en peligro inmediato, llame al 911 de inmediato. La policía puede solicitar una Orden de Protección de Emergencia (EPO) a un juez para protección inmediata. Esto es separado del proceso judicial con el que le ayudaremos."
+      },
+      "question": {
+        "en": "Are you in immediate danger right now?",
+        "es": "¿Está en peligro inmediato en este momento?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes — I need emergency help", "es": "Sí — necesito ayuda de emergencia" }, "next": "safety_steps" },
+        { "value": "no", "label": { "en": "No — continue with filing", "es": "No — continuar con la solicitud" }, "next": "relationship" }
+      ]
+    },
+    "safety_steps": {
+      "type": "info",
+      "info": {
+        "en": "1) Call 911 immediately. 2) Go to a safe location. 3) Ask police about an Emergency Protective Order (EPO). When you are safe, return here to start the court process for a longer-term restraining order.",
+        "es": "1) Llame al 911 de inmediato. 2) Vaya a un lugar seguro. 3) Pregunte a la policía sobre una Orden de Protección de Emergencia (EPO). Cuando esté a salvo, regrese aquí para iniciar el proceso judicial para una orden de restricción a largo plazo."
+      },
+      "next": "relationship"
+    },
+    "relationship": {
+      "type": "question",
+      "info": {
+        "en": "Domestic Violence Restraining Orders (DVRO) are for people with a close relationship: current/former spouse or partner, someone you dated or lived with, or close family members (parent, child, sibling, grandparent, in-law). For non-domestic relationships (neighbor, co-worker, stranger), different forms are used.",
+        "es": "Las Órdenes de Restricción por Violencia Doméstica (DVRO) son para personas con una relación cercana: cónyuge o pareja actual/anterior, alguien con quien salió o vivió, o familiares cercanos (padre/madre, hijo/a, hermano/a, abuelo/a, suegro/a). Para relaciones no domésticas (vecino, compañero de trabajo, desconocido), se usan formularios diferentes."
+      },
+      "question": {
+        "en": "What is your relationship to the person you need protection from?",
+        "es": "¿Cuál es su relación con la persona de la que necesita protección?"
+      },
+      "options": [
+        { "value": "domestic", "label": { "en": "Spouse/partner or family member", "es": "Cónyuge/pareja o familiar" }, "next": "children" },
+        { "value": "non_domestic", "label": { "en": "Other (neighbor, co-worker, etc.)", "es": "Otra (vecino, compañero de trabajo, etc.)" }, "next": "civil_harassment_path" }
+      ]
+    },
+    "civil_harassment_path": {
+      "type": "info",
+      "info": {
+        "en": "For non-domestic relationships, you'll use Civil Harassment forms (CH-100, CH-110) instead of Domestic Violence forms. The process is similar, but the forms and some requirements are different. We'll still help you with copies, filing, service, and hearing steps.",
+        "es": "Para relaciones no domésticas, usará formularios de Acoso Civil (CH-100, CH-110) en lugar de formularios de Violencia Doméstica. El proceso es similar, pero los formularios y algunos requisitos son diferentes. Aun así le ayudaremos con copias, presentación, notificación y audiencia."
+      },
+      "forms_add": ["CH-100", "CH-110"],
+      "next": "children"
+    },
+    "children": {
+      "type": "question",
+      "info": {
+        "en": "You can ask the court for temporary custody and visitation orders within your DVRO case. This may require additional forms (DV-105, DV-140). The court can make temporary orders that last until the hearing, and longer orders may be issued at the hearing.",
+        "es": "Puede pedir al tribunal órdenes temporales de custodia y visitas dentro de su caso de DVRO. Esto puede requerir formularios adicionales (DV-105, DV-140). El tribunal puede hacer órdenes temporales que duran hasta la audiencia, y órdenes más largas pueden emitirse en la audiencia."
+      },
+      "question": {
+        "en": "Are there children who also need protection?",
+        "es": "¿Hay niños que también necesiten protección?"
+      },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes, include children", "es": "Sí, incluir a los niños" }, "next": "support" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "support" }
+      ]
+    },
+    "support": {
+      "type": "question",
+      "info": {
+        "en": "You can request child support and/or spousal support within your DVRO case. If you request support, you typically need to complete FL-150 (Income and Expense Declaration) to help the court determine appropriate support amounts.",
+        "es": "Puede solicitar manutención de hijos y/o de cónyuge dentro de su caso de DVRO. Si solicita manutención, normalmente necesita completar FL-150 (Declaración de Ingresos y Gastos) para ayudar al tribunal a determinar cantidades apropiadas de manutención."
+      },
+      "question": {
+        "en": "Are you requesting child or spousal support?",
+        "es": "¿Está solicitando manutención de hijos o de cónyuge?"
+      },
+      "options": [
+        { "value": "none", "label": { "en": "No support requested", "es": "No solicito manutención" }, "next": "forms_overview" },
+        { "value": "child", "label": { "en": "Child support", "es": "Manutención de hijos" }, "next": "forms_overview" },
+        { "value": "spousal", "label": { "en": "Spousal support", "es": "Manutención de cónyuge" }, "next": "forms_overview" },
+        { "value": "both", "label": { "en": "Both child and spousal", "es": "Ambas: hijos y cónyuge" }, "next": "forms_overview" }
+      ]
+    },
+    "forms_overview": {
+      "type": "info",
+      "info": {
+        "en": "You will complete these forms: DV-100 (main request), CLETS-001 (confidential law enforcement info), DV-109 (Notice of Court Hearing), and DV-110 (Temporary Restraining Order). If children are included: DV-105 and DV-140. If requesting support: FL-150. Always: DV-200 (Proof of Service).",
+        "es": "Completará estos formularios: DV-100 (solicitud principal), CLETS-001 (información confidencial de fuerzas del orden), DV-109 (Aviso de audiencia), y DV-110 (Orden de restricción temporal). Si incluye niños: DV-105 y DV-140. Si solicita manutención: FL-150. Siempre: DV-200 (Prueba de notificación)."
+      },
+      "next": "dv100_intro"
+    },
+    "dv100_intro": {
+      "type": "info",
+      "info": {
+        "en": "DV-100 — This is your main request form. You'll describe recent abuse or threats, your relationship to the person, and what orders you want (stay away, no contact, move out, etc.). Be specific about dates, times, and incidents. This form goes to the judge.",
+        "es": "DV-100 — Este es su formulario de solicitud principal. Describirá abuso o amenazas recientes, su relación con la persona, y qué órdenes desea (alejamiento, sin contacto, desalojo, etc.). Sea específico sobre fechas, horas e incidentes. Este formulario va al juez."
+      },
+      "forms_add": ["DV-100"],
+      "next": "clets_intro"
+    },
+    "clets_intro": {
+      "type": "info",
+      "info": {
+        "en": "CLETS-001 — This confidential form provides information to law enforcement systems. It includes details about the person you're seeking protection from and any firearms they may have. This information helps police enforce your order.",
+        "es": "CLETS-001 — Este formulario confidencial proporciona información a los sistemas de fuerzas del orden. Incluye detalles sobre la persona de la que busca protección y cualquier arma de fuego que pueda tener. Esta información ayuda a la policía a hacer cumplir su orden."
+      },
+      "forms_add": ["CLETS-001"],
+      "next": "dv109_intro"
+    },
+    "dv109_intro": {
+      "type": "info",
+      "info": {
+        "en": "DV-109 — Notice of Court Hearing: This form tells the other party when and where to appear for the hearing. It also explains what the judge will consider at the hearing. The court will fill in the hearing date and time.",
+        "es": "DV-109 — Aviso de audiencia: Este formulario le dice a la otra parte cuándo y dónde aparecer para la audiencia. También explica qué considerará el juez en la audiencia. El tribunal llenará la fecha y hora de la audiencia."
+      },
+      "forms_add": ["DV-109"],
+      "next": "dv110_intro"
+    },
+    "dv110_intro": {
+      "type": "info",
+      "info": {
+        "en": "DV-110 — Temporary Restraining Order: This form contains the judge's temporary orders that protect you until the hearing. It may include stay-away orders, no-contact orders, and other protections. The judge will sign this if they grant your request.",
+        "es": "DV-110 — Orden de restricción temporal: Este formulario contiene las órdenes temporales del juez que le protegen hasta la audiencia. Puede incluir órdenes de alejamiento, sin contacto y otras protecciones. El juez firmará esto si otorga su solicitud."
+      },
+      "forms_add": ["DV-110"],
+      "next": "copies"
+    },
+    "copies": {
+      "type": "question",
+      "info": {
+        "en": "You need multiple copies of each form: one for the other party (to be served), one for you to keep, and the originals for the court. Most courts require at least 3 copies. You can make copies at the courthouse or a copy center.",
+        "es": "Necesita múltiples copias de cada formulario: una para la otra parte (para notificar), una para usted para guardar, y los originales para el tribunal. La mayoría de los tribunales requieren al menos 3 copias. Puede hacer copias en el palacio de justicia o un centro de copias."
+      },
+      "question": { "en": "Have you made the required copies?", "es": "¿Ha hecho las copias requeridas?" },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "file_with_court" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "file_with_court" }
+      ]
+    },
+    "file_with_court": {
+      "type": "question",
+      "info": {
+        "en": "File your forms with the court clerk. Bring all originals and copies. The clerk will review your forms and may ask questions. Ask about when your TRO will be ready and when your hearing will be scheduled. There may be filing fees, but fee waivers are available.",
+        "es": "Presente sus formularios ante el secretario del tribunal. Lleve todos los originales y copias. El secretario revisará sus formularios y puede hacer preguntas. Pregunte cuándo estará lista su TRO y cuándo se programará su audiencia. Puede haber tarifas de presentación, pero hay exenciones disponibles."
+      },
+      "question": { "en": "Have you filed your forms with the court?", "es": "¿Ha presentado sus formularios ante el tribunal?" },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "tro_pickup" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "tro_pickup" }
+      ]
+    },
+    "tro_pickup": {
+      "type": "info",
+      "info": {
+        "en": "After filing, ask the clerk when your TRO (DV-110) and hearing notice (DV-109) will be ready. Keep copies with you at all times. If the judge grants your TRO, it takes effect immediately. The other party must be served before the hearing.",
+        "es": "Después de presentar, pregunte al secretario cuándo estarán listas su TRO (DV-110) y el aviso de audiencia (DV-109). Guarde copias con usted en todo momento. Si el juez otorga su TRO, entra en vigor inmediatamente. La otra parte debe ser notificada antes de la audiencia."
+      },
+      "next": "service_method"
+    },
+    "service_method": {
+      "type": "question",
+      "info": {
+        "en": "Someone 18 or older (not you) must serve the other party with your forms. Options: Sheriff's office (often free), professional process server (paid), or any adult who is not part of the case. Most courts require service at least 5 days before the hearing. The server will complete DV-200.",
+        "es": "Alguien de 18 años o mayor (no usted) debe notificar a la otra parte con sus formularios. Opciones: Oficina del Sheriff (a menudo gratis), gestor profesional de notificaciones (pagado), o cualquier adulto que no sea parte del caso. La mayoría de los tribunales requieren notificación al menos 5 días antes de la audiencia. Quien notifique completará DV-200."
+      },
+      "question": { "en": "How will you serve the other party?", "es": "¿Cómo notificará a la otra parte?" },
+      "options": [
+        { "value": "sheriff", "label": { "en": "Sheriff's office", "es": "Oficina del Sheriff" }, "next": "served" },
+        { "value": "server", "label": { "en": "Professional process server", "es": "Gestor profesional de notificaciones" }, "next": "served" },
+        { "value": "adult", "label": { "en": "Adult (18+) not in the case", "es": "Adulto (18+) que no es parte" }, "next": "served" },
+        { "value": "unknown", "label": { "en": "I don't know yet", "es": "Aún no sé" }, "next": "served" }
+      ]
+    },
+    "served": {
+      "type": "question",
+      "info": {
+        "en": "After service, your server must complete DV-200 (Proof of Personal Service) showing when, where, and how the other party was served. This form must be filed with the court before your hearing. Without proof of service, the court may continue your hearing.",
+        "es": "Después de la notificación, quien notifique debe completar DV-200 (Prueba de Notificación Personal) mostrando cuándo, dónde y cómo se notificó a la otra parte. Este formulario debe presentarse ante el tribunal antes de su audiencia. Sin prueba de notificación, el tribunal puede aplazar su audiencia."
+      },
+      "question": { "en": "Has the other party been served?", "es": "¿Se ha notificado a la otra parte?" },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "proof_filed" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "proof_filed" }
+      ]
+    },
+    "proof_filed": {
+      "type": "question",
+      "info": {
+        "en": "File DV-200 (Proof of Service) with the court before your hearing. This proves the other party received notice of the hearing and your request. Without this, the court may not proceed with your case.",
+        "es": "Presente DV-200 (Prueba de Notificación) ante el tribunal antes de su audiencia. Esto prueba que la otra parte recibió aviso de la audiencia y su solicitud. Sin esto, el tribunal puede no proceder con su caso."
+      },
+      "question": { "en": "Have you filed the Proof of Service (DV-200)?", "es": "¿Ha presentado la Prueba de Notificación (DV-200)?" },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "hearing_date" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "hearing_date" }
+      ]
+    },
+    "hearing_date": {
+      "type": "question",
+      "info": {
+        "en": "Your DV-109 (Notice of Court Hearing) lists your hearing date and time. Bring copies of all forms, any evidence (photos, messages, medical records), and witnesses who can testify about the abuse or threats.",
+        "es": "Su DV-109 (Aviso de Audiencia) indica la fecha y hora de su audiencia. Lleve copias de todos los formularios, cualquier prueba (fotos, mensajes, registros médicos), y testigos que puedan testificar sobre el abuso o amenazas."
+      },
+      "question": { "en": "Do you have a hearing date?", "es": "¿Tiene fecha de audiencia?" },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "firearms" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "firearms" }
+      ]
+    },
+    "firearms": {
+      "type": "question",
+      "info": {
+        "en": "DVROs can prohibit the restrained person from owning or possessing firearms. If firearms are involved, the court may order surrender by a specific deadline. You must file proof that firearms were surrendered. Ask the facilitator's office for help with this process.",
+        "es": "Las DVRO pueden prohibir que la persona restringida posea o tenga armas de fuego. Si hay armas de fuego involucradas, el tribunal puede ordenar la entrega antes de una fecha límite específica. Debe presentar prueba de que las armas fueron entregadas. Pida ayuda a la oficina de facilitación para este proceso."
+      },
+      "question": { "en": "Are firearms involved that must be surrendered?", "es": "¿Hay armas de fuego que deban entregarse?" },
+      "options": [
+        { "value": "yes", "label": { "en": "Yes", "es": "Sí" }, "next": "summary" },
+        { "value": "no", "label": { "en": "No", "es": "No" }, "next": "summary" }
+      ]
+    },
+    "summary": {
+      "type": "info",
+      "info": {
+        "en": "You're ready for the hearing! The facilitator can help review your packet, explain what to expect at the hearing, and answer any questions. Bring all your forms, evidence, and witnesses to court. The judge will decide whether to grant a longer-term restraining order.",
+        "es": "¡Está listo para la audiencia! La oficina de facilitación puede ayudar a revisar su paquete, explicar qué esperar en la audiencia, y responder cualquier pregunta. Lleve todos sus formularios, pruebas y testigos al tribunal. El juez decidirá si otorgar una orden de restricción a largo plazo."
+      },
+      "next": null
+    },
+    "respond_intro": {
+      "type": "info",
+      "info": {
+        "en": "To respond to a DVRO request, you'll use DV-120 (Response to Request for Domestic Violence Restraining Order). You must be served by someone 18+ who is not a party to the case. After filing your response, attend the hearing listed on the DV-109 you received.",
+        "es": "Para responder a una solicitud de DVRO, usará DV-120 (Respuesta a la Solicitud de Orden de Restricción por Violencia Doméstica). Debe ser notificado por alguien de 18+ que no sea parte del caso. Después de presentar su respuesta, asista a la audiencia indicada en el DV-109 que recibió."
+      },
+      "forms_add": ["DV-120"],
+      "next": "summary"
+    },
+    "change_intro": {
+      "type": "info",
+      "info": {
+        "en": "To change or end an existing order, you typically file a request with the court explaining what changes you need and why. Bring your current order to the facilitator's office. The process may require a hearing and service on the other party.",
+        "es": "Para cambiar o terminar una orden existente, normalmente presenta una solicitud al tribunal explicando qué cambios necesita y por qué. Lleve su orden actual a la oficina de facilitación. El proceso puede requerir una audiencia y notificación a la otra parte."
+      },
+      "next": "summary"
+    },
+    "renew_intro": {
+      "type": "info",
+      "info": {
+        "en": "You may ask to renew a DVRO before it expires. Renewals can be for 5 years or permanent in some cases. Start early to allow time for filing and service. The process is similar to filing a new request.",
+        "es": "Puede pedir renovar una DVRO antes de que venza. Las renovaciones pueden ser por 5 años o permanentes en algunos casos. Comience temprano para tener tiempo de presentar y notificar. El proceso es similar a presentar una nueva solicitud."
+      },
+      "next": "summary"
+    }
+  },
+  "rules": {
+    "add_if_children": ["DV-105", "DV-140"],
+    "add_if_support_requested": ["FL-150"],
+    "always_add_proof": ["DV-200"]
+  }
+} 
