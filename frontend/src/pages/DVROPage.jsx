@@ -5,27 +5,52 @@ import FlowRunner from '../components/FlowRunner';
 import flowData from '../data/dv_flow_combined.json';
 import { Shield, Globe, Home, ArrowLeft } from 'lucide-react';
 
+const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
+  process.env.REACT_APP_API_URL ||
+  'http://localhost:5001';
+
 export default function DVROPage() {
   const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
   const [showFlow, setShowFlow] = useState(false);
 
-  const handleFinish = ({ answers, forms }) => {
-    console.log('User completed the DVRO flow with:', { answers, forms });
+  const handleFinish = async ({ answers, forms }) => {
+    const summary = generateSummary(answers, forms);
+    let queueNumber = '';
 
-    const payload = {
-      caseType: getCaseType(answers),
-      priority: 'A',
-      answers,
-      recommendedForms: forms,
-      summary: generateSummary(answers, forms),
-      timestamp: new Date().toISOString()
-    };
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/generate-queue`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ case_type: 'A', priority: 'A', language })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        queueNumber = data.queue_number;
 
-    console.log('Backend payload:', payload);
+        // send answers and summary to backend for facilitator review
+        await fetch(`${API_BASE_URL}/api/process-answers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            queue_number: queueNumber,
+            answers: {
+              case_type: getCaseType(answers),
+              current_step: 'completed',
+              progress: Object.entries(answers).map(([pageId, value]) => ({ pageId, option: value })),
+              summary,
+              next_steps: []
+            },
+            language
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Error communicating with backend:', error);
+    }
 
-    // The FlowRunner will now handle showing the summary page
-    // No need to navigate away - the summary is displayed within the flow
+    return queueNumber;
   };
 
   const getCaseType = (answers) => {

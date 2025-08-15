@@ -220,13 +220,20 @@ export default function FlowRunner({ flow, locale = 'en', onFinish, onBack, onHo
     return pageData ? { ...pageData, id: cur } : null;
   }, [cur, flow.pages]);
 
-  const handleNext = (next) => {
+  const handleNext = async (next) => {
     if (!next) {
       const forms = computeRecommendations(flow, answers);
-      const data = { answers, forms };
+      let queueNumber = null;
+      if (onFinish) {
+        try {
+          queueNumber = await onFinish({ answers, forms });
+        } catch (e) {
+          console.error('Error finishing flow:', e);
+        }
+      }
+      const data = { answers, forms, queueNumber };
       setSummaryData(data);
       setShowSummary(true);
-      onFinish?.(data);
       return;
     }
     setPageHistory(prev => [...prev, next]);
@@ -259,6 +266,7 @@ export default function FlowRunner({ flow, locale = 'en', onFinish, onBack, onHo
         answers={summaryData.answers}
         forms={summaryData.forms}
         flow={flow}
+        queueNumber={summaryData.queueNumber}
         onBack={handleSummaryBack}
         onHome={onHome}
       />
@@ -446,9 +454,9 @@ export default function FlowRunner({ flow, locale = 'en', onFinish, onBack, onHo
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
-              onClick={() => {
+              onClick={async () => {
                 const selected = page.options?.find(o => o.value === answers[page.id]);
-                handleNext(selected?.next);
+                await handleNext(selected?.next);
               }}
               disabled={!answers[page.id]}
             >
@@ -457,7 +465,7 @@ export default function FlowRunner({ flow, locale = 'en', onFinish, onBack, onHo
           ) : (
             <button
               className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold text-base hover:bg-green-700 transition-all duration-200"
-              onClick={() => handleNext(page.next)}
+              onClick={async () => handleNext(page.next)}
             >
               Continue
             </button>
