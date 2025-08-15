@@ -96,7 +96,7 @@ function getCaseType(answers) {
   return 'Domestic Violence Restraining Order';
 }
 
-export default function SummaryPage({ answers, forms, flow, onBack, onHome, onEmail }) {
+export default function SummaryPage({ answers, forms, flow, queueNumber, onBack, onHome, onEmail }) {
   const [currentPage, setCurrentPage] = useState('summary'); // 'summary' or 'nextSteps'
   const [email, setEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -178,7 +178,7 @@ export default function SummaryPage({ answers, forms, flow, onBack, onHome, onEm
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-3 bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center space-x-4">
-            <button 
+            <button
               onClick={onBack}
               className="px-3 py-1.5 text-gray-600 hover:text-gray-800 transition-colors text-sm font-medium flex items-center"
             >
@@ -188,6 +188,11 @@ export default function SummaryPage({ answers, forms, flow, onBack, onHome, onEm
               Back to Questions
             </button>
             <h1 className="text-lg font-bold text-gray-900">Case Summary</h1>
+            {queueNumber && (
+              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-semibold">
+                {queueNumber}
+              </span>
+            )}
           </div>
           <div className="flex items-center space-x-3">
             <button 
@@ -218,8 +223,11 @@ export default function SummaryPage({ answers, forms, flow, onBack, onHome, onEm
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h4 className="font-semibold text-gray-900 mb-2">Case Information</h4>
                   <ul className="space-y-1 text-sm text-gray-700">
+                    {queueNumber && (
+                      <li><span className="font-medium">Queue Number:</span> {queueNumber}</li>
+                    )}
                     <li><span className="font-medium">Type:</span> Domestic Violence Restraining Order</li>
-                    <li><span className="font-medium">Priority:</span> 
+                    <li><span className="font-medium">Priority:</span>
                       <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${getPriorityColor('A')}`}>
                         Priority A
                       </span>
