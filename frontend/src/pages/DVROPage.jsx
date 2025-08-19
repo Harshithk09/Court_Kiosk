@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import FlowRunner from '../components/FlowRunner';
-import flowData from '../data/dv_flow_combined.json';
-import { Shield, Globe, Home, ArrowLeft } from 'lucide-react';
+import SimpleFlowRunner from '../components/SimpleFlowRunner';
+import { Shield, Home } from 'lucide-react';
 
 const API_BASE_URL =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
@@ -14,6 +13,21 @@ export default function DVROPage() {
   const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
   const [showFlow, setShowFlow] = useState(false);
+  const [flowData, setFlowData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/data/dv_flow_combined.json')
+      .then(response => response.json())
+      .then(data => {
+        setFlowData(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error loading flow data:', error);
+        setLoading(false);
+      });
+  }, []);
 
   const handleFinish = async ({ answers, forms }) => {
     const summary = generateSummary(answers, forms);
@@ -94,6 +108,9 @@ export default function DVROPage() {
         case 'other':
           summary.push('Non-domestic relationship - using Civil Harassment forms');
           break;
+        default:
+          summary.push('Unknown relationship type');
+          break;
       }
     }
 
@@ -118,12 +135,40 @@ export default function DVROPage() {
     return summary.join('. ');
   };
 
-  // If flow is active, show the FlowRunner without any wrapper
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading application...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (!flowData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Failed to load application data</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If flow is active, show the SimpleFlowRunner without any wrapper
   if (showFlow) {
     return (
-      <FlowRunner
+      <SimpleFlowRunner
         flow={flowData}
-        locale={language}
         onFinish={handleFinish}
         onBack={() => setShowFlow(false)}
         onHome={() => navigate('/')}

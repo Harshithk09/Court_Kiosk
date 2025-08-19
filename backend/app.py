@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import random
 from email.mime.base import MIMEBase
 from email import encoders
+from utils.llm_service import LLMService
 
 # Load environment variables from .env file
 load_dotenv()
@@ -31,6 +32,9 @@ if not api_key:
     client = None
 else:
     client = OpenAI(api_key=api_key)
+
+# Initialize LLM service
+llm_service = LLMService(api_key)
 
 # Email configuration
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')

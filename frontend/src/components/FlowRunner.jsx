@@ -208,17 +208,17 @@ function getHearingSteps(answers) {
 }
 
 export default function FlowRunner({ flow, locale = 'en', onFinish, onBack, onHome }) {
-  const [cur, setCur] = useState(flow.meta.start);
+  const [cur, setCur] = useState(flow?.meta?.start || flow?.start || 'DVROStart');
   const [lang, setLang] = useState(locale);
   const [answers, setAnswers] = useState({});
-  const [pageHistory, setPageHistory] = useState([flow.meta.start]);
+  const [pageHistory, setPageHistory] = useState([flow?.meta?.start || flow?.start || 'DVROStart']);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
 
   const page = useMemo(() => {
-    const pageData = flow.pages[cur];
+    const pageData = flow?.pages?.[cur] || flow?.nodes?.[cur];
     return pageData ? { ...pageData, id: cur } : null;
-  }, [cur, flow.pages]);
+  }, [cur, flow?.pages, flow?.nodes]);
 
   const handleNext = async (next) => {
     if (!next) {
@@ -432,7 +432,7 @@ export default function FlowRunner({ flow, locale = 'en', onFinish, onBack, onHo
       {/* Footer */}
       <div className="flex justify-between items-center px-8 py-4 bg-white border-t border-gray-200">
         <div className="text-base text-gray-600 font-medium">
-          Step {pageHistory.length} of {Object.keys(flow.pages).length}
+          Step {pageHistory.length} of {Object.keys(flow?.pages || flow?.nodes || {}).length}
         </div>
         <div className="flex space-x-4">
           <button
