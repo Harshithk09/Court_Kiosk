@@ -79,7 +79,7 @@ export default function FlowRunner({
   const [lang, setLang] = useState<Locale>(locale);
   const [answers, setAnswers] = useState<Answers>({});
   const [showSummary, setShowSummary] = useState(false);
-  const [caseNumber, setCaseNumber] = useState('');
+  const [queueNumber, setQueueNumber] = useState('');
 
   const page = useMemo(() => {
     const pageData = flow.pages[cur];
@@ -93,21 +93,34 @@ export default function FlowRunner({
   const handleNext = (next?: string | null) => {
     if (!next) {
       const forms = computeRecommendations(flow, answers);
-      
-      // Generate case number (A + 3 digits)
-      const timestamp = Date.now();
-      const randomNum = Math.floor(Math.random() * 900) + 100; // 100-999
-      const generatedCaseNumber = `A${randomNum}`;
-      setCaseNumber(generatedCaseNumber);
-      
+
       // Call onFinish for backend processing
       onFinish?.({ answers, forms });
-      
+
       // Show summary page
       setShowSummary(true);
       return;
     }
     setCur(next);
+  };
+
+  const handleJoinQueue = async () => {
+    try {
+      const response = await fetch('/api/queue/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caseType: 'DVRO',
+          language: lang
+        })
+      });
+      const data = await response.json();
+      if (data.queue_number) {
+        setQueueNumber(data.queue_number);
+      }
+    } catch (err) {
+      console.error('Error joining queue:', err);
+    }
   };
 
   const getFormName = (formNumber: string) => {
@@ -120,11 +133,12 @@ export default function FlowRunner({
     const forms = computeRecommendations(flow, answers);
     return (
       <SummaryPage
-        caseNumber={caseNumber}
+        caseNumber={queueNumber}
         answers={answers}
         forms={forms}
         onBack={() => setShowSummary(false)}
         onPrint={() => window.print()}
+        onJoinQueue={handleJoinQueue}
       />
     );
   }

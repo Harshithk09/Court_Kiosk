@@ -436,11 +436,18 @@ def dvro_rag():
 @app.route('/api/flowchart', methods=['GET'])
 def api_flowchart():
     try:
-        return send_file('flowchart.json', mimetype='application/json')
+        flowchart_path = os.path.join(os.getcwd(), 'flowchart.json')
+        if not os.path.exists(flowchart_path):
+            raise FileNotFoundError
+        return send_file(flowchart_path, mimetype='application/json')
     except FileNotFoundError:
         return jsonify({'error': 'Flowchart data not found'}), 404
     except Exception as e:
         return jsonify({'error': f'Error serving flowchart data: {str(e)}'}), 500
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'OK'})
 
 @app.route('/api/generate-queue', methods=['POST'])
 def generate_queue():
