@@ -1,14 +1,15 @@
 import React from 'react';
 
 interface SummaryPageProps {
-  caseNumber: string;
+  caseNumber?: string;
   answers: Record<string, string>;
   forms: string[];
   onBack?: () => void;
   onPrint?: () => void;
+  onJoinQueue?: () => void;
 }
 
-export default function SummaryPage({ caseNumber, answers, forms, onBack, onPrint }: SummaryPageProps) {
+export default function SummaryPage({ caseNumber, answers, forms, onBack, onPrint, onJoinQueue }: SummaryPageProps) {
   const getFormDisplayName = (formNumber: string) => {
     const formNames: Record<string, string> = {
       'DV-100': 'Request for Domestic Violence Restraining Order',
@@ -90,7 +91,7 @@ export default function SummaryPage({ caseNumber, answers, forms, onBack, onPrin
         <div className={`${getPriorityColor()} text-white p-6 rounded-t-xl`}>
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-4xl font-bold mb-2">{caseNumber}</h1>
+              <h1 className="text-4xl font-bold mb-2">{caseNumber || 'Case Summary'}</h1>
               <h2 className="text-2xl font-semibold mb-1">Domestic Violence Restraining Order</h2>
               <p className="text-red-100">Priority A - Immediate attention required</p>
             </div>
@@ -269,23 +270,34 @@ export default function SummaryPage({ caseNumber, answers, forms, onBack, onPrin
               </div>
             </div>
 
-            {/* Wait for Call */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg">
-              <div className="flex items-center mb-3">
-                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+            {/* Wait for Call / Join Queue */}
+            {caseNumber ? (
+              <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg">
+                <div className="flex items-center mb-3">
+                  <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold">Please Wait to be Called</h3>
                 </div>
-                <h3 className="text-xl font-semibold">Please Wait to be Called</h3>
+                <p className="text-green-100 mb-2">
+                  A facilitator will assist you shortly. Your information has been sent to the facilitator office.
+                </p>
+                <p className="text-green-100 text-sm">
+                  Your queue number <span className="font-bold">{caseNumber}</span> will be called when ready.
+                </p>
               </div>
-              <p className="text-green-100 mb-2">
-                A facilitator will assist you shortly. Your information has been sent to the facilitator office.
-              </p>
-              <p className="text-green-100 text-sm">
-                Your case number <span className="font-bold">{caseNumber}</span> will be called when ready.
-              </p>
-            </div>
+            ) : (
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={onJoinQueue}
+                  className="px-6 py-3 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Get Help from a Facilitator
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
