@@ -11,6 +11,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
   const [caseSummary, setCaseSummary] = useState(null);
+  const [selectedCaseInfo, setSelectedCaseInfo] = useState(null);
 
   // Use the same API base URL as the existing system
   const API_BASE_URL = 'http://localhost:5001';
@@ -109,13 +110,14 @@ const AdminDashboard = () => {
     }
   };
 
-  const getCaseSummary = async (queueNumber) => {
+  const getCaseSummary = async (queueEntry) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/queue/${queueNumber}/summary`);
+      const response = await fetch(`${API_BASE_URL}/api/queue/${queueEntry.queue_number}/summary`);
       const data = await response.json();
       if (data.success) {
         setCaseSummary(data.summary);
-        setSelectedCase(queueNumber);
+        setSelectedCase(queueEntry.queue_number);
+        setSelectedCaseInfo(queueEntry);
       }
     } catch (error) {
       console.error('Error getting case summary:', error);
@@ -133,6 +135,7 @@ const AdminDashboard = () => {
         fetchQueueStatus();
         setSelectedCase(null);
         setCaseSummary(null);
+        setSelectedCaseInfo(null);
       }
     } catch (error) {
       console.error('Error completing case:', error);
@@ -227,26 +230,59 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {/* Cases List */}
+      {/* Waiting Cases */}
+      {queueStatus?.waiting && queueStatus.waiting.length > 0 && (
+        <div className="cases-section">
+          <h2>{language === 'es' ? 'Casos en espera' : 'Waiting Cases'}</h2>
+          <div className="cases-grid">
+            {queueStatus.waiting.map((entry) => (
+              <div
+                key={entry.queue_number}
+                className={`case-card ${selectedCase === entry.queue_number ? 'selected' : ''}`}
+                onClick={() => getCaseSummary(entry)}
+              >
+                <div className="case-header">
+                  <div
+                    className="priority-badge"
+                    style={{ backgroundColor: getPriorityColor(entry.priority_level) }}
+                  >
+                    {entry.priority_level}
+                  </div>
+                  <div
+                    className="status-badge"
+                    style={{ backgroundColor: getStatusColor(entry.status) }}
+                  >
+                    {entry.status}
+                  </div>
+                </div>
+                <div className="case-number">{entry.queue_number}</div>
+                <div className="case-type">{entry.case_type}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Assigned Cases */}
       <div className="cases-section">
         <h2>{language === 'es' ? 'Casos Asignados' : 'Assigned Cases'}</h2>
         <div className="cases-grid">
           {facilitatorCases.map((facilitatorCase) => {
             const queueEntry = facilitatorCase.queue_entry;
             return (
-              <div 
-                key={facilitatorCase.id} 
+              <div
+                key={facilitatorCase.id}
                 className={`case-card ${selectedCase === queueEntry.queue_number ? 'selected' : ''}`}
-                onClick={() => getCaseSummary(queueEntry.queue_number)}
+                onClick={() => getCaseSummary(queueEntry)}
               >
                 <div className="case-header">
-                  <div 
+                  <div
                     className="priority-badge"
                     style={{ backgroundColor: getPriorityColor(queueEntry.priority_level) }}
                   >
                     {queueEntry.priority_level}
                   </div>
-                  <div 
+                  <div
                     className="status-badge"
                     style={{ backgroundColor: getStatusColor(queueEntry.status) }}
                   >
@@ -275,13 +311,13 @@ const AdminDashboard = () => {
 
       {/* Case Summary Modal */}
       {selectedCase && caseSummary && (
-        <div className="modal-overlay" onClick={() => setSelectedCase(null)}>
+        <div className="modal-overlay" onClick={() => { setSelectedCase(null); setSelectedCaseInfo(null); }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{language === 'es' ? 'Resumen del Caso' : 'Case Summary'}</h3>
-              <button 
+              <button
                 className="close-btn"
-                onClick={() => setSelectedCase(null)}
+                onClick={() => { setSelectedCase(null); setSelectedCaseInfo(null); }}
               >
                 ×
               </button>
@@ -290,7 +326,7 @@ const AdminDashboard = () => {
               <div className="case-details">
                 <h4>{language === 'es' ? 'Información del Caso' : 'Case Information'}</h4>
                 <p><strong>{language === 'es' ? 'Número de cola:' : 'Queue number:'}</strong> {selectedCase}</p>
-                <p><strong>{language === 'es' ? 'Tipo de caso:' : 'Case type:'}</strong> {facilitatorCases.find(c => c.queue_entry.queue_number === selectedCase)?.queue_entry.case_type}</p>
+                <p><strong>{language === 'es' ? 'Tipo de caso:' : 'Case type:'}</strong> {selectedCaseInfo?.case_type}</p>
               </div>
               <div className="case-summary">
                 <h4>{language === 'es' ? 'Resumen de la Conversación' : 'Conversation Summary'}</h4>
@@ -298,13 +334,13 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button 
+              <button
                 className="btn btn-secondary"
-                onClick={() => setSelectedCase(null)}
+                onClick={() => { setSelectedCase(null); setSelectedCaseInfo(null); }}
               >
                 {language === 'es' ? 'Cerrar' : 'Close'}
               </button>
-              <button 
+              <button
                 className="btn btn-success"
                 onClick={() => completeCase(selectedCase)}
               >

@@ -38,6 +38,15 @@ queue_manager = QueueManager(client)
 # Initialize LLM service
 llm_service = LLMService(api_key)
 
+# Load flowchart data used for progress analysis
+FLOW_DATA = {}
+_flow_path = os.path.join(os.path.dirname(__file__), '..', 'dv_flow_combined.json')
+try:
+    with open(_flow_path, 'r') as f:
+        FLOW_DATA = json.load(f)
+except Exception:
+    FLOW_DATA = {}
+
 # Email configuration
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
@@ -73,6 +82,48 @@ def send_email_notification(subject, body, to_email):
         
         msg.attach(MIMEText(body, 'plain'))
         
+        server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
+        server.starttls()
+        server.login(EMAIL_USER, EMAIL_PASS)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        return False
+
+
+def send_user_summary_email(to_email, summary, forms_needed, queue_number):
+    """Send a detailed summary email to the kiosk user."""
+    if not all([EMAIL_USER, EMAIL_PASS, to_email]):
+        # Incomplete configuration; log what would have been sent
+        print(f"Email configuration incomplete. Would send summary to {to_email}")
+        return False
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_USER
+        msg['To'] = to_email
+        msg['Subject'] = f"Your Court Kiosk Summary (Queue {queue_number})"
+
+        html_body = f"<p>{summary}</p>"
+
+        if forms_needed:
+            html_body += "<p>Forms you may need:</p><ul>"
+            for form in forms_needed:
+                if isinstance(form, dict):
+                    number = form.get('number') or form.get('title') or form.get('name')
+                    url = form.get('url') or f"https://www.courts.ca.gov/documents/{number}.pdf"
+                    display = form.get('name') or form.get('title') or number
+                else:
+                    number = form
+                    url = f"https://www.courts.ca.gov/documents/{number}.pdf"
+                    display = number
+                html_body += f'<li><a href="{url}">{display}</a></li>'
+            html_body += "</ul>"
+
+        msg.attach(MIMEText(html_body, 'html'))
+
         server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
         server.starttls()
         server.login(EMAIL_USER, EMAIL_PASS)
@@ -157,6 +208,85 @@ def update_progress(queue_number):
             'status': queue_entry.status
         })
     
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/queue/summary', methods=['POST'])
+def finalize_summary():
+    """Generate final summary, store it, and optionally email the user"""
+    try:
+        data = request.get_json()
+        queue_number = data.get('queue_number')
+        progress = data.get('progress', [])
+        send_email = data.get('send_email', False)
+
+        if not queue_number:
+            return jsonify({'error': 'queue_number is required'}), 400
+
+        queue_entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
+        if not queue_entry:
+            return jsonify({'error': 'Queue entry not found'}), 404
+
+        # Analyze progress for user-facing guidance
+        try:
+            analysis = llm_service.analyze_progress(
+                FLOW_DATA, progress, queue_entry.case_type, queue_entry.language
+            ) if FLOW_DATA else {
+                'current_node': None,
+                'next_steps': [],
+                'analysis': {
+                    'summary': '',
+                    'forms_needed': [],
+                    'next_steps': [],
+                    'concerns': [],
+                    'time_estimate': 0,
+                    'guidance': '',
+                    'priority_level': 'Medium'
+                },
+                'progress_percentage': 0,
+                'estimated_time_remaining': 0
+            }
+        except Exception as e:
+            analysis = {
+                'current_node': None,
+                'next_steps': [],
+                'analysis': {
+                    'summary': f"Error analyzing progress: {str(e)}",
+                    'forms_needed': [],
+                    'next_steps': [],
+                    'concerns': [],
+                    'time_estimate': 0,
+                    'guidance': '',
+                    'priority_level': 'Medium'
+                },
+                'progress_percentage': 0,
+                'estimated_time_remaining': 0
+            }
+
+        # Generate facilitator summary and store
+        facilitator_summary = ''
+        try:
+            facilitator_summary = llm_service.generate_facilitator_summary(
+                queue_entry.to_dict(), progress, queue_entry.case_type, queue_entry.language
+            )
+        except Exception as e:
+            facilitator_summary = f"Error generating summary: {str(e)}"
+
+        queue_entry.conversation_summary = facilitator_summary
+        queue_entry.documents_needed = json.dumps(
+            analysis.get('analysis', {}).get('forms_needed', [])
+        )
+        db.session.commit()
+
+        if send_email and queue_entry.user_email:
+            send_user_summary_email(
+                queue_entry.user_email,
+                analysis.get('analysis', {}).get('summary', ''),
+                analysis.get('analysis', {}).get('forms_needed', []),
+                queue_number
+            )
+
+        return jsonify(analysis)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
