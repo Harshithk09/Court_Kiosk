@@ -5,7 +5,8 @@ from typing import List, Dict, Any, Optional
 
 class LLMService:
     def __init__(self, api_key: Optional[str] = None):
-        self.client = OpenAI(api_key=api_key or os.getenv('OPENAI_API_KEY'))
+        api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.client = OpenAI(api_key=api_key) if api_key else None
         
     def analyze_progress(self, flow_data: Dict, user_progress: List[Dict], case_type: str, language: str = 'en') -> Dict[str, Any]:
         """

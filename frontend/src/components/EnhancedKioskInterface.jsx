@@ -291,7 +291,8 @@ const EnhancedKioskInterface = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           queue_number: queueNumber,
-          progress: flowProgress
+          progress: flowProgress,
+          send_email: true
         })
       });
       
