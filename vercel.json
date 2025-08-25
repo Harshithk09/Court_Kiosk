@@ -4,11 +4,6 @@
   "framework": "create-react-app",
   "installCommand": "npm install",
   "devCommand": "npm start",
-  "functions": {
-    "app/api/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "routes": [
     {
       "src": "/static/(.*)",
