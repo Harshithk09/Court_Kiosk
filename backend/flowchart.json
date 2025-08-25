@@ -1,0 +1,61 @@
+{
+  "flowchart": {
+    "start": {
+      "id": "start",
+      "title": {
+        "en": "Court Kiosk System",
+        "es": "Sistema de Quiosco Judicial"
+      },
+      "description": {
+        "en": "Welcome to the court kiosk system",
+        "es": "Bienvenido al sistema de quiosco judicial"
+      },
+      "options": [
+        {
+          "id": "dv",
+          "text": {
+            "en": "Domestic Violence / Restraining Order",
+            "es": "Violencia Doméstica / Orden de Restricción"
+          },
+          "priority": "A",
+          "next": "dv_help"
+        }
+      ]
+    },
+    "dv_help": {
+      "id": "dv_help",
+      "title": {
+        "en": "Domestic Violence Help",
+        "es": "Ayuda para Violencia Doméstica"
+      },
+      "description": {
+        "en": "If you are in immediate danger, call 911 now.",
+        "es": "Si está en peligro inmediato, llame al 911 ahora."
+      },
+      "priority": "A",
+      "forms": [
+        {
+          "number": "DV-100",
+          "name": {
+            "en": "Request for Domestic Violence Restraining Order",
+            "es": "Solicitud de Orden de Restricción por Violencia Doméstica"
+          }
+        }
+      ],
+      "next_steps": {
+        "en": [
+          "Call 911 if in immediate danger",
+          "Fill out DV-100 form",
+          "File with the court clerk",
+          "Attend the hearing"
+        ],
+        "es": [
+          "Llame al 911 si está en peligro inmediato",
+          "Complete el formulario DV-100",
+          "Presente en la oficina del secretario",
+          "Asista a la audiencia"
+        ]
+      }
+    }
+  }
+} 

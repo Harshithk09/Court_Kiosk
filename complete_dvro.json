@@ -1,0 +1,571 @@
+{
+  "title": "Domestic Violence Restraining Order",
+  "icon": "Shield",
+  "priority": "A",
+  "color": "bg-gradient-to-br from-red-500 to-red-600",
+  "info": [
+    {
+      "id": "what_is_dvro",
+      "title": {
+        "en": "What is a Domestic Violence Restraining Order (DVRO)?",
+        "es": "¿Qué es una Orden de Restricción por Violencia Doméstica (DVRO)?"
+      },
+      "body": {
+        "en": "A DVRO is a court order that can protect you from abuse or threats from someone you have a close relationship with. It can include personal conduct orders, stay-away orders, move-out orders, and temporary custody/visitation orders.",
+        "es": "Una DVRO es una orden judicial que puede protegerle del abuso o las amenazas de alguien con quien tiene una relación cercana. Puede incluir órdenes de conducta personal, órdenes de alejamiento, órdenes de desalojo y órdenes temporales de custodia/visitas."
+      }
+    },
+    {
+      "id": "who_can_apply",
+      "title": {
+        "en": "Who can apply?",
+        "es": "¿Quién puede solicitarla?"
+      },
+      "body": {
+        "en": "You can apply if the person is/was your spouse/partner, someone you dated or lived with, or a close family member (parent, child, sibling, grandparent, in-law). For non-domestic relationships (neighbor, coworker), use Civil Harassment forms instead.",
+        "es": "Puede solicitarla si la persona es/fue su cónyuge/pareja, alguien con quien salió o vivió, o un familiar cercano (padre/madre, hijo/a, hermano/a, abuelo/a, suegro/a). Para relaciones no domésticas (vecino, compañero de trabajo), use los formularios de Acoso Civil."
+      }
+    },
+    {
+      "id": "emergency_vs_permanent",
+      "title": {
+        "en": "Emergency vs. Long-Term Orders",
+        "es": "Órdenes de emergencia vs. a largo plazo"
+      },
+      "body": {
+        "en": "An Emergency Protective Order (EPO) can be requested through police for immediate safety. A Temporary Restraining Order (TRO) can be granted by a judge after you file forms and lasts until your hearing. Longer orders may be issued at the hearing.",
+        "es": "Una Orden de Protección de Emergencia (EPO) se puede solicitar a través de la policía para protección inmediata. Una Orden de Restricción Temporal (TRO) puede ser otorgada por un juez después de presentar los formularios y dura hasta su audiencia. Órdenes más largas pueden emitirse en la audiencia."
+      }
+    },
+    {
+      "id": "steps_overview",
+      "title": {
+        "en": "Steps Overview",
+        "es": "Resumen de los pasos"
+      },
+      "body": {
+        "en": "1) Complete forms → 2) File with the clerk → 3) Receive TRO (if granted) → 4) Serve the other party → 5) File Proof of Service → 6) Attend hearing → 7) After the hearing, follow the court’s orders or request renewals as needed.",
+        "es": "1) Completar formularios → 2) Presentar ante el secretario → 3) Recibir TRO (si se otorga) → 4) Notificar a la otra parte → 5) Presentar Prueba de Notificación → 6) Asistir a la audiencia → 7) Después de la audiencia, cumpla con las órdenes o solicite renovaciones si es necesario."
+      }
+    },
+    {
+      "id": "service_options",
+      "title": {
+        "en": "Service Options & Deadlines",
+        "es": "Opciones de notificación y plazos"
+      },
+      "body": {
+        "en": "A server must be 18+ and not a party. Options: Sheriff, process server, or a trusted adult. DVRO packets usually must be served at least 5 days before the hearing (check your order). The server should complete DV-200.",
+        "es": "Quien notifique debe tener 18+ y no ser parte del caso. Opciones: Sheriff, gestor de notificaciones o un adulto de confianza. Los paquetes de DVRO por lo general deben notificarse al menos 5 días antes de la audiencia (verifique su orden). Quien notifique debe completar el DV-200."
+      }
+    },
+    {
+      "id": "guns_and_surrender",
+      "title": {
+        "en": "Firearms: Prohibitions & Surrender",
+        "es": "Armas de fuego: prohibiciones y entrega"
+      },
+      "body": {
+        "en": "DVROs can prohibit owning or possessing firearms. If you have firearms, you may be required to surrender them by a deadline and file proof. Ask the facilitator’s office if you need help.",
+        "es": "Las DVRO pueden prohibir poseer o tener armas de fuego. Si tiene armas, puede ser requerido entregarlas antes de una fecha límite y presentar comprobante. Pida ayuda a la oficina de facilitación si la necesita."
+      }
+    },
+    {
+      "id": "children_and_custody",
+      "title": {
+        "en": "Children & Custody in DVRO",
+        "es": "Niños y custodia en la DVRO"
+      },
+      "body": {
+        "en": "You can include children in your request. The court may issue temporary custody/visitation orders. Additional child-related forms may be required.",
+        "es": "Puede incluir a los niños en su solicitud. El tribunal puede emitir órdenes temporales de custodia/visitas. Pueden requerirse formularios adicionales relacionados con los niños."
+      }
+    },
+    {
+      "id": "support_and_income_forms",
+      "title": {
+        "en": "Support (Child/Spousal) & Income Forms",
+        "es": "Manutención (de hijos/cónyuge) y formularios de ingresos"
+      },
+      "body": {
+        "en": "If you are requesting financial support, you typically need to complete FL-150 (Income and Expense Declaration).",
+        "es": "Si solicita manutención económica, normalmente necesita completar el FL-150 (Declaración de Ingresos y Gastos)."
+      }
+    },
+    {
+      "id": "hearing_and_after",
+      "title": {
+        "en": "Your Hearing & After the Hearing",
+        "es": "Su audiencia y después de la audiencia"
+      },
+      "body": {
+        "en": "Bring copies, evidence, and witnesses. If the other party was not served, the court may continue your hearing. After the hearing, follow the orders, arrange service/renewal if needed, and keep certified copies with you.",
+        "es": "Lleve copias, pruebas y testigos. Si la otra parte no fue notificada, el tribunal puede aplazar su audiencia. Después de la audiencia, cumpla con las órdenes, gestione la notificación/renovación si es necesario y lleve copias certificadas consigo."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "immediate_danger",
+      "type": "choice",
+      "urgent": true,
+      "question": {
+        "en": "Are you in immediate danger?",
+        "es": "¿Está usted en peligro inmediato?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes, I am in immediate danger",
+            "es": "Sí, estoy en peligro inmediato"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No, but I need protection",
+            "es": "No, pero necesito protección"
+          }
+        }
+      ]
+    },
+    {
+      "id": "relationship",
+      "type": "choice",
+      "question": {
+        "en": "What is your relationship to the person you need protection from?",
+        "es": "¿Cuál es su relación con la persona de la que necesita protección?"
+      },
+      "options": [
+        {
+          "value": "spouse",
+          "label": {
+            "en": "Current or former spouse/partner",
+            "es": "Cónyuge/pareja actual o anterior"
+          }
+        },
+        {
+          "value": "family",
+          "label": {
+            "en": "Family member",
+            "es": "Familiar"
+          }
+        },
+        {
+          "value": "other",
+          "label": {
+            "en": "Other relationship (use Civil Harassment)",
+            "es": "Otra relación (use Acoso Civil)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "protection_type",
+      "type": "choice",
+      "question": {
+        "en": "What type of protection do you need?",
+        "es": "¿Qué tipo de protección necesita?"
+      },
+      "options": [
+        {
+          "value": "emergency",
+          "label": {
+            "en": "Emergency (temporary)",
+            "es": "Emergencia (temporal)"
+          }
+        },
+        {
+          "value": "permanent",
+          "label": {
+            "en": "Long-term order",
+            "es": "Orden a largo plazo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "children_involved",
+      "type": "choice",
+      "question": {
+        "en": "Are there children who also need protection?",
+        "es": "¿Hay niños que también necesiten protección?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes, include children",
+            "es": "Sí, incluir a los niños"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No, just for me",
+            "es": "No, solo para mí"
+          }
+        }
+      ]
+    },
+    {
+      "id": "support_requested",
+      "type": "choice",
+      "question": {
+        "en": "Are you requesting child or spousal support?",
+        "es": "¿Está solicitando manutención de hijos o de cónyuge?"
+      },
+      "options": [
+        {
+          "value": "none",
+          "label": {
+            "en": "No support requested",
+            "es": "No solicito manutención"
+          }
+        },
+        {
+          "value": "child",
+          "label": {
+            "en": "Child support",
+            "es": "Manutención de hijos"
+          }
+        },
+        {
+          "value": "spousal",
+          "label": {
+            "en": "Spousal support",
+            "es": "Manutención de cónyuge"
+          }
+        },
+        {
+          "value": "both",
+          "label": {
+            "en": "Both child and spousal",
+            "es": "Ambas: de hijos y de cónyuge"
+          }
+        }
+      ]
+    },
+    {
+      "id": "other_side_custody_requested",
+      "type": "choice",
+      "question": {
+        "en": "Did the other side ask for child custody or visitation?",
+        "es": "¿La otra parte pidió custodia o visitas?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    },
+    {
+      "id": "firearms_present",
+      "type": "choice",
+      "question": {
+        "en": "Do you (or the restrained person) have firearms that must be surrendered?",
+        "es": "¿Hay armas de fuego que deban entregarse?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    },
+    {
+      "id": "copies_made",
+      "type": "choice",
+      "question": {
+        "en": "Have you made at least 3 copies of each form?",
+        "es": "¿Ha hecho al menos 3 copias de cada formulario?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    },
+    {
+      "id": "filed_with_court",
+      "type": "choice",
+      "question": {
+        "en": "Have you filed the forms with the court clerk?",
+        "es": "¿Ha presentado los formularios ante el secretario del tribunal?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    },
+    {
+      "id": "received_tro",
+      "type": "choice",
+      "question": {
+        "en": "Did you receive a Temporary Restraining Order (TRO)?",
+        "es": "¿Recibió una Orden de Restricción Temporal (TRO)?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    },
+    {
+      "id": "service_method",
+      "type": "choice",
+      "question": {
+        "en": "How will you serve the other party?",
+        "es": "¿Cómo notificará a la otra parte?"
+      },
+      "options": [
+        {
+          "value": "sheriff",
+          "label": {
+            "en": "Sheriff",
+            "es": "Sheriff"
+          }
+        },
+        {
+          "value": "server",
+          "label": {
+            "en": "Process server",
+            "es": "Gestor de notificaciones"
+          }
+        },
+        {
+          "value": "adult",
+          "label": {
+            "en": "Adult (18+) not in the case",
+            "es": "Adulto (18+) que no es parte"
+          }
+        },
+        {
+          "value": "unknown",
+          "label": {
+            "en": "I don’t know yet",
+            "es": "Aún no sé"
+          }
+        }
+      ]
+    },
+    {
+      "id": "served_other_party",
+      "type": "choice",
+      "question": {
+        "en": "Has the other party been served?",
+        "es": "¿Se ha notificado a la otra parte?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    },
+    {
+      "id": "proof_of_service_filed",
+      "type": "choice",
+      "question": {
+        "en": "Have you filed the Proof of Service (e.g., DV-200)?",
+        "es": "¿Ha presentado la Prueba de Notificación (por ej., DV-200)?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hearing_date_set",
+      "type": "choice",
+      "question": {
+        "en": "Do you have a court hearing date?",
+        "es": "¿Tiene fecha de audiencia?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    },
+    {
+      "id": "attended_hearing",
+      "type": "choice",
+      "question": {
+        "en": "Have you already attended the hearing?",
+        "es": "¿Ya asistió a la audiencia?"
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": {
+            "en": "Yes",
+            "es": "Sí"
+          }
+        },
+        {
+          "value": "no",
+          "label": {
+            "en": "No",
+            "es": "No"
+          }
+        }
+      ]
+    }
+  ],
+  "forms": {
+    "domestic_violence": [
+      {
+        "number": "DV-100",
+        "name": "Request for Domestic Violence Restraining Order",
+        "description": "Main request form",
+        "required": true
+      },
+      {
+        "number": "DV-110",
+        "name": "Temporary Restraining Order",
+        "description": "Judge-signed temporary protection",
+        "required": true
+      },
+      {
+        "number": "DV-120",
+        "name": "Notice of Court Hearing",
+        "description": "Tells the other party when to appear",
+        "required": true
+      }
+    ],
+    "civil_harassment": [
+      {
+        "number": "CH-100",
+        "name": "Request for Civil Harassment Restraining Order",
+        "description": "Use for non-domestic relationships",
+        "required": true
+      },
+      {
+        "number": "CH-110",
+        "name": "Temporary Restraining Order (Civil Harassment)",
+        "description": "Temporary protection before hearing",
+        "required": true
+      }
+    ],
+    "child_related": [
+      {
+        "number": "DV-105",
+        "name": "Request for Child Custody and Visitation Orders",
+        "description": "Include children in your request",
+        "required": true
+      },
+      {
+        "number": "DV-140",
+        "name": "Child Custody and Visitation Order",
+        "description": "Court order for protected children",
+        "required": false
+      }
+    ],
+    "proof_of_service": [
+      {
+        "number": "DV-200",
+        "name": "Proof of Personal Service",
+        "description": "Shows the other party was served",
+        "required": true
+      }
+    ],
+    "support_income": [
+      {
+        "number": "FL-150",
+        "name": "Income and Expense Declaration",
+        "description": "Required if requesting support",
+        "required": true
+      }
+    ]
+  }
+}
