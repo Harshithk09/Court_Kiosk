@@ -8,6 +8,6 @@
     "install": "cd court-kiosk/frontend && npm install"
   },
   "engines": {
-    "node": ">=18 <19"
+    "node": ">=20 <23"
   }
 }
