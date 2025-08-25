@@ -45,7 +45,7 @@ const DVProcessGuidance = ({ queueNumber, onComplete }) => {
       const summary = generateSummary(answers, forms, language);
       
       // Send to backend
-      const response = await fetch('http://localhost:5001/api/process-answers', {
+      const response = await fetch('http://localhost:1904/api/process-answers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

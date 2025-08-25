@@ -4,6 +4,7 @@ import { addToQueue } from '../utils/queueAPI';
 const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const [selectedOption, setSelectedOption] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [queueNumber, setQueueNumber] = useState(null);
   const [isInQueue, setIsInQueue] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,35 +74,29 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
     return summary;
   };
 
-  const generateQueueNumber = () => {
-    // Generate a queue number without adding to queue yet
-    const newQueueNumber = `A${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, '0')}`;
-    setQueueNumber(newQueueNumber);
-  };
-
   const handleAddToQueue = async () => {
-    if (!queueNumber) {
-      alert('Please generate a queue number first');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      // Add user to the queue system using the queue API
-      const result = await addToQueue({
-        queue_number: queueNumber, // Use the generated number
-        case_type: 'Domestic Violence',
-        priority: 'A',
+      // Use the queueAPI utility for better integration
+      const data = await addToQueue({
+        case_type: 'DVRO',
+        user_name: 'Anonymous', // Could be passed from props
+        user_email: email || null,
+        phone_number: phoneNumber || null,
+        language: 'en', // Could be passed from props
         answers: answers,
         history: history,
-        flow_data: flow,
         summary: generateSummary()
       });
       
-      setIsInQueue(true);
-      console.log('Added to queue:', result);
-      alert(`Successfully added to queue! Your number ${queueNumber} is now active.`);
-      
+      if (data.success) {
+        setQueueNumber(data.queue_number);
+        setIsInQueue(true);
+        console.log('Added to queue:', data);
+      } else {
+        console.error('Failed to add to queue:', data);
+        alert('Failed to add to queue. Please try again.');
+      }
     } catch (error) {
       console.error('Error adding to queue:', error);
       alert('Error adding to queue. Please try again.');
@@ -111,28 +106,34 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   };
 
   const handleEmailRequest = async () => {
-    if (!email) return;
-    
     setIsSubmitting(true);
     try {
-      const summary = generateSummary();
+      // Send case summary email using the new endpoint
+      const response = await fetch('http://localhost:1904/api/email/send-case-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          case_data: {
+            queue_number: queueNumber,
+            case_type: 'DVRO',
+            summary: generateSummary()
+          }
+        })
+      });
       
-      // Send email with queue number if available
-      const emailData = {
-        email,
-        summary,
-        answers,
-        history,
-        queue_number: queueNumber
-      };
+      const result = await response.json();
       
-      // Here you would typically send the email through your backend
-      console.log('Email request:', emailData);
-      
-      alert('Summary sent to your email!');
-      
+      if (result.success) {
+        alert('Case summary email sent successfully!');
+      } else {
+        alert('Failed to send email: ' + (result.error || 'Unknown error'));
+      }
     } catch (error) {
       console.error('Error sending email:', error);
+      alert('Error sending email. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -141,45 +142,20 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const summary = generateSummary();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={onBack}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              ← Back to Flow
-            </button>
-            <h1 className="text-xl font-bold text-gray-900">Family Court Clinic</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={onHome}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-            >
-              Home
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto py-8 px-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Process Complete</h2>
+    <div className="completion-page">
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">Your Case Summary</h1>
           
-          {/* Summary Section */}
-          <div className="mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Your Summary</h3>
-            
+          {/* Summary Content */}
+          <div className="space-y-6">
+            {/* Forms Section */}
             {summary.forms.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-800 mb-2">Required Forms:</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3">Required Forms</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {summary.forms.map((form, index) => (
-                    <div key={index} className="bg-blue-50 border border-blue-200 rounded px-3 py-2 text-sm">
+                    <div key={index} className="bg-blue-50 border border-blue-200 rounded px-3 py-2">
                       {form}
                     </div>
                   ))}
@@ -187,47 +163,45 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
               </div>
             )}
 
+            {/* Steps Section */}
             {summary.steps.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-800 mb-2">Next Steps:</h4>
-                <div className="space-y-2">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3">Next Steps</h2>
+                <ol className="list-decimal list-inside space-y-2">
                   {summary.steps.map((step, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-semibold">
-                        {index + 1}
-                      </div>
-                      <p className="text-gray-700">{step}</p>
-                    </div>
+                    <li key={index} className="text-gray-700">{step}</li>
                   ))}
-                </div>
+                </ol>
               </div>
             )}
 
+            {/* Timeline Section */}
             {summary.timeline.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-800 mb-2">Important Timeline:</h4>
-                <div className="space-y-2">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3">Important Timeline</h2>
+                <ul className="space-y-2">
                   {summary.timeline.map((item, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 w-4 h-4 bg-yellow-500 rounded-full mt-1"></div>
-                      <p className="text-gray-700">{item}</p>
-                    </div>
+                    <li key={index} className="flex items-start">
+                      <span className="text-yellow-500 mr-2">•</span>
+                      <span className="text-gray-700">{item}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
 
+            {/* Important Notes Section */}
             {summary.importantNotes.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-800 mb-2">Important Notes:</h4>
-                <div className="space-y-2">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3">Important Notes</h2>
+                <ul className="space-y-2">
                   {summary.importantNotes.map((note, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 w-4 h-4 bg-red-500 rounded-full mt-1"></div>
-                      <p className="text-gray-700">{note}</p>
-                    </div>
+                    <li key={index} className="flex items-start">
+                      <span className="text-red-500 mr-2">•</span>
+                      <span className="text-gray-700">{note}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
           </div>
@@ -258,34 +232,48 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
                 </p>
                 {selectedOption === 'queue' && (
                   <div className="mt-4 ml-7 space-y-3">
-                    {!queueNumber ? (
-                      <button
-                        onClick={generateQueueNumber}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      >
-                        Generate Queue Number
-                      </button>
+                    {!isInQueue ? (
+                      <div className="space-y-3">
+                        {/* Phone Number Input */}
+                        <div>
+                          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                            Phone Number (for SMS notifications)
+                          </label>
+                          <input
+                            type="tel"
+                            id="phone"
+                            placeholder="(555) 123-4567"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            We'll text you your queue number so you don't forget it
+                          </p>
+                        </div>
+                        
+                        <button
+                          onClick={handleAddToQueue}
+                          disabled={isSubmitting}
+                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {isSubmitting ? 'Adding to Queue...' : 'Add to Queue'}
+                        </button>
+                      </div>
                     ) : (
                       <div className="space-y-3">
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                           <p className="text-blue-800 font-medium">Your queue number: <span className="text-2xl">{queueNumber}</span></p>
-                          <p className="text-blue-700 text-sm mt-1">Click "Add to Queue" to join the line.</p>
+                          <p className="text-blue-700 text-sm mt-1">You have been added to the queue.</p>
+                          {phoneNumber && (
+                            <p className="text-blue-700 text-sm mt-1">✓ Queue number sent to your phone</p>
+                          )}
                         </div>
                         
-                        {!isInQueue ? (
-                          <button
-                            onClick={handleAddToQueue}
-                            disabled={isSubmitting}
-                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                          >
-                            {isSubmitting ? 'Adding to Queue...' : 'Add to Queue'}
-                          </button>
-                        ) : (
-                          <div className="p-3 bg-green-50 border border-green-200 rounded">
-                            <p className="text-green-800 font-medium">✓ Added to Queue!</p>
-                            <p className="text-green-700 text-sm mt-1">Please wait in the waiting area. You'll be called when it's your turn.</p>
-                          </div>
-                        )}
+                        <div className="p-3 bg-green-50 border border-green-200 rounded">
+                          <p className="text-green-800 font-medium">✓ Added to Queue!</p>
+                          <p className="text-green-700 text-sm mt-1">Please wait in the waiting area. You'll be called when it's your turn.</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -344,11 +332,11 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
                     className="w-4 h-4 text-blue-600"
                   />
                   <label htmlFor="both" className="text-lg font-medium text-gray-900">
-                    Both - Get in line AND receive email summary
+                    Both - Join queue and get email summary
                   </label>
                 </div>
                 <p className="text-gray-600 ml-7">
-                  Join the queue and also receive a detailed summary by email.
+                  Get the best of both worlds - join the queue and receive a detailed email summary.
                 </p>
                 {selectedOption === 'both' && (
                   <div className="mt-4 ml-7 space-y-3">
@@ -359,62 +347,45 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    
-                    {!queueNumber ? (
-                      <button
-                        onClick={generateQueueNumber}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      >
-                        Generate Queue Number
-                      </button>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                          <p className="text-blue-800 font-medium">Your queue number: <span className="text-2xl">{queueNumber}</span></p>
-                          <p className="text-blue-700 text-sm mt-1">Click "Add to Queue & Send Email" to complete both actions.</p>
-                        </div>
-                        
-                        {!isInQueue ? (
-                          <button
-                            onClick={async () => {
-                              await handleAddToQueue();
-                              await handleEmailRequest();
-                            }}
-                            disabled={!email || isSubmitting}
-                            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
-                          >
-                            {isSubmitting ? 'Processing...' : 'Add to Queue & Send Email'}
-                          </button>
-                        ) : (
-                          <div className="p-3 bg-green-50 border border-green-200 rounded">
-                            <p className="text-green-800 font-medium">✓ Added to Queue & Email Sent!</p>
-                            <p className="text-green-700 text-sm mt-1">Please wait in the waiting area. You'll be called when it's your turn.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <input
+                      type="tel"
+                      placeholder="Phone number (optional, for SMS notifications)"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={async () => {
+                        await handleAddToQueue();
+                        if (email) {
+                          await handleEmailRequest();
+                        }
+                      }}
+                      disabled={isSubmitting}
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Processing...' : 'Add to Queue & Send Email'}
+                    </button>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="flex justify-between items-center">
-              <button
-                onClick={onBack}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Back to Flow
-              </button>
-              <button
-                onClick={onHome}
-                className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Return to Home
-              </button>
-            </div>
+          {/* Navigation Buttons */}
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={onBack}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              Back
+            </button>
+            <button
+              onClick={onHome}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Return to Home
+            </button>
           </div>
         </div>
       </div>

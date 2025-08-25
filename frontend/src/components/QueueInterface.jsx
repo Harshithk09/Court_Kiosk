@@ -16,7 +16,7 @@ const QueueInterface = ({ onQueueJoined, onBack }) => {
   const [queueStatus, setQueueStatus] = useState(null);
 
   // Use the same API base URL as the existing system
-  const API_BASE_URL = 'http://localhost:5001';
+  const API_BASE_URL = 'http://localhost:1904';
 
   useEffect(() => {
     fetchCaseTypes();

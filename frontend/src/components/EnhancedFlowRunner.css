@@ -283,10 +283,28 @@
   overflow-y: auto;
 }
 
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .progress-sidebar h4 {
   color: #1f2937;
-  margin-bottom: 1rem;
+  margin: 0;
   font-size: 1.2rem;
+}
+
+.progress-indicator {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .progress-list {
@@ -300,6 +318,71 @@
   background: #f8fafc;
   border-radius: 8px;
   border-left: 4px solid #3b82f6;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.step-number {
+  background: #3b82f6;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.progress-step:hover {
+  background: #f0f9ff;
+  border-left-color: #1d4ed8;
+  transform: translateX(4px);
+}
+
+.progress-step.collapsed-step {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-step.collapsed-step:hover {
+  background: #fde68a;
+  border-left-color: #d97706;
+}
+
+.progress-step.current-step {
+  background: #dbeafe;
+  border-left-color: #1d4ed8;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.15);
+}
+
+.progress-step.current-step .step-number {
+  background: #1d4ed8;
+}
+
+.progress-step.current-step .step-text {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.collapsed-icon {
+  font-size: 1.2rem;
+  color: #f59e0b;
+  font-weight: bold;
 }
 
 .step-text {
@@ -307,12 +390,42 @@
   color: #374151;
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
+  flex: 1;
+}
+
+.progress-step.collapsed-step .step-text {
+  margin-bottom: 0;
+  color: #92400e;
+  font-weight: 600;
 }
 
 .step-response {
   font-size: 0.8rem;
   color: #6b7280;
   font-style: italic;
+}
+
+.progress-actions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.show-less-btn {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.show-less-btn:hover {
+  background: #e5e7eb;
+  color: #1f2937;
 }
 
 /* Loading States */

@@ -11,9 +11,10 @@ const EnhancedFlowRunner = ({ queueNumber, caseType, onComplete }) => {
   const [isChatMode, setIsChatMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState([]);
+  const [showAllProgress, setShowAllProgress] = useState(false);
 
   // Use the same API base URL as the existing system
-  const API_BASE_URL = 'http://localhost:5001';
+  const API_BASE_URL = 'http://localhost:1904';
 
   useEffect(() => {
     loadFlowData();
@@ -38,10 +39,14 @@ const EnhancedFlowRunner = ({ queueNumber, caseType, onComplete }) => {
   };
 
   const updateProgress = async (nodeId, nodeText, response = null) => {
-    if (!queueNumber) return;
+    if (!queueNumber) {
+      console.log('No queue number available for progress update');
+      return;
+    }
 
     try {
-      await fetch(`${API_BASE_URL}/api/queue/${queueNumber}/progress`, {
+      console.log(`Updating progress for queue ${queueNumber}:`, { nodeId, nodeText, response });
+      const result = await fetch(`${API_BASE_URL}/api/queue/${queueNumber}/progress`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,6 +57,12 @@ const EnhancedFlowRunner = ({ queueNumber, caseType, onComplete }) => {
           user_response: response
         }),
       });
+      
+      if (!result.ok) {
+        console.error('Failed to update progress:', result.status, result.statusText);
+      } else {
+        console.log('Progress updated successfully');
+      }
     } catch (error) {
       console.error('Error updating progress:', error);
     }
@@ -161,6 +172,70 @@ const EnhancedFlowRunner = ({ queueNumber, caseType, onComplete }) => {
     }));
   };
 
+  // Smart progress logic for EnhancedFlowRunner
+  const getSmartProgressSteps = () => {
+    const totalSteps = progress.length;
+    
+    // If showing all steps or less than 8 steps, show everything
+    if (showAllProgress || totalSteps <= 8) {
+      return progress.map((step, index) => ({
+        ...step,
+        originalIndex: index
+      }));
+    }
+    
+    // Smart compression: current + past 5 + first step + collapsed
+    const pastSteps = 5;
+    const startIndex = Math.max(0, totalSteps - pastSteps - 1);
+    
+    const steps = [];
+    
+    // Add first step
+    if (progress.length > 0) {
+      steps.push({
+        ...progress[0],
+        originalIndex: 0
+      });
+    }
+    
+    // Add collapsed indicator if there are steps between first and startIndex
+    if (startIndex > 1) {
+      steps.push({ 
+        type: 'collapsed', 
+        count: startIndex - 1,
+        text: `${startIndex - 1} more steps`,
+        onClick: () => setShowAllProgress(true)
+      });
+    }
+    
+    // Add recent steps (past 5)
+    for (let i = startIndex; i < totalSteps; i++) {
+      steps.push({
+        ...progress[i],
+        originalIndex: i
+      });
+    }
+    
+    return steps;
+  };
+
+  const handleStepClick = (step, index) => {
+    if (step.type === 'collapsed') {
+      step.onClick();
+      return;
+    }
+    
+    // Navigate to the clicked step
+    if (step.originalIndex !== undefined && flowData) {
+      // Find the node that corresponds to this step
+      const stepNode = step.node;
+      if (stepNode && flowData.nodes[stepNode]) {
+        setCurrentNode(stepNode);
+        console.log(`Navigated to step ${step.originalIndex}: ${stepNode}`);
+      }
+    }
+  };
+
   const renderNode = () => {
     const node = getCurrentNodeData();
     if (!node) return null;
@@ -203,7 +278,30 @@ const EnhancedFlowRunner = ({ queueNumber, caseType, onComplete }) => {
             <div className="node-actions">
               <button
                 className="btn btn-success"
-                onClick={() => onComplete && onComplete()}
+                onClick={async () => {
+                  // Mark the case as completed in the backend
+                  if (queueNumber) {
+                    try {
+                      await fetch(`${API_BASE_URL}/api/queue/${queueNumber}/complete`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          queue_number: queueNumber
+                        }),
+                      });
+                      console.log('Case marked as completed');
+                    } catch (error) {
+                      console.error('Error completing case:', error);
+                    }
+                  }
+                  
+                  // Call the original onComplete callback
+                  if (onComplete) {
+                    onComplete();
+                  }
+                }}
               >
                 {language === 'es' ? 'Completar Proceso' : 'Complete Process'}
               </button>
@@ -326,17 +424,60 @@ const EnhancedFlowRunner = ({ queueNumber, caseType, onComplete }) => {
 
       {!isChatMode && progress.length > 0 && (
         <div className="progress-sidebar">
-          <h4>{language === 'es' ? 'Progreso' : 'Progress'}</h4>
-          <div className="progress-list">
-            {progress.map((step, index) => (
-              <div key={index} className="progress-step">
-                <div className="step-text">{step.text}</div>
-                {step.response && (
-                  <div className="step-response">{step.response}</div>
-                )}
-              </div>
-            ))}
+          <div className="progress-header">
+            <h4>{language === 'es' ? 'Progreso' : 'Progress'}</h4>
+            <div className="progress-indicator">
+              {language === 'es' ? 'Paso' : 'Step'} {progress.length + 1} {language === 'es' ? 'de' : 'of'} {progress.length + 1}
+            </div>
           </div>
+          <div className="progress-list">
+            {getSmartProgressSteps().map((step, index) => {
+              if (step.type === 'collapsed') {
+                return (
+                  <div
+                    key={`collapsed-${index}`}
+                    className="progress-step collapsed-step"
+                    onClick={() => handleStepClick(step, index)}
+                  >
+                    <div className="step-content">
+                      <div className="step-text">
+                        <span className="collapsed-icon">⋯</span>
+                        {step.text}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
+              const isCurrentStep = step.node === currentNode;
+              return (
+                <div 
+                  key={index} 
+                  className={`progress-step ${isCurrentStep ? 'current-step' : ''}`}
+                  onClick={() => handleStepClick(step, index)}
+                >
+                  <div className="step-number">{step.originalIndex + 1}</div>
+                  <div className="step-content">
+                    <div className="step-text">{step.text}</div>
+                    {step.response && (
+                      <div className="step-response">{step.response}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {showAllProgress && progress.length > 8 && (
+            <div className="progress-actions">
+              <button
+                onClick={() => setShowAllProgress(false)}
+                className="show-less-btn"
+              >
+                {language === 'es' ? 'Mostrar Menos' : 'Show Less'}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -224,8 +224,8 @@ const DVROFlowchart = () => {
               </div>
             )}
 
-            {/* Options */}
-            {options.length > 0 && (
+            {/* Options - Only show if not a Note node */}
+            {options.length > 0 && currentNode !== 'Note' && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   {currentNodeData?.type === 'decision' ? 'Please select an option:' : 'Next steps:'}
@@ -246,6 +246,18 @@ const DVROFlowchart = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Continue button for Note node */}
+            {currentNode === 'Note' && options.length > 0 && (
+              <div className="mt-8">
+                <button
+                  onClick={() => handleOptionSelect(options[0].target)}
+                  className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Continue
+                </button>
               </div>
             )}
 

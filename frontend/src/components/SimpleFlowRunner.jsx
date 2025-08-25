@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import CompletionPage from './CompletionPage';
 
 const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
@@ -30,18 +30,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
     }
   };
 
-  const handleAnswer = (answer) => {
-    setAnswers(prev => ({ ...prev, [currentNodeId]: answer }));
-    
-    // Find the edge that matches this answer
-    const matchingEdge = outgoingEdges.find(edge => edge.when === answer);
-    if (matchingEdge) {
-      handleNext(matchingEdge.to);
-    } else if (outgoingEdges.length === 1) {
-      // If there's only one edge and no specific answer, go to that
-      handleNext(outgoingEdges[0].to);
-    }
-  };
+  // Removed unused handleAnswer function
 
   const handleChoice = (edgeIndex) => {
     const edge = outgoingEdges[edgeIndex];
@@ -71,7 +60,6 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   // Generate next steps based on the flow
   const generateNextSteps = () => {
     const steps = [];
-    const visitedNodes = new Set(history);
     
     // Add forms mentioned in visited nodes
     history.forEach(nodeId => {
@@ -132,7 +120,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   }
 
   const isEndNode = currentNode.type === 'end';
-  const isDecisionNode = currentNode.type === 'decision';
+  // Removed unused isDecisionNode variable
   const hasMultipleChoices = outgoingEdges.length > 1;
 
   return (

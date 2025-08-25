@@ -132,32 +132,52 @@ const EnhancedAdminDashboard = () => {
     };
   }, []);
 
+  const API_BASE_URL = 'http://localhost:1904';
+
   const loadQueueData = async () => {
     try {
-      const response = await fetch('/api/queue/status');
+      console.log('Loading enhanced queue data...');
+      const response = await fetch(`${API_BASE_URL}/api/queue/enhanced/status`);
       const data = await response.json();
-      setQueueData(data);
+      console.log('Enhanced queue data received:', data);
+      
+      if (data.success) {
+        setQueueData(data.queue_data);
+      } else {
+        console.error('Failed to load queue data:', data.error);
+      }
     } catch (error) {
-      console.error('Error loading queue data:', error);
+      console.error('Error loading enhanced queue data:', error);
     }
   };
 
   const handleCallNext = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/queue/next', {
-        method: 'POST',
+      // Get the first waiting ticket
+      const waitingTickets = queueData.waiting || [];
+      if (waitingTickets.length === 0) {
+        alert('No cases waiting in queue');
+        return;
+      }
+      
+      const nextTicket = waitingTickets[0];
+      
+      // Update ticket status to in_progress
+      const response = await fetch(`${API_BASE_URL}/api/queue/enhanced/ticket/${nextTicket.id}/status`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ facilitator_id: 'current_user' })
+        body: JSON.stringify({ 
+          status: 'in_progress',
+          facilitator_id: 'current_user' 
+        })
       });
       
       const result = await response.json();
       if (result.success) {
         await loadQueueData();
-        if (result.queue_entry) {
-          setSelectedCase(result.queue_entry);
-          await loadCaseSummary(result.queue_entry.queue_number);
-        }
+        setSelectedCase(nextTicket);
+        await loadCaseSummary(nextTicket.summary_id);
       }
     } catch (error) {
       console.error('Error calling next case:', error);
@@ -166,18 +186,18 @@ const EnhancedAdminDashboard = () => {
     }
   };
 
-  const handleCompleteCase = async (queueNumber) => {
+  const handleCompleteCase = async (ticketId) => {
     try {
-      const response = await fetch('/api/queue/complete', {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/api/queue/enhanced/ticket/${ticketId}/status`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queue_number: queueNumber })
+        body: JSON.stringify({ status: 'completed' })
       });
       
       const result = await response.json();
       if (result.success) {
         await loadQueueData();
-        if (selectedCase?.queue_number === queueNumber) {
+        if (selectedCase?.id === ticketId) {
           setSelectedCase(null);
           setCaseSummary(null);
         }
@@ -187,16 +207,21 @@ const EnhancedAdminDashboard = () => {
     }
   };
 
-  const handleViewDetails = async (queueEntry) => {
-    setSelectedCase(queueEntry);
-    await loadCaseSummary(queueEntry.queue_number);
+  const handleViewDetails = async (ticket) => {
+    setSelectedCase(ticket);
+    await loadCaseSummary(ticket.summary_id);
   };
 
-  const loadCaseSummary = async (queueNumber) => {
+  const loadCaseSummary = async (summaryId) => {
     try {
-      const response = await fetch(`/api/queue/summary/${queueNumber}`);
+      const response = await fetch(`${API_BASE_URL}/api/case-summary/${summaryId}`);
       const data = await response.json();
-      setCaseSummary(data);
+      
+      if (data.success) {
+        setCaseSummary(data.summary);
+      } else {
+        console.error('Failed to load case summary:', data.error);
+      }
     } catch (error) {
       console.error('Error loading case summary:', error);
     }
@@ -285,7 +310,7 @@ const EnhancedAdminDashboard = () => {
                     className="btn-complete"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleCompleteCase(queueEntry.queue_number);
+                      handleCompleteCase(queueEntry.id);
                     }}
                   >
                     {t.actions.complete}
@@ -402,7 +427,7 @@ const EnhancedAdminDashboard = () => {
         <div className="case-actions-panel">
           <button 
             className="btn-primary"
-            onClick={() => handleCompleteCase(selectedCase.queue_number)}
+            onClick={() => handleCompleteCase(selectedCase.id)}
           >
             {t.actions.complete}
           </button>

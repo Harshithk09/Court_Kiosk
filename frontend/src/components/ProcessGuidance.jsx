@@ -9,14 +9,43 @@ const ProcessGuidance = ({ caseType, queueNumber, onComplete }) => {
   const [progress, setProgress] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [formLinks, setFormLinks] = useState({});
 
   useEffect(() => {
     fetchFlowchartData();
   }, []);
 
+  // Load hyperlink URLs for any forms in the current step
+  useEffect(() => {
+    const loadFormLinks = async () => {
+      try {
+        if (!flowchartData) return;
+        const step = flowchartData.flowchart[currentStep];
+        if (!step || !Array.isArray(step.forms)) return;
+        const codes = step.forms.map(f => f.number).filter(Boolean);
+        const entries = await Promise.all(codes.map(async (code) => {
+          try {
+            const res = await fetch(`http://localhost:1904/api/forms/hyperlink/${encodeURIComponent(code)}`);
+            const data = await res.json();
+            if (data && data.success) {
+              return [code, data.url];
+            }
+          } catch (e) {
+            // ignore
+          }
+          return [code, null];
+        }));
+        setFormLinks(Object.fromEntries(entries));
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadFormLinks();
+  }, [flowchartData, currentStep]);
+
   const fetchFlowchartData = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/flowchart');
+      const response = await fetch('http://localhost:1904/api/flowchart');
       if (response.ok) {
         const data = await response.json();
         setFlowchartData(data);
@@ -73,7 +102,7 @@ const ProcessGuidance = ({ caseType, queueNumber, onComplete }) => {
       const nextSteps = currentStepData.next_steps?.[language] || [];
       
       // Send to backend
-      const response = await fetch('http://localhost:5001/api/process-answers', {
+      const response = await fetch('http://localhost:1904/api/process-answers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,10 +262,15 @@ const ProcessGuidance = ({ caseType, queueNumber, onComplete }) => {
           {/* Forms Section */}
           {currentStepData.forms && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2 flex items-center">
                 <FileText className="w-5 h-5 mr-2" />
-                {language === 'en' ? 'Required Forms:' : 'Formularios Requeridos:'}
+                {language === 'en' ? 'Required Forms (fill these first):' : 'Formularios requeridos (complete estos primero):'}
               </h3>
+              <p className="text-blue-900 text-sm mb-3">
+                {language === 'en'
+                  ? 'Only complete the forms below first. Do not fill out everything; staff will tell you if more is needed.'
+                  : 'Complete solo los formularios a continuación primero. No llene todo; el personal le indicará si necesita más.'}
+              </p>
               <div className="space-y-2">
                 {currentStepData.forms.map((form, index) => (
                   <div key={index} className="flex items-center justify-between bg-white p-3 rounded border">
@@ -244,10 +278,19 @@ const ProcessGuidance = ({ caseType, queueNumber, onComplete }) => {
                       <strong className="text-gray-900">{form.number}</strong>
                       <span className="text-gray-600 ml-2">- {form.name[language]}</span>
                     </div>
-                    <button className="flex items-center text-blue-600 hover:text-blue-700 transition-colors">
-                      <FileText className="w-4 h-4 mr-1" />
-                      {language === 'en' ? 'Download' : 'Descargar'}
-                    </button>
+                    {formLinks[form.number] ? (
+                      <a
+                        className="flex items-center text-blue-600 hover:text-blue-700 transition-colors"
+                        href={formLinks[form.number]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <FileText className="w-4 h-4 mr-1" />
+                        {language === 'en' ? 'Open form' : 'Abrir formulario'}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400 text-sm">{language === 'en' ? 'Link loading…' : 'Cargando enlace…'}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -270,6 +313,41 @@ const ProcessGuidance = ({ caseType, queueNumber, onComplete }) => {
                   </li>
                 ))}
               </ol>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={async () => {
+                    try {
+                      const email = window.prompt(language === 'en' ? 'Enter your email to receive your summary' : 'Ingrese su correo electrónico para recibir su resumen');
+                      if (!email) return;
+                      const stepData = flowchartData.flowchart[currentStep] || {};
+                      const requiredForms = (stepData.forms || []).map(f => f.number);
+                      const nextSteps = stepData.next_steps?.[language] || [];
+                      const res = await fetch('http://localhost:1904/api/email/send-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          to: email,
+                          flow_type: caseType,
+                          queue_number: queueNumber,
+                          required_forms: requiredForms,
+                          next_steps: nextSteps
+                        })
+                      });
+                      const data = await res.json();
+                      if (!res.ok || !data.success) {
+                        alert((language === 'en' ? 'Failed to send email: ' : 'No se pudo enviar el correo: ') + (data.error || ''));
+                      } else {
+                        alert(language === 'en' ? 'Summary sent to your email.' : 'Resumen enviado a su correo.');
+                      }
+                    } catch (e) {
+                      alert(language === 'en' ? 'An error occurred sending the email.' : 'Ocurrió un error al enviar el correo.');
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                >
+                  {language === 'en' ? 'Email me this summary' : 'Enviarme este resumen'}
+                </button>
+              </div>
             </div>
           )}
         </div>
