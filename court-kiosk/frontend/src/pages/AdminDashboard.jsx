@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Timer } from 'lucide-react';
+import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle } from 'lucide-react';
 import { getQueue, callNext, completeCase, getCaseSummary, addTestData } from '../utils/queueAPI';
 
 const AdminDashboard = () => {

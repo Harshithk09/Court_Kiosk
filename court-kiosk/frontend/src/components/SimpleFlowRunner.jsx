@@ -3,7 +3,7 @@ import CompletionPage from './CompletionPage';
 
 const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   const [currentNodeId, setCurrentNodeId] = useState(flow?.start || 'DVROStart');
-  const [answers, setAnswers] = useState({});
+  const [answers] = useState({});
   const [history, setHistory] = useState([flow?.start || 'DVROStart']);
   const [showSummary, setShowSummary] = useState(false);
 
@@ -57,39 +57,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
     setShowSummary(false);
   };
 
-  // Generate next steps based on the flow
-  const generateNextSteps = () => {
-    const steps = [];
-    
-    // Add forms mentioned in visited nodes
-    history.forEach(nodeId => {
-      const node = flow?.nodes?.[nodeId];
-      if (node?.text) {
-        // Extract form numbers
-        const formMatches = node.text.match(/\b[A-Z]{2,3}-\d{3,4}\b/g);
-        if (formMatches) {
-          formMatches.forEach(form => {
-            if (!steps.includes(`Fill out ${form}`)) {
-              steps.push(`Fill out ${form}`);
-            }
-          });
-        }
-        
-        // Add actionable steps
-        if (node.text.includes('File') && !steps.includes('File your forms with the court')) {
-          steps.push('File your forms with the court');
-        }
-        if (node.text.includes('Serve') && !steps.includes('Serve the other party with your papers')) {
-          steps.push('Serve the other party with your papers');
-        }
-        if (node.text.includes('hearing') && !steps.includes('Attend your court hearing')) {
-          steps.push('Attend your court hearing');
-        }
-      }
-    });
 
-    return steps;
-  };
 
   if (showSummary) {
     return (
