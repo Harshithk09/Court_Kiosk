@@ -1,0 +1,13 @@
+{
+  "name": "court-kiosk",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd court-kiosk/frontend && npm run build",
+    "start": "cd court-kiosk/frontend && npm start",
+    "install": "cd court-kiosk/frontend && npm install"
+  },
+  "engines": {
+    "node": ">=20 <23"
+  }
+}

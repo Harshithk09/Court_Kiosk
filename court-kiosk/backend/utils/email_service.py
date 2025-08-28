@@ -2,6 +2,7 @@ import os
 import resend
 from datetime import datetime
 from config import Config
+from .pdf_service import pdf_service
 
 # Initialize Resend
 if Config.RESEND_API_KEY:
@@ -119,7 +120,7 @@ class EmailService:
             return {"success": False, "error": str(e)}
 
     def send_case_summary_email(self, to_email, case_data):
-        """Send case summary email to user"""
+        """Send case summary email to user with PDF attachment"""
         try:
             if not Config.RESEND_API_KEY:
                 print("Resend API key not configured, skipping email send")
@@ -129,14 +130,22 @@ class EmailService:
             
             html_content = self._generate_case_summary_html(case_data)
             
+            # Generate PDF attachment
+            pdf_buffer = pdf_service.generate_case_summary_pdf(case_data)
+            pdf_filename = f"Case_Summary_{case_data.get('queue_number', 'N/A')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            
             response = resend.Emails.send({
                 "from": self.from_email,
                 "to": to_email,
                 "subject": subject,
                 "html": html_content,
+                "attachments": [{
+                    "filename": pdf_filename,
+                    "content": pdf_buffer.getvalue()
+                }]
             })
             
-            print(f"Email sent successfully to {to_email}")
+            print(f"Email with PDF attachment sent successfully to {to_email}")
             return {"success": True, "id": response.get('id')}
             
         except Exception as e:
@@ -144,7 +153,7 @@ class EmailService:
             return {"success": False, "error": str(e)}
     
     def send_queue_notification_email(self, to_email, queue_data):
-        """Send queue notification email to user"""
+        """Send queue notification email to user with PDF attachment"""
         try:
             if not Config.RESEND_API_KEY:
                 print("Resend API key not configured, skipping email send")
@@ -154,14 +163,22 @@ class EmailService:
             
             html_content = self._generate_queue_notification_html(queue_data)
             
+            # Generate PDF attachment
+            pdf_buffer = pdf_service.generate_queue_notification_pdf(queue_data)
+            pdf_filename = f"Queue_Notification_{queue_data.get('queue_number', 'N/A')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            
             response = resend.Emails.send({
                 "from": self.from_email,
                 "to": to_email,
                 "subject": subject,
                 "html": html_content,
+                "attachments": [{
+                    "filename": pdf_filename,
+                    "content": pdf_buffer.getvalue()
+                }]
             })
             
-            print(f"Queue notification email sent successfully to {to_email}")
+            print(f"Queue notification email with PDF sent successfully to {to_email}")
             return {"success": True, "id": response.get('id')}
             
         except Exception as e:

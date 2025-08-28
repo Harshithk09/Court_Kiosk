@@ -195,22 +195,49 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                         const buttonText = edge.when || targetNode?.text || `Option ${index + 1}`;
                         const description = edge.when ? targetNode?.text : null;
                         
-                        return (
-                          <button
-                            key={index}
-                            onClick={() => handleChoice(index)}
-                            className="w-full text-left p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                          >
-                            <div className="font-medium text-gray-900 text-lg">
-                              {buttonText}
-                            </div>
-                            {description && (
-                              <div className="text-sm text-gray-600 mt-2">
-                                {description}
+                        // Check if this is informational text (contains keywords that indicate it's not a choice)
+                        const isInformational = buttonText.toLowerCase().includes('qualify') || 
+                                               buttonText.toLowerCase().includes('note') ||
+                                               buttonText.toLowerCase().includes('information') ||
+                                               buttonText.toLowerCase().includes('may') ||
+                                               !edge.when; // If no 'when' condition, it's likely informational
+                        
+                        if (isInformational) {
+                          // Render as static informational div
+                          return (
+                            <div
+                              key={index}
+                              className="w-full text-left p-4 border border-blue-200 rounded-lg bg-blue-50"
+                            >
+                              <div className="font-medium text-blue-900 text-lg">
+                                {buttonText}
                               </div>
-                            )}
-                          </button>
-                        );
+                              {description && (
+                                <div className="text-sm text-blue-700 mt-2">
+                                  {description}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        } else {
+                          // Render as clickable choice button
+                          return (
+                            <button
+                              key={index}
+                              onClick={() => handleChoice(index)}
+                              className="w-full text-left p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                            >
+                              <div className="font-medium text-gray-900 text-lg">
+                                {buttonText}
+                              </div>
+                              {description && (
+                                <div className="text-sm text-gray-600 mt-2">
+                                  {description}
+                                </div>
+                              )}
+                            </button>
+                          );
+                        }
                       })}
                     </div>
                   ) : outgoingEdges.length === 1 ? (

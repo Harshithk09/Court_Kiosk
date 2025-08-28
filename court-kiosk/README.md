@@ -1,193 +1,171 @@
-# Court Kiosk System - DVRO Flow
+# Court Kiosk System
 
-A comprehensive court kiosk system for Domestic Violence Restraining Orders (DVRO) with improved error handling, configuration management, and testing.
+A comprehensive court kiosk system for managing domestic violence restraining orders and other legal procedures with interactive flow navigation, high-resolution PDF exports, and hyperlinked forms.
 
-## Recent Fixes Applied
+## 🚀 Features
 
-### Backend Issues Fixed:
-1. **Tailwind Config Issue**: Removed embedded Tailwind configuration from `server.js` that was overriding Express module exports
-2. **Form Handling**: Added null checks for forms and nextSteps arrays to prevent runtime errors
-3. **Hard-coded Endpoints**: Created `config.py` with configurable service endpoints via environment variables
-4. **Unprotected File Reads**: Added proper error handling for `flowchart.json` file operations
-5. **Queue Numbering**: Fixed queue number extraction to handle case types with multiple characters
-6. **Testing**: Added comprehensive test suite for both backend and frontend
+### ✅ High-Resolution PDF Export
+- **Visual Flow Map PDF** - Landscape orientation with clear node layout
+- **Detailed Flow PDF** - Portrait orientation with step-by-step documentation
+- **Summary PDF** - Professional case summaries with form references
+- **"Where Am I?" PDF** - Personalized progress summaries
 
-### Frontend Issues Fixed:
-1. **Missing Components**: Recreated `SummaryPage.jsx` component that was accidentally deleted
-2. **Type Safety**: Added proper null checks and error handling
-3. **Testing**: Added basic frontend tests
+### ✅ Hyperlinked Forms
+- **Direct links** to California Courts official forms
+- **Form descriptions** and download functionality
+- **Complete form glossary** with all DVRO forms
+- **Status tracking** (completed/pending forms)
 
-## Quick Start
+### ✅ Interactive Flow Navigation
+- **Dual-pane interface** - Wizard + Visual map
+- **Synchronized navigation** - Click map to jump to steps
+- **Search functionality** - Find nodes by title or content
+- **Progress tracking** - Visual progress indicators
 
-### Prerequisites
-- Node.js (v16 or higher)
-- Python 3.8 or higher
-- npm or yarn
+### ✅ Enhanced Case Summaries
+- **Detailed situation analysis** - User circumstances and needs
+- **Facilitator guidance** - Specific recommendations for court staff
+- **"Where Am I?" system** - Procedural questions and personalized summaries
+- **Safety assessment** - Urgency and risk evaluation
 
-### Installation
+### ✅ Core System Features
+- **Multi-language Support**: English and Spanish interfaces
+- **Queue Management**: Intelligent case queuing system
+- **AI Integration**: OpenAI-powered legal assistance
+- **SMS Notifications**: Automated status updates
+- **Admin Dashboard**: Comprehensive management interface
+- **Responsive Design**: Works on kiosks and mobile devices
 
-1. **Clone and navigate to the project:**
-```bash
-cd court-kiosk
+### ✅ Divorce Flow Ready
+- **Generic architecture** - Works with any JSON flow structure
+- **Extensible system** - Easy to add new flow types
+- **Form integration** - Automatic form detection and linking
+
+## 📁 Project Structure
+
+```
+Potential_Project/
+├── backend/                 # Flask backend API
+│   ├── enhanced_app.py      # Main Flask application
+│   ├── chroma_service.py    # ChromaDB code search service
+│   ├── instance/           # Database files
+│   ├── utils/              # Utility modules
+│   └── venv/               # Python virtual environment
+├── frontend/               # React frontend application
+│   ├── build/              # Production build
+│   ├── public/             # Static assets
+│   └── src/
+│       ├── components/
+│       │   ├── FlowMap.jsx          # Interactive flow map
+│       │   ├── FlowMapPDFExport.jsx # High-resolution PDF export
+│       │   ├── FlowMapSynced.jsx    # Synchronized map component
+│       │   ├── FlowWizardSynced.jsx # Synchronized wizard
+│       │   ├── FlowSyncStore.jsx    # State synchronization
+│       │   ├── FlowSearchBar.jsx    # Node search functionality
+│       │   ├── FlowLegend.jsx       # Map legend
+│       │   ├── FormLinks.jsx        # Hyperlinked forms
+│       │   ├── PDFExport.jsx        # PDF export utilities
+│       │   ├── WhereAmISummary.jsx  # "Where Am I?" summary
+│       │   └── DualPaneDemo.jsx     # Main layout component
+│       ├── pages/
+│       │   └── DualPaneDemoPage.jsx # Demo page
+│       └── utils/
+│           └── loadGraph.js         # Graph loading utility
+├── openai/                 # OpenAI integration utilities
+├── dev-setup.sh           # Development setup script
+├── start-enhanced.sh      # Enhanced system startup
+├── run.sh                 # Basic system startup
+└── README.md              # This file
 ```
 
-2. **Install frontend dependencies:**
+## 🛠️ Quick Start
+
+### 1. Setup Development Environment
+```bash
+chmod +x dev-setup.sh
+./dev-setup.sh
+```
+
+### 2. Start the Enhanced System
+```bash
+chmod +x start-enhanced.sh
+./start-enhanced.sh
+```
+
+### 3. Start Basic System
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+## 📋 Dependencies
+
+### Backend (Python)
+- **Flask** - Web framework
+- **Flask-CORS** - Cross-origin resource sharing
+- **Flask-SQLAlchemy** - Database ORM
+- **python-dotenv** - Environment variable management
+- **OpenAI** - AI integration
+- **ChromaDB** - Vector database for code search
+
+### Frontend (React)
+- **React** - UI framework
+- **ReactFlow** - Interactive flow diagrams
+- **Dagre** - Graph layout engine
+- **jsPDF** - PDF generation
+- **html2canvas** - HTML to canvas conversion
+- **Lucide React** - Icons
+- **Tailwind CSS** - Styling
+
+## 🎯 Usage
+
+### For Court Staff
+1. **Admin Login**: Access the admin dashboard for queue management
+2. **Case Processing**: Use the dual-pane interface for efficient case handling
+3. **PDF Export**: Generate high-resolution flow maps and detailed summaries
+4. **Form Management**: Access hyperlinked forms with descriptions
+
+### For Users
+1. **Flow Navigation**: Interactive wizard guides through legal procedures
+2. **Visual Maps**: Click on flow map to jump to specific steps
+3. **Progress Tracking**: See where you are in the process
+4. **Form Access**: Direct links to required court forms
+
+## 🔧 Development
+
+### Backend Development
+```bash
+cd backend
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+python enhanced_app.py
+```
+
+### Frontend Development
 ```bash
 cd frontend
 npm install
-```
-
-3. **Install backend dependencies:**
-```bash
-cd ../backend
-npm install
-pip install -r requirements.txt
-```
-
-### Running the Application
-
-1. **Start the frontend (React):**
-```bash
-cd frontend
 npm start
 ```
-The frontend will be available at `http://localhost:3000`
-
-2. **Start the backend (Flask):**
-```bash
-cd backend
-python app.py
-```
-The backend will be available at `http://localhost:5000`
-
-3. **Access the DVRO Flow:**
-Navigate to `http://localhost:3000/dvro` to access the DVRO flow system.
-
-## Configuration
 
 ### Environment Variables
-
 Create a `.env` file in the backend directory:
-
 ```env
-# Database
+OPENAI_API_KEY=your_openai_api_key
+FLASK_SECRET_KEY=your_secret_key
 DATABASE_URL=sqlite:///court_kiosk.db
-
-# Email Configuration
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
-FACILITATOR_EMAIL=facilitator@court.gov
-
-# Service Endpoints
-SEARCH_SERVICE_URL=http://localhost:8000
-QUEUE_SERVICE_URL=http://localhost:5001
-RAG_SERVICE_URL=http://localhost:8000
-
-# Base URL for semantic search service
-API_BASE_URL=http://localhost:8000
-
-# OpenAI
-OPENAI_API_KEY=your-openai-api-key
-
-# Security
-SECRET_KEY=your-secret-key-here
-
-# CORS
-CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 ```
 
-Create a `.env` file in the frontend directory:
+## 📄 Documentation
 
-```env
-# Base URL for API requests
-VITE_API_URL=http://localhost:5001
-```
+- **Enhanced Features**: See `ENHANCED_FEATURES.md` for detailed feature documentation
+- **Cleanup Summary**: See `CLEANUP_SUMMARY.md` for system organization details
 
-## Testing
+## 🚨 Important Notes
 
-### Backend Tests
-```bash
-cd backend
-npm test
-# or
-python test_app.py
-```
-
-### Frontend Tests
-```bash
-cd frontend
-npm test
-```
-
-## Features
-
-### DVRO Flow System
-- **Guided Questions**: Step-by-step questionnaire with contextual information
-- **Bilingual Support**: English and Spanish language support
-- **Form Recommendations**: Automatic form suggestions based on user answers
-- **Priority Queue**: Automatic Priority A assignment for DVRO cases
-- **Comprehensive Summary**: Detailed end summary with action steps
-
-### Key Components
-- `FlowRunner.jsx`: Main flow controller component
-- `SummaryPage.jsx`: End summary display
-- `dv_flow_combined.json`: Flow configuration
-- `app.py`: Backend API with improved error handling
-- `config.py`: Centralized configuration management
-
-### Flow Structure
-1. **Menu**: Choose DVRO action (new, respond, change/end, renew)
-2. **Safety Check**: Immediate danger assessment
-3. **Relationship**: Domestic vs non-domestic relationship
-4. **Children**: Child custody considerations
-5. **Support**: Financial support requests
-6. **Forms Overview**: Required forms explanation
-7. **Process Steps**: Filing, service, hearing preparation
-8. **Summary**: Comprehensive case summary
-
-## API Endpoints
-
-### Core Endpoints
-- `GET /api/health`: Health check
-- `POST /api/generate-queue`: Generate queue number (alphanumeric, multi-character `case_type` supported)
-- `GET /api/queue`: Get current queue
-- `POST /api/call-next`: Call next person
-- `POST /api/complete-case`: Complete case
-- `POST /api/dvro_rag`: DVRO RAG system
-- `GET /api/flowchart`: Get flowchart data
-
-### Form Endpoints
-- `POST /api/send-email`: Send form recommendations
-- `POST /api/generate-pdf`: Generate PDF summary
-
-## Error Handling
-
-The system now includes comprehensive error handling:
-- File read operations with proper error messages
-- Null checks for all array operations
-- Configurable service endpoints
-- Graceful degradation for missing services
-- Proper HTTP status codes and error responses
-
-## Queue System
-
-The queue system supports:
-- Multiple case types (DVRO, Civil Harassment, etc.)
-- Priority-based ordering (A, B, C)
-- Multi-language support
-- Robust queue number generation
-- Status tracking (waiting, called, completed)
-
-## Contributing
-
-1. Follow the existing code structure
-2. Add tests for new features
-3. Update configuration as needed
-4. Ensure error handling is in place
-5. Test in both English and Spanish
+- **Court System Use Only**: This project is designed specifically for court environments
+- **Data Privacy**: All user data is handled according to court privacy requirements
+- **Backup**: Important files are backed up in `backup_20250828_144815/`
 
 ## License
 
-This project is for court system use and should be deployed according to local court policies and security requirements.
+This project is for court system use only.

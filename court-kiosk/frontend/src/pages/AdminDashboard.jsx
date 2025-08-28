@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, LogOut, User, File } from 'lucide-react';
 import { getQueue, callNext, completeCase, getCaseSummary, addTestData } from '../utils/queueAPI';
 
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
+  const { user, logout } = useAuth();
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -306,6 +308,17 @@ const AdminDashboard = () => {
               >
                 <Globe className="w-4 h-4 mr-2" />
                 {language === 'en' ? 'Español' : 'English'}
+              </button>
+              <div className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg">
+                <User className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">{user?.name || user?.username}</span>
+              </div>
+              <button
+                onClick={logout}
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                {language === 'en' ? 'Logout' : 'Cerrar Sesión'}
               </button>
             </div>
           </div>
@@ -629,6 +642,119 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
+                {/* Enhanced Case Details - New Section */}
+                {selectedCase && (
+                  <div className="space-y-4">
+                    {/* Urgency and Safety Information */}
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-red-800 mb-2 flex items-center">
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        {language === 'en' ? 'Urgency & Safety' : 'Urgencia y Seguridad'}
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600">{language === 'en' ? 'Priority Level:' : 'Nivel de Prioridad:'}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            selectedCase.priority === 'A' ? 'bg-red-100 text-red-800' :
+                            selectedCase.priority === 'B' ? 'bg-orange-100 text-orange-800' :
+                            selectedCase.priority === 'C' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {selectedCase.priority === 'A' ? (language === 'en' ? 'High (DV)' : 'Alta (DV)') :
+                             selectedCase.priority === 'B' ? (language === 'en' ? 'Medium' : 'Media') :
+                             selectedCase.priority === 'C' ? (language === 'en' ? 'Lower' : 'Baja') :
+                             (language === 'en' ? 'General' : 'General')}
+                          </span>
+                        </div>
+                        {selectedCase.case_type === 'Domestic Violence' && (
+                          <div className="text-red-700 font-medium">
+                            ⚠️ {language === 'en' ? 'Domestic Violence Case - Immediate attention required' : 'Caso de Violencia Doméstica - Atención inmediata requerida'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress Tracking */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-green-800 mb-2 flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {language === 'en' ? 'Progress Status' : 'Estado del Progreso'}
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600">{language === 'en' ? 'Current Status:' : 'Estado Actual:'}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            selectedCase.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
+                            selectedCase.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                            selectedCase.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {selectedCase.status === 'waiting' ? (language === 'en' ? 'Waiting' : 'Esperando') :
+                             selectedCase.status === 'in_progress' ? (language === 'en' ? 'In Progress' : 'En Progreso') :
+                             selectedCase.status === 'completed' ? (language === 'en' ? 'Completed' : 'Completado') :
+                             selectedCase.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600">{language === 'en' ? 'Wait Time:' : 'Tiempo de Espera:'}</span>
+                          <span className="font-medium">{selectedCase.waitTimeFormatted || calculateWaitTime(selectedCase.arrived_at || selectedCase.timestamp || selectedCase.created_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Facilitator Notes */}
+                    {selectedCase.facilitator_notes && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                          <FileText className="w-4 h-4 mr-2" />
+                          {language === 'en' ? 'Facilitator Notes' : 'Notas del Facilitador'}
+                        </h4>
+                        <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {selectedCase.facilitator_notes}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Documents Needed */}
+                    {selectedCase.documents_needed && selectedCase.documents_needed.length > 0 && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-purple-800 mb-2 flex items-center">
+                          <File className="w-4 h-4 mr-2" />
+                          {language === 'en' ? 'Documents Needed' : 'Documentos Necesarios'}
+                        </h4>
+                        <div className="space-y-1">
+                          {selectedCase.documents_needed.map((doc, index) => (
+                            <div key={index} className="text-sm text-gray-700 flex items-center">
+                              <span className="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>
+                              {doc}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Estimated Completion */}
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-orange-800 mb-2 flex items-center">
+                        <Clock className="w-4 h-4 mr-2" />
+                        {language === 'en' ? 'Time Estimate' : 'Estimación de Tiempo'}
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600">{language === 'en' ? 'Estimated Duration:' : 'Duración Estimada:'}</span>
+                          <span className="font-medium text-orange-700">
+                            {selectedCase.estimated_wait_time || 
+                             (selectedCase.case_type === 'Domestic Violence' ? 30 : 20)} {language === 'en' ? 'minutes' : 'minutos'}
+                          </span>
+                        </div>
+                        <div className="text-orange-700 font-medium">
+                          {language === 'en' ? 'Plan for comprehensive assistance' : 'Planificar asistencia integral'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Conversation Summary */}
                 {selectedCase.conversation_summary && (
                   <div>
@@ -645,20 +771,6 @@ const AdminDashboard = () => {
                     <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Current Step' : 'Paso Actual'}</h4>
                     <div className="bg-yellow-50 rounded-lg p-4">
                       <p className="text-sm text-gray-700">{selectedCase.current_node}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Documents Needed */}
-                {selectedCase.documents_needed && selectedCase.documents_needed.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Documents Needed' : 'Documentos Necesarios'}</h4>
-                    <div className="space-y-2">
-                      {selectedCase.documents_needed.map((doc, index) => (
-                        <div key={index} className="bg-green-50 border border-green-200 rounded px-3 py-2">
-                          <p className="text-sm text-gray-700">{doc}</p>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 )}

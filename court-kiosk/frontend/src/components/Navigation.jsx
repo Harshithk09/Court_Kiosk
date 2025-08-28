@@ -1,8 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Navigation = () => {
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
+  const { language } = useLanguage();
 
   const navItems = [
     { path: '/', label: 'Home', description: 'Main kiosk interface' },
@@ -32,8 +36,30 @@ const Navigation = () => {
             ))}
           </div>
           
-          <div className="text-xs text-gray-500">
-            Enhanced DVRO System
+          <div className="flex items-center space-x-4">
+            <div className="text-xs text-gray-500">
+              Enhanced DVRO System
+            </div>
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">
+                  {language === 'en' ? 'Welcome,' : 'Bienvenido,'} {user?.name || user?.username}
+                </span>
+                <button
+                  onClick={logout}
+                  className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                >
+                  {language === 'en' ? 'Logout' : 'Cerrar Sesión'}
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+              >
+                {language === 'en' ? 'Admin Login' : 'Acceso Admin'}
+              </Link>
+            )}
           </div>
         </div>
       </div>

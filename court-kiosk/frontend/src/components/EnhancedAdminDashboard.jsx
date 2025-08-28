@@ -44,7 +44,20 @@ const EnhancedAdminDashboard = () => {
         forms: "Forms Needed",
         nextSteps: "Next Steps",
         concerns: "Concerns",
-        timeRemaining: "Time Remaining"
+        timeRemaining: "Time Remaining",
+        urgencyLevel: "Urgency Level",
+        safetyConcerns: "Safety Concerns",
+        immediateNeeds: "Immediate Needs",
+        complexityFactors: "Complexity Factors",
+        specialConsiderations: "Special Considerations",
+        progressCompleted: "Progress Completed",
+        progressPending: "Progress Pending",
+        keyPoints: "Key Points to Cover",
+        potentialIssues: "Potential Issues",
+        recommendedApproach: "Recommended Approach",
+        formsPriority: "Forms Priority",
+        timeAllocation: "Time Allocation",
+        followUpNeeded: "Follow-up Needed"
       },
       actions: {
         callNext: "Call Next Case",
@@ -58,6 +71,11 @@ const EnhancedAdminDashboard = () => {
         B: "Medium Priority",
         C: "Lower Priority",
         D: "General Assistance"
+      },
+      urgency: {
+        high: "High Urgency",
+        medium: "Medium Urgency",
+        low: "Low Urgency"
       },
       status: {
         waiting: "Waiting",
@@ -76,7 +94,7 @@ const EnhancedAdminDashboard = () => {
         totalWaiting: "Total Esperando",
         totalInProgress: "Total En Progreso",
         nextCase: "Próximo Caso",
-        callNext: "Llamar Próximo",
+        callNext: "Llamar Siguiente",
         completeCase: "Completar Caso",
         viewDetails: "Ver Detalles"
       },
@@ -94,7 +112,20 @@ const EnhancedAdminDashboard = () => {
         forms: "Formularios Necesarios",
         nextSteps: "Próximos Pasos",
         concerns: "Preocupaciones",
-        timeRemaining: "Tiempo Restante"
+        timeRemaining: "Tiempo Restante",
+        urgencyLevel: "Nivel de Urgencia",
+        safetyConcerns: "Preocupaciones de Seguridad",
+        immediateNeeds: "Necesidades Inmediatas",
+        complexityFactors: "Factores de Complejidad",
+        specialConsiderations: "Consideraciones Especiales",
+        progressCompleted: "Progreso Completado",
+        progressPending: "Progreso Pendiente",
+        keyPoints: "Puntos Clave a Cubrir",
+        potentialIssues: "Problemas Potenciales",
+        recommendedApproach: "Enfoque Recomendado",
+        formsPriority: "Prioridad de Formularios",
+        timeAllocation: "Asignación de Tiempo",
+        followUpNeeded: "Seguimiento Necesario"
       },
       actions: {
         callNext: "Llamar Próximo Caso",
@@ -108,6 +139,11 @@ const EnhancedAdminDashboard = () => {
         B: "Prioridad Media",
         C: "Prioridad Baja",
         D: "Asistencia General"
+      },
+      urgency: {
+        high: "Alta Urgencia",
+        medium: "Urgencia Media",
+        low: "Baja Urgencia"
       },
       status: {
         waiting: "Esperando",
@@ -246,6 +282,15 @@ const EnhancedAdminDashboard = () => {
     }
   };
 
+  const getUrgencyColor = (urgency) => {
+    switch (urgency) {
+      case 'high': return '#e74c3c';
+      case 'medium': return '#f39c12';
+      case 'low': return '#27ae60';
+      default: return '#95a5a6';
+    }
+  };
+
   const formatWaitTime = (minutes) => {
     if (minutes < 60) {
       return `${minutes} min`;
@@ -327,6 +372,9 @@ const EnhancedAdminDashboard = () => {
   const renderCaseDetails = () => {
     if (!selectedCase) return null;
 
+    const situationDetails = caseSummary?.situation_details || {};
+    const facilitatorGuidance = caseSummary?.facilitator_guidance || {};
+
     return (
       <div className="case-details-panel">
         <div className="panel-header">
@@ -381,8 +429,460 @@ const EnhancedAdminDashboard = () => {
         
         {caseSummary && (
           <div className="case-summary">
-            <h3>{t.caseDetails.summary}</h3>
+            {/* Urgency and Safety Section */}
+            <div className="urgency-section">
+              <h3>{t.caseDetails.urgencyLevel}</h3>
+              <div className="urgency-indicator" style={{ backgroundColor: getUrgencyColor(situationDetails.urgency_level) }}>
+                {t.urgency[situationDetails.urgency_level] || 'Medium Urgency'}
+              </div>
+              
+              {situationDetails.safety_concerns && situationDetails.safety_concerns.length > 0 && (
+                <div className="safety-concerns">
+                  <h4>{t.caseDetails.safetyConcerns}</h4>
+                  <ul>
+                    {situationDetails.safety_concerns.map((concern, index) => (
+                      <li key={index} className="safety-item">{concern}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {situationDetails.immediate_needs && situationDetails.immediate_needs.length > 0 && (
+                <div className="immediate-needs">
+                  <h4>{t.caseDetails.immediateNeeds}</h4>
+                  <ul>
+                    {situationDetails.immediate_needs.map((need, index) => (
+                      <li key={index} className="urgent-item">{need}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* User Situation Section */}
+            {situationDetails.user_situation && Object.keys(situationDetails.user_situation).length > 0 && (
+              <div className="user-situation-section">
+                <h3>User Situation</h3>
+                <div className="situation-grid">
+                  {Object.entries(situationDetails.user_situation).map(([key, value]) => (
+                    <div key={key} className="situation-item">
+                      <label>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                      <span className="value">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Case Specific Details */}
+            {situationDetails.case_specific_details && Object.keys(situationDetails.case_specific_details).length > 0 && (
+              <div className="case-details-section">
+                <h3>Case Specific Details</h3>
+                
+                {situationDetails.case_specific_details.abuse_types && situationDetails.case_specific_details.abuse_types.length > 0 && (
+                  <div className="abuse-types">
+                    <h4>Types of Abuse Reported</h4>
+                    <ul>
+                      {situationDetails.case_specific_details.abuse_types.map((type, index) => (
+                        <li key={index} className="abuse-type-item">• {type}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {situationDetails.case_specific_details.incident_description && situationDetails.case_specific_details.incident_description !== 'Not provided' && (
+                  <div className="incident-description">
+                    <h4>Incident Description</h4>
+                    <p>{situationDetails.case_specific_details.incident_description}</p>
+                  </div>
+                )}
+                
+                <div className="case-details-grid">
+                  {Object.entries(situationDetails.case_specific_details).map(([key, value]) => {
+                    if (key === 'abuse_types' || key === 'incident_description') return null;
+                    return (
+                      <div key={key} className="case-detail-item">
+                        <label>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                        <span className="value">{value}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Form Progress Section */}
+            {situationDetails.form_progress && Object.keys(situationDetails.form_progress).length > 0 && (
+              <div className="form-progress-section">
+                <h3>Form Progress</h3>
+                
+                <div className="form-status">
+                  <div className="status-item">
+                    <label>Forms Started:</label>
+                    <span className={`status ${situationDetails.form_progress.forms_started === 'yes' ? 'completed' : 'pending'}`}>
+                      {situationDetails.form_progress.forms_started === 'yes' ? '✓ Yes' : '✗ No'}
+                    </span>
+                  </div>
+                  
+                  <div className="status-item">
+                    <label>Filing Ready:</label>
+                    <span className={`status ${situationDetails.form_progress.filing_ready === 'yes' ? 'completed' : 'pending'}`}>
+                      {situationDetails.form_progress.filing_ready === 'yes' ? '✓ Yes' : '✗ No'}
+                    </span>
+                  </div>
+                  
+                  <div className="status-item">
+                    <label>Service Planned:</label>
+                    <span className={`status ${situationDetails.form_progress.service_planned === 'yes' ? 'completed' : 'pending'}`}>
+                      {situationDetails.form_progress.service_planned === 'yes' ? '✓ Yes' : '✗ No'}
+                    </span>
+                  </div>
+                </div>
+                
+                {situationDetails.form_progress.forms_completed && situationDetails.form_progress.forms_completed.length > 0 && (
+                  <div className="forms-completed">
+                    <h4>Forms Completed</h4>
+                    <ul>
+                      {situationDetails.form_progress.forms_completed.map((form, index) => (
+                        <li key={index} className="completed-form">✓ {form}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {situationDetails.form_progress.forms_not_started && situationDetails.form_progress.forms_not_started.length > 0 && (
+                  <div className="forms-needed">
+                    <h4>Forms Still Needed</h4>
+                    <ul>
+                      {situationDetails.form_progress.forms_not_started.map((form, index) => (
+                        <li key={index} className="needed-form">⏳ {form}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Evidence Status Section */}
+            {situationDetails.evidence_status && Object.keys(situationDetails.evidence_status).length > 0 && (
+              <div className="evidence-section">
+                <h3>Evidence Status</h3>
+                
+                <div className="evidence-grid">
+                  {Object.entries(situationDetails.evidence_status).map(([key, value]) => (
+                    <div key={key} className="evidence-item">
+                      <label>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                      <span className={`evidence-status ${value === 'yes' ? 'available' : 'not-available'}`}>
+                        {value === 'yes' ? '✓ Available' : '✗ Not Available'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Relationship Details Section */}
+            {situationDetails.relationship_details && Object.keys(situationDetails.relationship_details).length > 0 && (
+              <div className="relationship-section">
+                <h3>Respondent Information</h3>
+                
+                <div className="respondent-info">
+                  <div className="respondent-name">
+                    <label>Name:</label>
+                    <span className="value">{situationDetails.relationship_details.abuser_name}</span>
+                  </div>
+                  
+                  <div className="respondent-contact">
+                    <div className="contact-item">
+                      <label>Address:</label>
+                      <span className="value">{situationDetails.relationship_details.abuser_address}</span>
+                    </div>
+                    <div className="contact-item">
+                      <label>Phone:</label>
+                      <span className="value">{situationDetails.relationship_details.abuser_phone}</span>
+                    </div>
+                    <div className="contact-item">
+                      <label>Workplace:</label>
+                      <span className="value">{situationDetails.relationship_details.abuser_workplace}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="respondent-details">
+                    <div className="detail-item">
+                      <label>Vehicle:</label>
+                      <span className="value">{situationDetails.relationship_details.abuser_vehicle}</span>
+                    </div>
+                    <div className="detail-item">
+                      <label>Weapons:</label>
+                      <span className="value">{situationDetails.relationship_details.abuser_weapons}</span>
+                    </div>
+                    <div className="detail-item">
+                      <label>Criminal History:</label>
+                      <span className="value">{situationDetails.relationship_details.abuser_criminal_history}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Children Information Section */}
+            {situationDetails.children_involved && situationDetails.children_involved.involved !== false && (
+              <div className="children-section">
+                <h3>Children Information</h3>
+                
+                <div className="children-details">
+                  <div className="children-basic">
+                    <div className="detail-item">
+                      <label>Number of Children:</label>
+                      <span className="value">{situationDetails.children_involved.number_of_children}</span>
+                    </div>
+                    <div className="detail-item">
+                      <label>Ages:</label>
+                      <span className="value">{situationDetails.children_involved.children_ages}</span>
+                    </div>
+                    <div className="detail-item">
+                      <label>Names:</label>
+                      <span className="value">{situationDetails.children_involved.children_names}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="children-schools">
+                    <label>Schools:</label>
+                    <span className="value">{situationDetails.children_involved.children_schools}</span>
+                  </div>
+                  
+                  <div className="children-custody">
+                    <div className="custody-item">
+                      <label>Current Custody:</label>
+                      <span className="value">{situationDetails.children_involved.custody_current}</span>
+                    </div>
+                    <div className="custody-item">
+                      <label>Current Visitation:</label>
+                      <span className="value">{situationDetails.children_involved.visitation_current}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="children-impact">
+                    <div className="impact-item">
+                      <label>Children Witnessed Abuse:</label>
+                      <span className="value">{situationDetails.children_involved.children_witnessed_abuse}</span>
+                    </div>
+                    <div className="impact-item">
+                      <label>Children Affected:</label>
+                      <span className="value">{situationDetails.children_involved.children_affected}</span>
+                    </div>
+                    <div className="impact-item">
+                      <label>Abduction Risk:</label>
+                      <span className="value">{situationDetails.children_involved.abduction_risk}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Financial Matters Section */}
+            {situationDetails.financial_matters && situationDetails.financial_matters.involved !== false && (
+              <div className="financial-section">
+                <h3>Financial Matters</h3>
+                
+                <div className="financial-details">
+                  <div className="support-info">
+                    <label>Support Type:</label>
+                    <span className="value">{situationDetails.financial_matters.support_type}</span>
+                  </div>
+                  
+                  <div className="financial-docs">
+                    <div className="doc-item">
+                      <label>Income Information:</label>
+                      <span className="value">{situationDetails.financial_matters.income_information}</span>
+                    </div>
+                    <div className="doc-item">
+                      <label>Expense Information:</label>
+                      <span className="value">{situationDetails.financial_matters.expense_information}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="assets-debts">
+                    <div className="asset-item">
+                      <label>Assets Involved:</label>
+                      <span className="value">{situationDetails.financial_matters.assets_involved}</span>
+                    </div>
+                    <div className="asset-item">
+                      <label>Debts Involved:</label>
+                      <span className="value">{situationDetails.financial_matters.debts_involved}</span>
+                    </div>
+                    <div className="asset-item">
+                      <label>Bank Accounts:</label>
+                      <span className="value">{situationDetails.financial_matters.bank_accounts}</span>
+                    </div>
+                    <div className="asset-item">
+                      <label>Property Ownership:</label>
+                      <span className="value">{situationDetails.financial_matters.property_ownership}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Legal History Section */}
+            {situationDetails.legal_history && Object.keys(situationDetails.legal_history).length > 0 && (
+              <div className="legal-history-section">
+                <h3>Legal History</h3>
+                
+                <div className="legal-history-grid">
+                  {Object.entries(situationDetails.legal_history).map(([key, value]) => (
+                    <div key={key} className="legal-history-item">
+                      <label>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                      <span className="value">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Support Needs Section */}
+            {situationDetails.support_needs && Object.keys(situationDetails.support_needs).length > 0 && (
+              <div className="support-needs-section">
+                <h3>Support Needs</h3>
+                
+                <div className="support-needs-grid">
+                  {Object.entries(situationDetails.support_needs).map(([key, value]) => (
+                    <div key={key} className="support-need-item">
+                      <label>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                      <span className={`support-status ${value === 'yes' ? 'needed' : 'not-needed'}`}>
+                        {value === 'yes' ? '✓ Needed' : '✗ Not Needed'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Progress Tracking Section */}
+            <div className="progress-section">
+              <h3>Progress Tracking</h3>
+              
+              {situationDetails.progress_completed && situationDetails.progress_completed.length > 0 && (
+                <div className="progress-completed">
+                  <h4>{t.caseDetails.progressCompleted}</h4>
+                  <ul>
+                    {situationDetails.progress_completed.map((item, index) => (
+                      <li key={index} className="completed-item">✓ {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {situationDetails.progress_pending && situationDetails.progress_pending.length > 0 && (
+                <div className="progress-pending">
+                  <h4>{t.caseDetails.progressPending}</h4>
+                  <ul>
+                    {situationDetails.progress_pending.map((item, index) => (
+                      <li key={index} className="pending-item">⏳ {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Complexity and Special Considerations */}
+            <div className="complexity-section">
+              {situationDetails.complexity_factors && situationDetails.complexity_factors.length > 0 && (
+                <div className="complexity-factors">
+                  <h4>{t.caseDetails.complexityFactors}</h4>
+                  <ul>
+                    {situationDetails.complexity_factors.map((factor, index) => (
+                      <li key={index} className="complexity-item">{factor}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {situationDetails.special_considerations && situationDetails.special_considerations.length > 0 && (
+                <div className="special-considerations">
+                  <h4>{t.caseDetails.specialConsiderations}</h4>
+                  <ul>
+                    {situationDetails.special_considerations.map((consideration, index) => (
+                      <li key={index} className="special-item">{consideration}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Facilitator Guidance Section */}
+            <div className="guidance-section">
+              <h3>Facilitator Guidance</h3>
+              
+              {facilitatorGuidance.recommended_approach && (
+                <div className="recommended-approach">
+                  <h4>{t.caseDetails.recommendedApproach}</h4>
+                  <p>{facilitatorGuidance.recommended_approach}</p>
+                </div>
+              )}
+              
+              {facilitatorGuidance.key_points_to_cover && facilitatorGuidance.key_points_to_cover.length > 0 && (
+                <div className="key-points">
+                  <h4>{t.caseDetails.keyPoints}</h4>
+                  <ul>
+                    {facilitatorGuidance.key_points_to_cover.map((point, index) => (
+                      <li key={index} className="key-point-item">• {point}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {facilitatorGuidance.forms_priority && facilitatorGuidance.forms_priority.length > 0 && (
+                <div className="forms-priority">
+                  <h4>{t.caseDetails.formsPriority}</h4>
+                  <ul>
+                    {facilitatorGuidance.forms_priority.map((form, index) => (
+                      <li key={index} className="priority-form-item">#{index + 1} {form}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {facilitatorGuidance.time_allocation && Object.keys(facilitatorGuidance.time_allocation).length > 0 && (
+                <div className="time-allocation">
+                  <h4>{t.caseDetails.timeAllocation}</h4>
+                  <div className="time-grid">
+                    {Object.entries(facilitatorGuidance.time_allocation).map(([activity, minutes]) => (
+                      <div key={activity} className="time-item">
+                        <span className="activity">{activity.replace('_', ' ')}</span>
+                        <span className="minutes">{minutes}m</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {facilitatorGuidance.potential_issues && facilitatorGuidance.potential_issues.length > 0 && (
+                <div className="potential-issues">
+                  <h4>{t.caseDetails.potentialIssues}</h4>
+                  <ul>
+                    {facilitatorGuidance.potential_issues.map((issue, index) => (
+                      <li key={index} className="issue-item">⚠️ {issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {facilitatorGuidance.follow_up_needed && facilitatorGuidance.follow_up_needed.length > 0 && (
+                <div className="follow-up-needed">
+                  <h4>{t.caseDetails.followUpNeeded}</h4>
+                  <ul>
+                    {facilitatorGuidance.follow_up_needed.map((item, index) => (
+                      <li key={index} className="follow-up-item">📋 {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Original Summary Content */}
             <div className="summary-content">
+              <h3>{t.caseDetails.summary}</h3>
               <p>{caseSummary.summary}</p>
             </div>
             
@@ -406,18 +906,9 @@ const EnhancedAdminDashboard = () => {
               </div>
               
               <div className="detail-section">
-                <h4>{t.caseDetails.concerns}</h4>
-                <ul>
-                  {caseSummary.concerns?.map((concern, index) => (
-                    <li key={index}>{concern}</li>
-                  )) || <li>No immediate concerns</li>}
-                </ul>
-              </div>
-              
-              <div className="detail-section">
                 <h4>{t.caseDetails.timeRemaining}</h4>
                 <p className="time-remaining">
-                  {caseSummary.time_estimate || 30} minutes
+                  {situationDetails.estimated_completion_time || 30} minutes
                 </p>
               </div>
             </div>
