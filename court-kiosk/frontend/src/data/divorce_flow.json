@@ -1,0 +1,91 @@
+{
+  "id": "divorce-flow",
+  "version": "2025-08-14",
+  "start": "A",
+  "metadata": {
+    "title": "Divorce / Dissolution / Legal Separation",
+    "jurisdiction": "CA",
+    "source": "Mermaid Divorce flow",
+    "flow_family": "Divorce",
+    "direction": "TB",
+    "subgraphs": ["FILE", "SUMD", "SERVE", "PDD_PET", "RESPOND", "FINALIZE_CHOOSER", "FINALIZE", "RFO", "EX_PARTE", "MOVE", "RESP_PDD"]
+  },
+  "nodes": {
+    "A": { 
+      "type": "decision", 
+      "text": "Start Here: What do you need help with?",
+      "options": [
+        { "text": "Filing for a Divorce/Dissolution/Legal Separation", "to": "A1" },
+        { "text": "Serving Your Spouse", "to": "A1a" },
+        { "text": "Responding to a Divorce", "to": "A2" },
+        { "text": "Deciding How to Finalize Your Divorce", "to": "Pet_Start" },
+        { "text": "Moving Your Case Forward", "to": "A3" },
+        { "text": "File an Emergency Request", "to": "A5" },
+        { "text": "File a Request For Order", "to": "A6" }
+      ]
+    },
+    "A1": { 
+      "type": "process", 
+      "text": "Step 1 (Petitioner): Filing for a Divorce/Dissolution/Legal Separation\n\nThis is the first step in starting a divorce case. You'll need to fill out and file several forms with the court.",
+      "options": [
+        { "text": "Continue to next step", "to": "A1a" }
+      ]
+    },
+    "A1a": { 
+      "type": "process", 
+      "text": "Step 2: Serving Your Spouse\n\nAfter filing your forms, you must legally serve your spouse with copies of all filed documents.",
+      "options": [
+        { "text": "Continue to next step", "to": "Pet_Start" }
+      ]
+    },
+    "A2": { 
+      "type": "process", 
+      "text": "Step 1 (Respondent): Responding to a Divorce\n\nIf you've been served with divorce papers, you have 30 days to file a response.",
+      "options": [
+        { "text": "Continue to next step", "to": "Pet_Start" }
+      ]
+    },
+    "Pet_Start": { 
+      "type": "process", 
+      "text": "Step 4: Deciding How to Finalize Your Divorce\n\nYou have several options for finalizing your divorce case.",
+      "options": [
+        { "text": "Continue to next step", "to": "A3" }
+      ]
+    },
+    "A3": { 
+      "type": "process", 
+      "text": "Moving Your Case Forward\n\nThis involves completing financial disclosures and other required steps.",
+      "options": [
+        { "text": "Continue to next step", "to": "end" }
+      ]
+    },
+    "A5": { 
+      "type": "process", 
+      "text": "File an Emergency Request\n\nFor urgent matters that require immediate court attention.",
+      "options": [
+        { "text": "Continue to next step", "to": "end" }
+      ]
+    },
+    "A6": { 
+      "type": "process", 
+      "text": "File a Request For Order\n\nFor requesting court orders on specific issues like custody, support, or property.",
+      "options": [
+        { "text": "Continue to next step", "to": "end" }
+      ]
+    },
+    "end": {
+      "type": "end",
+      "text": "Process Complete\n\nYou have completed the divorce flow. Review your progress and next steps."
+    }
+  },
+  "edges": [
+    { "from": "A", "to": "A1" },
+    { "from": "A", "to": "A1a" },
+    { "from": "A", "to": "A2" },
+    { "from": "A", "to": "Pet_Start" },
+    { "from": "A", "to": "A3" },
+    { "from": "A", "to": "A5" },
+    { "from": "A", "to": "A6" }
+  ]
+}
+  

@@ -1,0 +1,33 @@
+{
+  "id": "divorce-flow",
+  "version": "2025-08-14",
+  "start": "A",
+  "metadata": {
+    "title": "Divorce / Dissolution / Legal Separation",
+    "jurisdiction": "CA",
+    "source": "Mermaid Divorce flow",
+    "flow_family": "Divorce",
+    "direction": "TB",
+    "subgraphs": ["FILE", "SUMD", "SERVE", "PDD_PET", "RESPOND", "FINALIZE_CHOOSER", "FINALIZE", "RFO", "EX_PARTE", "MOVE", "RESP_PDD"]
+  },
+  "nodes": {
+    "A": { "type": "decision", "text": "Start Here: What do you need help with?" },
+    "A1": { "type": "process", "text": "Step 1 (Petitioner): Filing for a Divorce/Dissolution/Legal Separation" },
+    "A1a": { "type": "process", "text": "Step 2: Serving Your Spouse" },
+    "A2": { "type": "process", "text": "Step 1 (Respondent): Responding to a Divorce" },
+    "Pet_Start": { "type": "process", "text": "Step 4: Deciding How to Finalize Your Divorce" },
+    "A3": { "type": "process", "text": "Moving Your Case Forward" },
+    "A5": { "type": "process", "text": "File an Emergency Request" },
+    "A6": { "type": "process", "text": "File a Request For Order" }
+  },
+  "edges": [
+    { "from": "A", "to": "A1" },
+    { "from": "A", "to": "A1a" },
+    { "from": "A", "to": "A2" },
+    { "from": "A", "to": "Pet_Start" },
+    { "from": "A", "to": "A3" },
+    { "from": "A", "to": "A2" },
+    { "from": "A", "to": "A5" },
+    { "from": "A", "to": "A6" }
+  ]
+}
