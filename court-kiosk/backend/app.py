@@ -11,11 +11,12 @@ import random
 from email.mime.base import MIMEBase
 from email import encoders
 from utils.llm_service import LLMService
+from utils.email_service import EmailService
 from config import Config
 from models import db, QueueEntry
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['http://localhost:3000', 'http://127.0.0.1:3000'], supports_credentials=True)
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = Config.SQLALCHEMY_DATABASE_URI
@@ -37,8 +38,9 @@ else:
         print(f"Warning: Could not initialize OpenAI client: {e}")
         client = None
 
-# Initialize LLM service
+# Initialize services
 llm_service = LLMService(Config.OPENAI_API_KEY)
+email_service = EmailService()
 
 
 class Config:
@@ -677,43 +679,102 @@ def generate_enhanced_next_steps(case_type, current_step, existing_steps, langua
 
 @app.route('/api/send-summary', methods=['POST'])
 def send_summary_email():
-    """Send summary email with form attachments"""
+    """Send summary email with form attachments using enhanced email service"""
     try:
         data = request.get_json()
         email = data.get('email')
         answers = data.get('answers', {})
         forms = data.get('forms', [])
         summary = data.get('summary', '')
+        queue_number = data.get('queue_number', f"DVRO{random.randint(1000, 9999)}")
         
         if not email:
             return jsonify({'error': 'Email is required'}), 400
         
-        # Generate case number
-        case_number = f"DVRO{random.randint(1000, 9999)}"
+        # Prepare payload for enhanced email service
+        payload = {
+            'to': email,
+            'queue_number': queue_number,
+            'flow_type': 'DVRO',
+            'required_forms': forms,
+            'next_steps': [
+                'Fill out all required forms completely',
+                'Make 3 copies of each form (original + 2 copies)',
+                'Serve the other party with your papers',
+                'Use a process server, sheriff, or someone 18+ (not you)',
+                'File proof of service with the court',
+                'Attend your court hearing on the scheduled date',
+                'Bring all evidence (photos, texts, emails, witnesses)',
+                'Dress appropriately for court'
+            ],
+            'case_type': 'Domestic Violence Restraining Order'
+        }
         
-        # Create email content
-        subject = f"DVRO Case Summary - {case_number}"
+        # Send email with PDF attachments using enhanced service
+        result = email_service.send_summary_email(payload)
         
-        # Generate detailed email body
-        email_body = generate_email_body(case_number, answers, forms, summary)
-        
-        # Generate PDF attachments for forms
-        attachments = generate_form_pdfs(forms)
-        
-        # Send email with attachments
-        success = send_email_with_attachments(email, subject, email_body, attachments)
-        
-        if success:
+        if result.get('success'):
             return jsonify({
                 'success': True,
                 'message': 'Summary and forms sent successfully',
-                'case_number': case_number
+                'queue_number': queue_number,
+                'attachments_count': result.get('attachments_count', 0)
             })
         else:
-            return jsonify({'error': 'Failed to send email'}), 500
+            return jsonify({'error': result.get('error', 'Failed to send email')}), 500
             
     except Exception as e:
         app.logger.error(f"Error sending summary email: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/email/send-case-summary', methods=['POST'])
+def send_case_summary_email_endpoint():
+    """Alternative endpoint for case summary email - matches frontend expectation"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        answers = data.get('answers', {})
+        forms = data.get('forms', [])
+        summary = data.get('summary', '')
+        queue_number = data.get('queue_number', f"DVRO{random.randint(1000, 9999)}")
+        
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+        
+        # Prepare payload for enhanced email service
+        payload = {
+            'to': email,
+            'queue_number': queue_number,
+            'flow_type': 'DVRO',
+            'required_forms': forms,
+            'next_steps': [
+                'Fill out all required forms completely',
+                'Make 3 copies of each form (original + 2 copies)',
+                'Serve the other party with your papers',
+                'Use a process server, sheriff, or someone 18+ (not you)',
+                'File proof of service with the court',
+                'Attend your court hearing on the scheduled date',
+                'Bring all evidence (photos, texts, emails, witnesses)',
+                'Dress appropriately for court'
+            ],
+            'case_type': 'Domestic Violence Restraining Order'
+        }
+        
+        # Send email with PDF attachments using enhanced service
+        result = email_service.send_summary_email(payload)
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': 'Summary and forms sent successfully',
+                'queue_number': queue_number,
+                'attachments_count': result.get('attachments_count', 0)
+            })
+        else:
+            return jsonify({'error': result.get('error', 'Failed to send email')}), 500
+            
+    except Exception as e:
+        app.logger.error(f"Error sending case summary email: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
 def generate_email_body(case_number, answers, forms, summary):
@@ -882,4 +943,4 @@ def send_email_with_attachments(to_email, subject, body, attachments):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=False, port=1904)
+    app.run(debug=True, port=1904, host='0.0.0.0')

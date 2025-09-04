@@ -1,4 +1,5 @@
 import os
+import base64
 import resend
 from datetime import datetime
 from config import Config
@@ -9,8 +10,9 @@ if Config.RESEND_API_KEY:
 
 class EmailService:
     def __init__(self):
-        self.from_email = "Court Kiosk <noreply@courtkiosk.com>"
-        self.support_email = "support@courtkiosk.com"
+        self.from_email = "Family Court Clinic <onboarding@resend.dev>"
+        self.support_email = "support@resend.dev"
+        self.court_documents_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'court_documents')
     
     def get_form_url(self, form_code: str) -> str:
         """Return a public hyperlink for a given Judicial Council form code.
@@ -48,6 +50,48 @@ class EmailService:
 
         # Generic search link for unknown codes
         return f"https://www.google.com/search?q=site:courts.ca.gov+{normalized}"
+    
+    def _prepare_pdf_attachments(self, form_codes: list) -> list:
+        """Prepare PDF attachments for the given form codes.
+        
+        Args:
+            form_codes: List of form codes (e.g., ['DV-100', 'DV-109'])
+            
+        Returns:
+            List of attachment dictionaries for Resend API
+        """
+        attachments = []
+        
+        for form_code in form_codes:
+            if not form_code:
+                continue
+                
+            # Normalize form code
+            normalized = str(form_code).strip().upper()
+            pdf_filename = f"{normalized}.pdf"
+            pdf_path = os.path.join(self.court_documents_path, pdf_filename)
+            
+            # Check if PDF exists
+            if os.path.exists(pdf_path):
+                try:
+                    with open(pdf_path, 'rb') as pdf_file:
+                        pdf_content = pdf_file.read()
+                        pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+                        
+                        attachments.append({
+                            "filename": pdf_filename,
+                            "content": pdf_base64,
+                            "type": "application/pdf"
+                        })
+                        
+                        print(f"Prepared attachment: {pdf_filename}")
+                        
+                except Exception as e:
+                    print(f"Error reading PDF {pdf_filename}: {e}")
+            else:
+                print(f"PDF not found: {pdf_filename}")
+        
+        return attachments
 
     def send_summary_email(self, payload: dict) -> dict:
         """Send a detailed summary email using a generic payload.
@@ -82,6 +126,8 @@ class EmailService:
             forms_html = ""
             if linked_forms:
                 forms_html = "<h3>Required Forms:</h3><ul>" + "".join(linked_forms) + "</ul>"
+                # Add note about attachments
+                forms_html += "<p style='color: #059669; font-weight: bold; margin-top: 10px;'>📎 All required forms are attached to this email as PDF files.</p>"
 
             steps = payload.get('next_steps', []) or []
             steps_html = ""
@@ -106,16 +152,31 @@ class EmailService:
             </html>
             """
 
-            response = resend.Emails.send({
+            # Prepare PDF attachments
+            attachments = self._prepare_pdf_attachments(forms)
+            
+            # Build email data
+            email_data = {
                 "from": self.from_email,
                 "to": to_addr,
                 "subject": subject,
                 "html": html,
-            })
-            return {"success": True, "id": response.get('id')}
+            }
+            
+            # Add attachments if any
+            if attachments:
+                email_data["attachments"] = attachments
+                print(f"Sending email with {len(attachments)} PDF attachments")
+            else:
+                print("No PDF attachments found")
+            
+            response = resend.Emails.send(email_data)
+            print(f"Resend response: {response}")
+            return {"success": True, "id": response.get('id'), "attachments_count": len(attachments)}
 
         except Exception as e:
             print(f"Error sending summary email: {e}")
+            print(f"Error type: {type(e)}")
             return {"success": False, "error": str(e)}
 
     def send_case_summary_email(self, to_email, case_data):
@@ -129,15 +190,36 @@ class EmailService:
             
             html_content = self._generate_case_summary_html(case_data)
             
-            response = resend.Emails.send({
+            # Extract form codes from case data
+            forms = []
+            summary = case_data.get('summary', {})
+            if 'forms' in summary:
+                forms = summary['forms']
+            elif 'required_forms' in case_data:
+                forms = case_data['required_forms']
+            
+            # Prepare PDF attachments
+            attachments = self._prepare_pdf_attachments(forms)
+            
+            # Build email data
+            email_data = {
                 "from": self.from_email,
                 "to": to_email,
                 "subject": subject,
                 "html": html_content,
-            })
+            }
+            
+            # Add attachments if any
+            if attachments:
+                email_data["attachments"] = attachments
+                print(f"Sending case summary email with {len(attachments)} PDF attachments")
+            else:
+                print("No PDF attachments found for case summary")
+            
+            response = resend.Emails.send(email_data)
             
             print(f"Email sent successfully to {to_email}")
-            return {"success": True, "id": response.get('id')}
+            return {"success": True, "id": response.get('id'), "attachments_count": len(attachments)}
             
         except Exception as e:
             print(f"Error sending email: {e}")
@@ -209,6 +291,8 @@ class EmailService:
             for form in forms:
                 forms_html += f"<li>{form}</li>"
             forms_html += "</ul>"
+            # Add note about attachments
+            forms_html += "<p style='color: #059669; font-weight: bold; margin-top: 10px;'>📎 All required forms are attached to this email as PDF files.</p>"
         
         steps_html = ""
         if steps:
