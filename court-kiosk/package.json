@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "cd court-kiosk/frontend && npm run build",
-    "start": "cd court-kiosk/frontend && npm start",
-    "install": "cd court-kiosk/frontend && npm install"
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm start",
+    "install": "cd frontend && npm install"
   },
   "engines": {
     "node": "22.x"
