@@ -30,6 +30,7 @@ const UserKiosk = () => {
     {
       id: 'A',
       priority: 'A',
+      case_type: 'DVRO',
       title: { en: 'Domestic Violence', es: 'Violencia Doméstica' },
       description: { 
         en: 'Restraining orders, protection orders, emergency cases', 
@@ -42,6 +43,7 @@ const UserKiosk = () => {
     {
       id: 'B',
       priority: 'B',
+      case_type: 'CUSTODY',
       title: { en: 'Child Custody & Support', es: 'Custodia y Manutención' },
       description: { 
         en: 'Child custody, child support, visitation rights', 
@@ -54,6 +56,7 @@ const UserKiosk = () => {
     {
       id: 'C',
       priority: 'C',
+      case_type: 'DIVORCE',
       title: { en: 'Divorce & Separation', es: 'Divorcio y Separación' },
       description: { 
         en: 'Divorce proceedings, legal separation, property division', 
@@ -66,6 +69,7 @@ const UserKiosk = () => {
     {
       id: 'D',
       priority: 'D',
+      case_type: 'OTHER',
       title: { en: 'Other Family Law', es: 'Otro Derecho de Familia' },
       description: { 
         en: 'Adoption, guardianship, name changes, other family matters', 
@@ -88,14 +92,20 @@ const UserKiosk = () => {
         return;
       }
 
-      // For other cases, use the existing queue system
+      // For Divorce & Separation cases (Priority C), redirect to the divorce flow runner
+      if (caseType.id === 'C') {
+        navigate('/divorce');
+        return;
+      }
+
+      // For other cases (Priority B, D), use the existing queue system
       const response = await fetch(`${API_BASE_URL}/api/generate-queue`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          case_type: caseType.id,
+          case_type: caseType.case_type,
           priority: caseType.priority,
           language: language
         })

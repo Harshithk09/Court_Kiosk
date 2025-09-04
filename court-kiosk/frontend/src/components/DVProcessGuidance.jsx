@@ -53,7 +53,7 @@ const DVProcessGuidance = ({ queueNumber, onComplete }) => {
         body: JSON.stringify({
           queue_number: queueNumber,
           answers: {
-            case_type: 'A',
+            case_type: 'DVRO',
             current_step: 'dv_process',
             progress: Object.entries(answers).map(([key, value]) => ({
               question: key,

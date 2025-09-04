@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle } from 'lucide-react';
 import { getQueue, callNext, completeCase, getCaseSummary, addTestData } from '../utils/queueAPI';
+import FormsManagement from '../components/FormsManagement';
+import FormsSummary from '../components/FormsSummary';
 
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
+  const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'forms'
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -312,6 +315,40 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('queue')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'queue'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center">
+                <Users className="w-4 h-4 mr-2" />
+                {language === 'en' ? 'Queue Management' : 'Gestión de Cola'}
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('forms')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'forms'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center">
+                <FileText className="w-4 h-4 mr-2" />
+                {language === 'en' ? 'Forms Management' : 'Gestión de Formularios'}
+              </div>
+            </button>
+          </nav>
+        </div>
+      </div>
+
       {/* Error Display */}
       {error && (
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -321,23 +358,26 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Wait Time Alerts */}
-      {queueWithWaitTimes.filter(item => item.waitTimeMinutes >= 30).length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="bg-orange-100 border border-orange-400 text-orange-800 px-4 py-3 rounded">
-            <div className="flex items-center">
-              <AlertTriangle className="w-5 h-5 mr-2" />
-              <span className="font-semibold">
-                {language === 'en' ? 'Long Wait Alert:' : 'Alerta de Espera Larga:'}
-              </span>
-              <span className="ml-2">
-                {queueWithWaitTimes.filter(item => item.waitTimeMinutes >= 30).length} 
-                {language === 'en' ? ' clients waiting 30+ minutes' : ' clientes esperando 30+ minutos'}
-              </span>
+      {/* Queue Management Tab Content */}
+      {activeTab === 'queue' && (
+        <>
+          {/* Wait Time Alerts */}
+          {queueWithWaitTimes.filter(item => item.waitTimeMinutes >= 30).length > 0 && (
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <div className="bg-orange-100 border border-orange-400 text-orange-800 px-4 py-3 rounded">
+                <div className="flex items-center">
+                  <AlertTriangle className="w-5 h-5 mr-2" />
+                  <span className="font-semibold">
+                    {language === 'en' ? 'Long Wait Alert:' : 'Alerta de Espera Larga:'}
+                  </span>
+                  <span className="ml-2">
+                    {queueWithWaitTimes.filter(item => item.waitTimeMinutes >= 30).length} 
+                    {language === 'en' ? ' clients waiting 30+ minutes' : ' clientes esperando 30+ minutos'}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
       {/* Current Number Display */}
       {currentNumber && (
@@ -695,39 +735,16 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
 
-      {/* Statistics */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            {language === 'en' ? 'Queue Statistics' : 'Estadísticas de Cola'}
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {priorityOrder.map((priority) => {
-              const count = groupedQueue[priority]?.length || 0;
-              const avgWaitTime = queueWithWaitTimes
-                .filter(item => (item.priority || item.priority_level) === priority)
-                .reduce((sum, item) => sum + item.waitTimeMinutes, 0) / count || 0;
-              
-              return (
-                <div key={priority} className="text-center">
-                  <div className={`w-12 h-12 ${getPriorityColor(priority)} rounded-lg flex items-center justify-center mx-auto mb-2`}>
-                    <span className="text-white font-bold">{count}</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {getPriorityLabel(priority)[language]}
-                  </p>
-                  {count > 0 && (
-                    <p className="text-xs text-gray-500">
-                      {language === 'en' ? 'Avg wait:' : 'Espera prom:'} {Math.round(avgWaitTime)}m
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+      {/* Forms Management Tab Content */}
+      {activeTab === 'forms' && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <FormsSummary />
+          <FormsManagement />
         </div>
-      </div>
+      )}
     </div>
   );
 };

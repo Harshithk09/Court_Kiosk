@@ -36,7 +36,7 @@ export default function DVROPage() {
       const res = await fetch(`${API_BASE_URL}/api/generate-queue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ case_type: 'A', priority: 'A', language })
+        body: JSON.stringify({ case_type: 'DVRO', priority: 'A', language })
       });
       if (res.ok) {
         const data = await res.json();

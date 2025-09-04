@@ -7,7 +7,7 @@ const Navigation = () => {
   const navItems = [
     { path: '/', label: 'Home', description: 'Main kiosk interface' },
     { path: '/dvro', label: 'DVRO Flow', description: 'Original DVRO flow' },
-    { path: '/dvro-flow', label: 'Flow Runner', description: 'Interactive flow runner' },
+    { path: '/divorce', label: 'Divorce Flow', description: 'Divorce process guide' },
     { path: '/admin', label: 'Admin', description: 'Administrative dashboard' }
   ];
 
