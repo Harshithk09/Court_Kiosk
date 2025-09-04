@@ -733,30 +733,31 @@ def send_case_summary_email_endpoint():
     try:
         data = request.get_json()
         email = data.get('email')
-        answers = data.get('answers', {})
-        forms = data.get('forms', [])
-        summary = data.get('summary', '')
-        queue_number = data.get('queue_number', f"DVRO{random.randint(1000, 9999)}")
+        case_data = data.get('case_data', {})
         
         if not email:
             return jsonify({'error': 'Email is required'}), 400
         
-        # Prepare payload for enhanced email service
+        # Extract data from case_data
+        queue_number = case_data.get('queue_number', f"DVRO{random.randint(1000, 9999)}")
+        case_type = case_data.get('case_type', 'DVRO')
+        summary = case_data.get('summary', {})
+        
+        # Extract forms, steps, timeline, and notes from the detailed summary
+        forms = summary.get('forms', [])
+        steps = summary.get('steps', [])
+        timeline = summary.get('timeline', [])
+        important_notes = summary.get('importantNotes', [])
+        
+        # Prepare payload for enhanced email service with detailed case data
         payload = {
             'to': email,
             'queue_number': queue_number,
-            'flow_type': 'DVRO',
+            'flow_type': case_type,
             'required_forms': forms,
-            'next_steps': [
-                'Fill out all required forms completely',
-                'Make 3 copies of each form (original + 2 copies)',
-                'Serve the other party with your papers',
-                'Use a process server, sheriff, or someone 18+ (not you)',
-                'File proof of service with the court',
-                'Attend your court hearing on the scheduled date',
-                'Bring all evidence (photos, texts, emails, witnesses)',
-                'Dress appropriately for court'
-            ],
+            'next_steps': steps,
+            'timeline': timeline,
+            'important_notes': important_notes,
             'case_type': 'Domestic Violence Restraining Order'
         }
         

@@ -101,6 +101,8 @@ class EmailService:
           - flow_type: e.g., 'DVRO'
           - required_forms: list[str] (form codes)
           - next_steps: list[str]
+          - timeline: list[str] (optional)
+          - important_notes: list[str] (optional)
           - queue_number (optional)
           - case_type (optional)
         """
@@ -121,33 +123,62 @@ class EmailService:
             linked_forms = []
             for code in forms:
                 url = self.get_form_url(code)
-                linked_forms.append(f"<li><a href=\"{url}\" target=\"_blank\" rel=\"noopener noreferrer\">{code}</a></li>")
+                linked_forms.append(f"<li><a href=\"{url}\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: #2563eb; text-decoration: underline;\">{code}</a> - <a href=\"{url}\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: #059669; text-decoration: none;\">View PDF</a></li>")
 
             forms_html = ""
             if linked_forms:
-                forms_html = "<h3>Required Forms:</h3><ul>" + "".join(linked_forms) + "</ul>"
+                forms_html = "<h3 style=\"color: #1f2937; margin-top: 24px;\">📋 Required Forms:</h3><ul style=\"padding-left: 20px;\">" + "".join(linked_forms) + "</ul>"
                 # Add note about attachments
-                forms_html += "<p style='color: #059669; font-weight: bold; margin-top: 10px;'>📎 All required forms are attached to this email as PDF files.</p>"
+                forms_html += "<p style='color: #059669; font-weight: bold; margin-top: 10px; background: #f0fdf4; padding: 8px; border-radius: 4px; border-left: 4px solid #059669;'>📎 All required forms are attached to this email as PDF files.</p>"
 
             steps = payload.get('next_steps', []) or []
             steps_html = ""
             if steps:
-                steps_html = "<h3>Next Steps:</h3><ol>" + "".join([f"<li>{s}</li>" for s in steps]) + "</ol>"
+                steps_html = "<h3 style=\"color: #1f2937; margin-top: 24px;\">📝 Next Steps:</h3><ol style=\"padding-left: 20px;\">" + "".join([f"<li style=\"margin: 8px 0;\">{s}</li>" for s in steps]) + "</ol>"
+
+            timeline = payload.get('timeline', []) or []
+            timeline_html = ""
+            if timeline:
+                timeline_html = "<h3 style=\"color: #1f2937; margin-top: 24px;\">⏰ Important Timeline:</h3><ul style=\"padding-left: 20px;\">" + "".join([f"<li style=\"margin: 8px 0; color: #d97706;\">{item}</li>" for item in timeline]) + "</ul>"
+
+            important_notes = payload.get('important_notes', []) or []
+            notes_html = ""
+            if important_notes:
+                notes_html = "<h3 style=\"color: #1f2937; margin-top: 24px;\">⚠️ Important Notes:</h3><ul style=\"padding-left: 20px;\">" + "".join([f"<li style=\"margin: 8px 0; color: #dc2626; font-weight: 500;\">{note}</li>" for note in important_notes]) + "</ul>"
 
             html = f"""
             <!DOCTYPE html>
             <html lang="en">
-            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Case Summary</title></head>
-            <body style="font-family: Arial, sans-serif; color: #111827;">
-              <h1 style="margin-bottom: 0.25rem;">San Mateo Family Court Clinic</h1>
-              <div style="margin: 0 0 1rem 0; color: #6b7280;">Your Case Summary</div>
-              <div style="display:inline-block;background:#dc2626;color:#fff;padding:8px 12px;border-radius:6px;font-weight:700;">Queue Number: {queue_number}</div>
-              <div style="margin-top:16px; padding:16px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;">
-                {forms_html}
-                {steps_html}
-                <p style="margin-top:16px;color:#374151;">Only complete the forms listed above first. Do not fill out additional forms unless instructed by court staff.</p>
-              </div>
-              <div style="margin-top:16px;color:#6b7280; font-size:12px;">This is an automated message. Please do not reply.</div>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Case Summary</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #1f2937; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0 0 8px 0; font-size: 24px;">San Mateo Family Court Clinic</h1>
+                    <p style="margin: 0; color: #d1d5db;">Your Case Summary</p>
+                </div>
+                
+                <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <div style="display:inline-block;background:#dc2626;color:#fff;padding:12px 20px;border-radius:6px;font-weight:700;font-size:18px;">Queue Number: {queue_number}</div>
+                    </div>
+                    
+                    {forms_html}
+                    {steps_html}
+                    {timeline_html}
+                    {notes_html}
+                    
+                    <div style="margin-top: 24px; padding: 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px;">
+                        <p style="margin: 0; color: #1e40af; font-weight: 500;">💡 Remember: Only complete the forms listed above first. Do not fill out additional forms unless instructed by court staff.</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 16px; text-align: center; color: #6b7280; font-size: 12px;">
+                    <p>This is an automated message from Family Court Clinic. Please do not reply to this email.</p>
+                    <p>If you have questions, please contact court staff or visit the court in person.</p>
+                </div>
             </body>
             </html>
             """
