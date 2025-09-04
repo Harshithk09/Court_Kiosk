@@ -16,7 +16,7 @@ from config import Config
 from models import db, QueueEntry
 
 app = Flask(__name__)
-CORS(app, origins=['http://localhost:3000', 'http://127.0.0.1:3000'], supports_credentials=True)
+CORS(app, origins=['http://localhost:3000', 'http://127.0.0.1:3000', 'https://court-kiosk.vercel.app'], supports_credentials=True)
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = Config.SQLALCHEMY_DATABASE_URI
@@ -940,6 +940,9 @@ def send_email_with_attachments(to_email, subject, body, attachments):
     except Exception as e:
         app.logger.error(f"Error sending email: {str(e)}")
         return False
+
+# Vercel entry point
+app = app
 
 if __name__ == '__main__':
     with app.app_context():

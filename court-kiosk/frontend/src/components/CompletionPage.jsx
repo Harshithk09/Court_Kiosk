@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { addToQueue } from '../utils/queueAPI';
 
+// API configuration
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:1904';
+
 const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const [selectedOption, setSelectedOption] = useState('');
   const [email, setEmail] = useState('');
@@ -109,7 +112,7 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
     setIsSubmitting(true);
     try {
       // Send case summary email using the new endpoint
-      const response = await fetch('http://localhost:1904/api/email/send-case-summary', {
+      const response = await fetch('/api/send-case-summary', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
