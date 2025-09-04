@@ -13,7 +13,12 @@ import formsDatabase, {
   getFormsSummary 
 } from '../data/formsDatabase';
 import FormsUpload from './FormsUpload';
+import FormsBulkUpdate from './FormsBulkUpdate';
 import { exportFormsToCSV, exportFormsToJSON } from '../utils/formsExport';
+import { 
+  exportFormsListToCSV, 
+  exportSetupInstructions 
+} from '../utils/generateFormsFolder';
 
 const FormsManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +28,7 @@ const FormsManagement = () => {
   const [sortBy, setSortBy] = useState('code');
   const [sortOrder, setSortOrder] = useState('asc');
   const [showUpload, setShowUpload] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'upload', 'bulk-update', 'setup'
 
   // Get forms summary
   const summary = useMemo(() => getFormsSummary(), []);
@@ -292,9 +298,141 @@ const FormsManagement = () => {
         </div>
       </div>
 
-      {/* Upload Section */}
-      {showUpload && (
-        <div className="mb-6">
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="flex space-x-2 mb-4">
+          <button 
+            onClick={() => setActiveTab('overview')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              activeTab === 'overview' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Overview
+          </button>
+          <button 
+            onClick={() => setActiveTab('upload')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              activeTab === 'upload' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Upload PDFs
+          </button>
+          <button 
+            onClick={() => setActiveTab('bulk-update')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              activeTab === 'bulk-update' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Bulk Update
+          </button>
+          <button 
+            onClick={() => setActiveTab('setup')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              activeTab === 'setup' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Setup
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search forms..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                <select
+                  value={selectedPriority}
+                  onChange={(e) => setSelectedPriority(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Priorities</option>
+                  {priorities.map(priority => (
+                    <option key={priority} value={priority}>Priority {priority}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">PDF Status</label>
+                <select
+                  value={selectedAvailability}
+                  onChange={(e) => setSelectedAvailability(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Forms</option>
+                  <option value="available">PDF Available</option>
+                  <option value="unavailable">PDF Missing</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="code">Form Code</option>
+                  <option value="name">Form Name</option>
+                  <option value="category">Category</option>
+                  <option value="priority">Priority</option>
+                  <option value="required">Required Status</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Sort Order Toggle */}
+            <div className="flex items-center justify-end">
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                <span>{sortOrder === 'asc' ? 'Ascending' : 'Descending'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'upload' && (
           <FormsUpload 
             onUploadComplete={(results) => {
               console.log('Upload completed:', results);
@@ -302,8 +440,52 @@ const FormsManagement = () => {
               // or update the forms database
             }}
           />
-        </div>
-      )}
+        )}
+
+        {activeTab === 'bulk-update' && (
+          <FormsBulkUpdate />
+        )}
+
+        {activeTab === 'setup' && (
+          <div className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-4">Forms Setup Instructions</h3>
+              <p className="text-blue-800 mb-4">
+                Use these tools to set up your forms folder structure and get organized for PDF management.
+              </p>
+              <div className="flex space-x-4">
+                <button 
+                  onClick={exportFormsListToCSV}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Forms List (CSV)
+                </button>
+                <button 
+                  onClick={exportSetupInstructions}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Setup Instructions
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h4 className="text-md font-semibold text-gray-900 mb-3">Quick Setup Commands</h4>
+              <div className="bg-gray-50 rounded-lg p-4 font-mono text-sm">
+                <p className="text-gray-600 mb-2"># Create the forms folder structure:</p>
+                <p className="text-green-600">mkdir -p forms/</p>
+                <p className="text-green-600">mkdir -p forms/domestic-violence/</p>
+                <p className="text-green-600">mkdir -p forms/divorce/</p>
+                <p className="text-green-600">mkdir -p forms/civil-harassment/</p>
+                <p className="text-green-600">mkdir -p forms/law-enforcement/</p>
+                <p className="text-green-600">mkdir -p forms/fee-waiver/</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Forms Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
