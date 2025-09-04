@@ -450,19 +450,18 @@ def generate_queue():
     if not case_type.isalnum():
         return jsonify({'error': 'Invalid case type'}), 400
 
-    # Generate queue number (format: A001, DVRO001, etc.)
-    # Supports multi-character case types by slicing based on case_type length
-    last_entry = QueueEntry.query.filter_by(case_type=case_type).order_by(QueueEntry.id.desc()).first()
+    # Generate queue number based on priority level (format: A001, B001, C001, etc.)
+    last_entry = QueueEntry.query.filter_by(priority_level=priority).order_by(QueueEntry.id.desc()).first()
     if last_entry:
         try:
-            last_num = int(last_entry.queue_number[len(case_type):])
+            last_num = int(last_entry.queue_number[1:])  # Extract number after priority letter
             new_num = last_num + 1
         except (ValueError, TypeError):
             new_num = 1
     else:
         new_num = 1
     
-    queue_number = f"{case_type}{new_num:03d}"
+    queue_number = f"{priority}{new_num:03d}"
     
     # Create queue entry using the correct field names
     entry = QueueEntry(
