@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, send_file
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import smtplib
 from email.mime.text import MIMEText
@@ -13,6 +12,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 from utils.llm_service import LLMService
 from config import Config
+from models import db, QueueEntry
 
 app = Flask(__name__)
 CORS(app)
@@ -20,7 +20,7 @@ CORS(app)
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = Config.SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = Config.SQLALCHEMY_TRACK_MODIFICATIONS
-db = SQLAlchemy(app)
+db.init_app(app)
 
 # Validate required API keys
 Config.validate_required_keys()
@@ -192,17 +192,6 @@ DOCUMENT_SUGGESTIONS = {
         ]
     }
 }
-
-class QueueEntry(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    queue_number = db.Column(db.String(10), unique=True, nullable=False)
-    case_type = db.Column(db.String(10), nullable=False)
-    priority = db.Column(db.String(1), nullable=False)
-    status = db.Column(db.String(20), default='waiting')  # waiting, called, completed
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    language = db.Column(db.String(10), default='en')
-    summary = db.Column(db.Text, nullable=True)
-    next_steps = db.Column(db.Text, nullable=True)
 
 class GuidedQuestion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -452,6 +441,9 @@ def generate_queue():
     case_type = data.get('case_type')
     priority = data.get('priority')
     language = data.get('language', 'en')
+    user_name = data.get('user_name')
+    user_email = data.get('user_email')
+    phone_number = data.get('phone_number')
 
     if not case_type or not priority:
         return jsonify({'error': 'Missing case type or priority'}), 400
@@ -472,12 +464,17 @@ def generate_queue():
     
     queue_number = f"{case_type}{new_num:03d}"
     
-    # Create queue entry
+    # Create queue entry using the correct field names
     entry = QueueEntry(
         queue_number=queue_number,
         case_type=case_type,
-        priority=priority,
-        language=language
+        priority_level=priority,
+        priority_number=new_num,
+        language=language,
+        status='waiting',
+        user_name=user_name,
+        user_email=user_email,
+        phone_number=phone_number
     )
     db.session.add(entry)
     db.session.commit()
@@ -488,7 +485,7 @@ def generate_queue():
 def get_queue():
     # Get all waiting entries, ordered by priority and timestamp
     queue = QueueEntry.query.filter_by(status='waiting').order_by(
-        QueueEntry.priority.asc(),
+        QueueEntry.priority_level.asc(),
         QueueEntry.timestamp.asc()
     ).all()
     
@@ -499,15 +496,21 @@ def get_queue():
         'queue': [{
             'queue_number': item.queue_number,
             'case_type': item.case_type,
-            'priority': item.priority,
+            'priority': item.priority_level,
             'timestamp': item.timestamp.isoformat(),
-            'language': item.language
+            'language': item.language,
+            'user_name': item.user_name,
+            'user_email': item.user_email,
+            'phone_number': item.phone_number
         } for item in queue],
         'current_number': {
             'queue_number': current.queue_number,
             'case_type': current.case_type,
-            'priority': current.priority,
-            'timestamp': current.timestamp.isoformat()
+            'priority': current.priority_level,
+            'timestamp': current.timestamp.isoformat(),
+            'user_name': current.user_name,
+            'user_email': current.user_email,
+            'phone_number': current.phone_number
         } if current else None
     })
 
@@ -515,8 +518,8 @@ def get_queue():
 def call_next():
     # Get next person in queue
     next_entry = QueueEntry.query.filter_by(status='waiting').order_by(
-        QueueEntry.priority.asc(),
-        QueueEntry.timestamp.asc()
+        QueueEntry.priority_level.asc(),
+        QueueEntry.created_at.asc()
     ).first()
     
     if not next_entry:
@@ -880,4 +883,4 @@ def send_email_with_attachments(to_email, subject, body, attachments):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5001)
+    app.run(debug=False, port=1904)
