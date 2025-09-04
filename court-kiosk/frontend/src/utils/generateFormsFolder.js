@@ -191,7 +191,7 @@ export const generateFormsChecklist = () => {
   return checklist;
 };
 
-export default {
+const generateFormsFolderUtils = {
   generateFormsFolderStructure,
   generateFolderCommands,
   generateFormsFileList,
@@ -200,3 +200,5 @@ export default {
   exportSetupInstructions,
   generateFormsChecklist
 };
+
+export default generateFormsFolderUtils;

@@ -1,72 +1,116 @@
-# Court Kiosk System - DVRO Flow
+# Court Kiosk System - Comprehensive Guide
 
-A comprehensive court kiosk system for Domestic Violence Restraining Orders (DVRO) with improved error handling, configuration management, and testing.
+A comprehensive court kiosk system for Domestic Violence Restraining Orders (DVRO) with priority-based queue management, LLM integration, and dual frontend interfaces for court facilitators and users.
 
-## Recent Fixes Applied
+## 🚀 Features
 
-### Backend Issues Fixed:
-1. **Tailwind Config Issue**: Removed embedded Tailwind configuration from `server.js` that was overriding Express module exports
-2. **Form Handling**: Added null checks for forms and nextSteps arrays to prevent runtime errors
-3. **Hard-coded Endpoints**: Created `config.py` with configurable service endpoints via environment variables
-4. **Unprotected File Reads**: Added proper error handling for `flowchart.json` file operations
-5. **Queue Numbering**: Fixed queue number extraction to handle case types with multiple characters
-6. **Testing**: Added comprehensive test suite for both backend and frontend
+### 🎯 Priority-Based Queue System
+- **Priority Levels**: A (DV cases), B (Civil/Elder abuse), C (Workplace violence), D (General)
+- **Queue Numbers**: Format A001, B002, etc. (similar to Kaiser blood test system)
+- **Real-time Updates**: Live queue status and estimated wait times
+- **Email Notifications**: Automatic alerts to facilitators for new cases
 
-### Frontend Issues Fixed:
-1. **Missing Components**: Recreated `SummaryPage.jsx` component that was accidentally deleted
-2. **Type Safety**: Added proper null checks and error handling
-3. **Testing**: Added basic frontend tests
+### 🤖 LLM Integration
+- **Context-Aware Chat**: AI assistant with flowchart context
+- **Progress Tracking**: Automatic case summary generation
+- **Multi-language Support**: English and Spanish
+- **Smart Recommendations**: Form suggestions and next steps
 
-## Quick Start
+### 🖥️ Dual Frontend Interfaces
+- **User Interface**: Clean, accessible kiosk interface
+- **Admin Dashboard**: Comprehensive facilitator management system
+- **Responsive Design**: Works on desktop, tablet, and mobile
 
-### Prerequisites
-- Node.js (v16 or higher)
-- Python 3.8 or higher
-- npm or yarn
+### 📊 Case Management
+- **Progress Tracking**: Real-time user progress through flowcharts
+- **Case Assignment**: Facilitator assignment and management
+- **Summary Generation**: AI-powered case summaries for staff
+- **Document Recommendations**: Automatic form suggestions
 
-### Installation
+## 🏗️ System Architecture
 
-1. **Clone and navigate to the project:**
+### Backend (Flask)
+```
+court-kiosk/backend/
+├── app.py                    # Main Flask application
+├── enhanced_app.py           # Enhanced version with LLM features
+├── flask_app.py              # Basic Flask app
+├── models.py                 # Database models
+├── queue_manager.py          # Queue management logic
+├── config.py                 # Configuration settings
+├── server.js                 # Node.js server (if needed)
+├── requirements.txt          # Python dependencies
+├── flowchart.json            # Flow configuration
+├── routes/                   # API routes
+├── utils/                    # Utility functions
+│   ├── llm_service.py        # LLM integration
+│   ├── case_summary_service.py
+│   └── email_service.py
+└── instance/
+    └── court_kiosk.db       # SQLite database
+```
+
+### Frontend (React)
+```
+court-kiosk/frontend/src/
+├── components/               # Reusable React components
+├── pages/                    # Page components
+│   ├── AdminDashboard.jsx    # Facilitator dashboard
+│   ├── DVROPage.jsx          # DVRO interface
+│   ├── UserKiosk.jsx         # User kiosk interface
+│   ├── SummaryPage.tsx       # Case summary page
+│   ├── DVPage.tsx            # DV page
+│   └── FlowRunner.tsx        # Flow runner
+├── contexts/                 # React contexts
+│   ├── LanguageContext.js    # Multi-language support
+│   └── LocationContext.js    # Location context
+├── utils/                    # Utility functions
+└── data/                     # Data files
+    └── complete_dvro.json    # DV flowchart data
+```
+
+## 📋 Prerequisites
+
+- **Python**: 3.8 or higher
+- **Node.js**: 16 or higher (version 22.x recommended)
+- **npm** or **yarn**
+- **OpenAI API key** (for LLM features)
+
+## 🛠️ Installation & Setup
+
+### 1. Clone and Navigate to Project
 ```bash
 cd court-kiosk
 ```
 
-2. **Install frontend dependencies:**
-```bash
-cd frontend
-npm install
-```
-
-3. **Install backend dependencies:**
-```bash
-cd ../backend
-npm install
-pip install -r requirements.txt
-```
-
-### Running the Application
-
-1. **Start the frontend (React):**
-```bash
-cd frontend
-npm start
-```
-The frontend will be available at `http://localhost:3000`
-
-2. **Start the backend (Flask):**
+### 2. Backend Setup
 ```bash
 cd backend
-python app.py
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env  # if available
+# Edit .env with your configuration
 ```
-The backend will be available at `http://localhost:5000`
 
-3. **Access the DVRO Flow:**
-Navigate to `http://localhost:3000/dvro` to access the DVRO flow system.
+### 3. Frontend Setup
+```bash
+cd ../frontend
 
-## Configuration
+# Install Node.js dependencies
+npm install
 
-### Environment Variables
+# Start development server
+npm start
+```
 
+### 4. Environment Variables
 Create a `.env` file in the backend directory:
 
 ```env
@@ -84,8 +128,6 @@ FACILITATOR_EMAIL=facilitator@court.gov
 SEARCH_SERVICE_URL=http://localhost:8000
 QUEUE_SERVICE_URL=http://localhost:5001
 RAG_SERVICE_URL=http://localhost:8000
-
-# Base URL for semantic search service
 API_BASE_URL=http://localhost:8000
 
 # OpenAI
@@ -98,21 +140,46 @@ SECRET_KEY=your-secret-key-here
 CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 ```
 
-Create a `.env` file in the frontend directory:
+## 🚀 Running the Application
 
-```env
-# Base URL for API requests
-VITE_API_URL=http://localhost:5001
+### Quick Start (from court-kiosk directory)
+```bash
+# Use the main run script
+./run.sh
+
+# Or use specific startup scripts
+./start-enhanced-system.sh    # Enhanced system with LLM
+./start-enhanced.sh           # Enhanced features
+./start-integrated.sh         # Integrated system
+./start-new-features.sh       # New features
 ```
 
-## Testing
+### Manual Start
+```bash
+# Terminal 1: Start backend
+cd backend
+source venv/bin/activate
+python app.py
+# Backend available at http://localhost:5000
+
+# Terminal 2: Start frontend
+cd frontend
+npm start
+# Frontend available at http://localhost:3000
+```
+
+### Access Points
+- **User Interface**: `http://localhost:3000`
+- **DVRO Flow**: `http://localhost:3000/dvro`
+- **Admin Dashboard**: `http://localhost:3000/admin`
+- **API Endpoints**: `http://localhost:5000/api/*`
+
+## 🧪 Testing
 
 ### Backend Tests
 ```bash
 cd backend
-npm test
-# or
-python test_app.py
+python -m pytest test_*.py
 ```
 
 ### Frontend Tests
@@ -121,73 +188,45 @@ cd frontend
 npm test
 ```
 
-## Features
+## 🔧 Configuration
 
-### DVRO Flow System
-- **Guided Questions**: Step-by-step questionnaire with contextual information
-- **Bilingual Support**: English and Spanish language support
-- **Form Recommendations**: Automatic form suggestions based on user answers
-- **Priority Queue**: Automatic Priority A assignment for DVRO cases
-- **Comprehensive Summary**: Detailed end summary with action steps
+### Queue Priority System
+- **Priority A**: Domestic Violence cases (highest priority)
+- **Priority B**: Civil/Elder abuse cases
+- **Priority C**: Workplace violence cases
+- **Priority D**: General cases (lowest priority)
 
-### Key Components
-- `FlowRunner.jsx`: Main flow controller component
-- `SummaryPage.jsx`: End summary display
-- `dv_flow_combined.json`: Flow configuration
-- `app.py`: Backend API with improved error handling
-- `config.py`: Centralized configuration management
+### Flowchart Configuration
+- Edit `backend/flowchart.json` to modify the DVRO flow
+- Use `frontend/src/data/complete_dvro.json` for frontend flow data
 
-### Flow Structure
-1. **Menu**: Choose DVRO action (new, respond, change/end, renew)
-2. **Safety Check**: Immediate danger assessment
-3. **Relationship**: Domestic vs non-domestic relationship
-4. **Children**: Child custody considerations
-5. **Support**: Financial support requests
-6. **Forms Overview**: Required forms explanation
-7. **Process Steps**: Filing, service, hearing preparation
-8. **Summary**: Comprehensive case summary
+## 📚 Documentation
 
-## API Endpoints
+- **PROJECT_STRUCTURE.md**: Complete project organization
+- **MIGRATION_GUIDE.md**: Migration and setup guide
+- **DEPLOYMENT.md**: Deployment instructions
+- **INFORMATIONAL_NODES.md**: Flowchart node documentation
 
-### Core Endpoints
-- `GET /api/health`: Health check
-- `POST /api/generate-queue`: Generate queue number (alphanumeric, multi-character `case_type` supported)
-- `GET /api/queue`: Get current queue
-- `POST /api/call-next`: Call next person
-- `POST /api/complete-case`: Complete case
-- `POST /api/dvro_rag`: DVRO RAG system
-- `GET /api/flowchart`: Get flowchart data
+## 🐛 Troubleshooting
 
-### Form Endpoints
-- `POST /api/send-email`: Send form recommendations
-- `POST /api/generate-pdf`: Generate PDF summary
+### Common Issues
+1. **Port conflicts**: Ensure ports 3000 and 5000 are available
+2. **Python environment**: Activate virtual environment before running backend
+3. **Node modules**: Run `npm install` in frontend directory
+4. **Database**: Check `backend/instance/` for database files
 
-## Error Handling
+### Error Handling
+- Backend includes comprehensive error handling and logging
+- Frontend has null checks and error boundaries
+- Check console logs for detailed error information
 
-The system now includes comprehensive error handling:
-- File read operations with proper error messages
-- Null checks for all array operations
-- Configurable service endpoints
-- Graceful degradation for missing services
-- Proper HTTP status codes and error responses
-
-## Queue System
-
-The queue system supports:
-- Multiple case types (DVRO, Civil Harassment, etc.)
-- Priority-based ordering (A, B, C)
-- Multi-language support
-- Robust queue number generation
-- Status tracking (waiting, called, completed)
-
-## Contributing
+## 🤝 Contributing
 
 1. Follow the existing code structure
-2. Add tests for new features
-3. Update configuration as needed
-4. Ensure error handling is in place
-5. Test in both English and Spanish
+2. Test changes thoroughly
+3. Update documentation as needed
+4. Use the provided startup scripts for testing
 
-## License
+## 📄 License
 
-This project is for court system use and should be deployed according to local court policies and security requirements.
+This project is for court system use. Please ensure compliance with local regulations and security requirements.

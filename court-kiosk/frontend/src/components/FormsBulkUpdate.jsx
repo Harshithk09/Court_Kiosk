@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { 
   scanAndUpdateForms, 
-  validatePDFFilenames, 
   getFormsNeedingPDFs,
   getFormsWithPDFs,
   exportUpdatedFormsDatabase
@@ -21,7 +20,6 @@ const FormsBulkUpdate = () => {
   const [scanning, setScanning] = useState(false);
   const [scanResults, setScanResults] = useState(null);
   const [selectedDirectory, setSelectedDirectory] = useState('');
-  const [validationResults, setValidationResults] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Get current forms status
@@ -52,11 +50,6 @@ const FormsBulkUpdate = () => {
     } finally {
       setScanning(false);
     }
-  };
-
-  const handleValidateFilenames = (filenames) => {
-    const results = validatePDFFilenames(filenames);
-    setValidationResults(results);
   };
 
   const handleExportDatabase = () => {

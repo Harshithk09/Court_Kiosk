@@ -206,7 +206,7 @@ export const exportUpdatedFormsDatabase = () => {
   return updatedDatabase;
 };
 
-export default {
+const formsUpdateUtils = {
   scanAndUpdateForms,
   updateFormPDFStatus,
   getFormsNeedingPDFs,
@@ -215,3 +215,5 @@ export default {
   exportUpdatedFormsDatabase,
   extractFormCode
 };
+
+export default formsUpdateUtils;

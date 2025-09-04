@@ -183,17 +183,6 @@ const AdminDashboard = () => {
     return null;
   };
 
-  // Ensure queue is an array before using reduce
-  const groupedQueue = (queue || []).reduce((acc, item) => {
-    // Handle both 'priority' and 'priority_level' field names
-    const priority = item.priority || item.priority_level || 'C';
-    if (!acc[priority]) {
-      acc[priority] = [];
-    }
-    acc[priority].push(item);
-    return acc;
-  }, {});
-
   const priorityOrder = ['A', 'B', 'C', 'D'];
 
   // Calculate wait times for all cases
