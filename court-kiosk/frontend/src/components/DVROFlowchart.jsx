@@ -189,11 +189,27 @@ const DVROFlowchart = () => {
 
           {/* Card Content */}
           <div className="p-8">
-            <div className="prose max-w-none">
-              <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-line">
-                {currentNodeData?.text}
-              </p>
-            </div>
+            {currentNode === 'DVTiming' ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <Clock className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">Important Timing Information</h3>
+                    <p className="text-green-700 leading-relaxed">
+                      {currentNodeData?.text}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="prose max-w-none">
+                <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-line">
+                  {currentNodeData?.text}
+                </p>
+              </div>
+            )}
 
             {/* Emergency Notice */}
             {currentNode === 'DVROStart' && (
@@ -224,8 +240,8 @@ const DVROFlowchart = () => {
               </div>
             )}
 
-            {/* Options - Only show if not a Note node */}
-            {options.length > 0 && currentNode !== 'Note' && (
+            {/* Options - Only show if not a Note or DVTiming node */}
+            {options.length > 0 && currentNode !== 'Note' && currentNode !== 'DVTiming' && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   {currentNodeData?.type === 'decision' ? 'Please select an option:' : 'Next steps:'}
@@ -249,8 +265,8 @@ const DVROFlowchart = () => {
               </div>
             )}
 
-            {/* Continue button for Note node */}
-            {currentNode === 'Note' && options.length > 0 && (
+            {/* Continue button for Note or DVTiming node */}
+            {(currentNode === 'Note' || currentNode === 'DVTiming') && options.length > 0 && (
               <div className="mt-8">
                 <button
                   onClick={() => handleOptionSelect(options[0].target)}

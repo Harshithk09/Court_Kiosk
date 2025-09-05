@@ -192,7 +192,28 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
               {/* Navigation Options */}
               {!isEndNode && (
                 <div className="space-y-4">
-                  {hasMultipleChoices ? (
+                  {currentNode.type === 'process' ? (
+                    // Informational/process nodes - show as non-interactive info box
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="font-medium text-gray-900 text-lg">
+                        {currentNode.text}
+                      </div>
+                      {availableOptions.length > 0 && (
+                        <div className="mt-4">
+                          <button
+                            onClick={() => {
+                              const option = availableOptions[0];
+                              const nextNodeId = option.to || option.target;
+                              if (nextNodeId) handleNext(nextNodeId);
+                            }}
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            Continue
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : hasMultipleChoices ? (
                     // Multiple choices - show all available options as buttons
                     <div className="space-y-3">
                       {availableOptions.map((option, index) => {
