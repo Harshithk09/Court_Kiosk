@@ -9,14 +9,14 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/court-kiosk/frontend/api/$1"
+      "source": "/api/(.*)",
+      "destination": "/court-kiosk/frontend/api/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/((?!api/.*).*)",
+      "destination": "/index.html"
     }
   ],
   "installCommand": "cd court-kiosk/frontend && npm install",
