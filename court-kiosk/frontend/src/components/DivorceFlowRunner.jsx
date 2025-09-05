@@ -15,7 +15,7 @@ const DivorceFlowRunner = () => {
   const [queueNumber, setQueueNumber] = useState(null);
 
   useEffect(() => {
-    fetch('/data/divorce_flow_enhanced.json')
+    fetch('/data/divorce_flow.json')
       .then(response => response.json())
       .then(data => {
         setFlow(data);

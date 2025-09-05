@@ -9,6 +9,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
 
   const currentNode = flow?.nodes?.[currentNodeId];
   const outgoingEdges = flow?.edges?.filter(edge => edge.from === currentNodeId) || [];
+  const nodeOptions = currentNode?.options || [];
 
   // Debug logging
   console.log('Current node:', currentNodeId, currentNode);
@@ -32,11 +33,14 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
 
   // Removed unused handleAnswer function
 
-  const handleChoice = (edgeIndex) => {
-    const edge = outgoingEdges[edgeIndex];
-    console.log('Handling choice:', edgeIndex, edge);
-    if (edge) {
-      handleNext(edge.to);
+  const handleChoice = (optionIndex) => {
+    const option = availableOptions[optionIndex];
+    console.log('Handling choice:', optionIndex, option);
+    if (option) {
+      const nextNodeId = option.to || option.target;
+      if (nextNodeId) {
+        handleNext(nextNodeId);
+      }
     }
   };
 
@@ -89,7 +93,8 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
 
   const isEndNode = currentNode.type === 'end';
   // Removed unused isDecisionNode variable
-  const hasMultipleChoices = outgoingEdges.length > 1;
+  const hasMultipleChoices = nodeOptions.length > 1 || outgoingEdges.length > 1;
+  const availableOptions = nodeOptions.length > 0 ? nodeOptions : outgoingEdges;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -188,12 +193,13 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
               {!isEndNode && (
                 <div className="space-y-4">
                   {hasMultipleChoices ? (
-                    // Multiple choices - show all outgoing edges as buttons
+                    // Multiple choices - show all available options as buttons
                     <div className="space-y-3">
-                      {outgoingEdges.map((edge, index) => {
-                        const targetNode = flow?.nodes?.[edge.to];
-                        const buttonText = edge.when || targetNode?.text || `Option ${index + 1}`;
-                        const description = edge.when ? targetNode?.text : null;
+                      {availableOptions.map((option, index) => {
+                        const buttonText = option.text || option.when || `Option ${index + 1}`;
+                        const targetNodeId = option.to || option.target;
+                        const targetNode = flow?.nodes?.[targetNodeId];
+                        const description = option.when ? targetNode?.text : null;
                         
                         return (
                           <button
@@ -213,15 +219,19 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                         );
                       })}
                     </div>
-                  ) : outgoingEdges.length === 1 ? (
+                  ) : availableOptions.length === 1 ? (
                     // Single next step
                     <button
-                      onClick={() => handleNext(outgoingEdges[0].to)}
+                      onClick={() => {
+                        const option = availableOptions[0];
+                        const nextNodeId = option.to || option.target;
+                        if (nextNodeId) handleNext(nextNodeId);
+                      }}
                       className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg"
                     >
                       Continue
                     </button>
-                  ) : outgoingEdges.length === 0 ? (
+                  ) : availableOptions.length === 0 ? (
                     // No outgoing edges - end of flow
                     <div className="text-center">
                       <p className="text-gray-600 mb-4">You've reached the end of this flow.</p>
