@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "court-kiosk/frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/court-kiosk/frontend/build/api/$1"
+    },
+    {
+      "source": "/((?!api/.*).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "installCommand": "cd court-kiosk/frontend && npm install",
+  "buildCommand": "cd court-kiosk/frontend && npm run build",
+  "functions": {
+    "api/email/send-case-summary.js": {
+      "includeFiles": "court-kiosk/court_documents/**"
+    }
+  }
+}

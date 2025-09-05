@@ -58,11 +58,30 @@ export default async function handler(req, res) {
 
     // Prepare PDF attachments
     const attachments = [];
-    const court_documents_path = path.join(process.cwd(), 'court_documents');
+    
+    // Try multiple possible paths for court documents in Vercel serverless environment
+    const possiblePaths = [
+      path.join(process.cwd(), 'court_documents'),
+      path.join(process.cwd(), '..', 'court-kiosk', 'court_documents'),
+      path.join(process.cwd(), '..', 'court_documents'),
+      path.join(__dirname, '..', 'court-kiosk', 'court_documents'),
+      path.join(__dirname, '..', 'court_documents')
+    ];
+    
+    let court_documents_path = null;
+    
+    // Find the correct path
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        court_documents_path = testPath;
+        console.log(`Found court documents at: ${court_documents_path}`);
+        break;
+      }
+    }
     
     try {
       // Check if court_documents directory exists
-      if (fs.existsSync(court_documents_path)) {
+      if (court_documents_path && fs.existsSync(court_documents_path)) {
         // Get all PDF files from the forms list
         for (const form of forms) {
           const pdf_filename = `${form.code}.pdf`;
@@ -75,8 +94,13 @@ export default async function handler(req, res) {
               content: pdf_content.toString('base64'),
               type: 'application/pdf'
             });
+            console.log(`Added PDF attachment: ${pdf_filename}`);
+          } else {
+            console.log(`PDF not found: ${pdf_filename} at ${pdf_path}`);
           }
         }
+      } else {
+        console.log('Court documents directory not found. Tried paths:', possiblePaths);
       }
     } catch (error) {
       console.error('Error preparing PDF attachments:', error);
