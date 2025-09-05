@@ -18,7 +18,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 #### **For Local Development:**
 1. Copy the environment template:
    ```bash
-   cp env.template .env
+  
    ```
 2. Edit `.env` with your actual API keys
 
