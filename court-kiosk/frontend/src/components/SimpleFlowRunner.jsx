@@ -1,19 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CompletionPage from './CompletionPage';
 
 const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   const [currentNodeId, setCurrentNodeId] = useState(flow?.start || 'DVROStart');
-  const [answers] = useState({});
+  const [answers, setAnswers] = useState({});
   const [history, setHistory] = useState([flow?.start || 'DVROStart']);
   const [showSummary, setShowSummary] = useState(false);
+
+  // Reset state when flow changes
+  useEffect(() => {
+    if (flow?.start) {
+      setCurrentNodeId(flow.start);
+      setHistory([flow.start]);
+      setAnswers({});
+      setShowSummary(false);
+    }
+  }, [flow?.start]);
 
   const currentNode = flow?.nodes?.[currentNodeId];
   const outgoingEdges = flow?.edges?.filter(edge => edge.from === currentNodeId) || [];
   const nodeOptions = currentNode?.options || [];
+  const hasMultipleChoices = nodeOptions.length > 1 || outgoingEdges.length > 1;
+  const availableOptions = nodeOptions.length > 0 ? nodeOptions : outgoingEdges;
 
-  // Debug logging
-  console.log('Current node:', currentNodeId, currentNode);
-  console.log('Outgoing edges:', outgoingEdges);
+  // Debug logging (can be removed in production)
+  // console.log('Current node:', currentNodeId, currentNode);
+  // console.log('Node options:', nodeOptions);
+  // console.log('Available options:', availableOptions);
 
   const handleNext = (nextNodeId) => {
     setCurrentNodeId(nextNodeId);
@@ -92,9 +105,6 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   }
 
   const isEndNode = currentNode.type === 'end';
-  // Removed unused isDecisionNode variable
-  const hasMultipleChoices = nodeOptions.length > 1 || outgoingEdges.length > 1;
-  const availableOptions = nodeOptions.length > 0 ? nodeOptions : outgoingEdges;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -194,23 +204,18 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                 <div className="space-y-4">
                   {currentNode.type === 'process' ? (
                     // Informational/process nodes - show as non-interactive info box
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="font-medium text-gray-900 text-lg">
-                        {currentNode.text}
-                      </div>
+                    <div className="space-y-4">
                       {availableOptions.length > 0 && (
-                        <div className="mt-4">
-                          <button
-                            onClick={() => {
-                              const option = availableOptions[0];
-                              const nextNodeId = option.to || option.target;
-                              if (nextNodeId) handleNext(nextNodeId);
-                            }}
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            Continue
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => {
+                            const option = availableOptions[0];
+                            const nextNodeId = option.to || option.target;
+                            if (nextNodeId) handleNext(nextNodeId);
+                          }}
+                          className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg"
+                        >
+                          Continue
+                        </button>
                       )}
                     </div>
                   ) : hasMultipleChoices ? (

@@ -12,7 +12,7 @@ const DVROFlowchart = () => {
   useEffect(() => {
     const loadFlowData = async () => {
       try {
-        const response = await fetch('/data/dvro_complete_flow.json');
+        const response = await fetch('/data/dvro_flow.json');
         const data = await response.json();
         setFlowData(data);
         setLoading(false);

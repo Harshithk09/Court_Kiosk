@@ -16,7 +16,7 @@ export default function DVROPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/data/dv_flow_combined.json')
+    fetch('/data/dvro_flow.json')
       .then(response => response.json())
       .then(data => {
         setFlowData(data);
