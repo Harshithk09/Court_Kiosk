@@ -15,9 +15,9 @@ const KioskFlow = ({ flowType = 'divorce' }) => {
       try {
         let dataFile;
         if (flowType === 'divorce') {
-          dataFile = '/data/divorce_flow.json';
+          dataFile = '/data/divorce/divorce_flow.json';
         } else {
-          dataFile = '/data/dv_flow_combined.json';
+          dataFile = '/data/dvro/dv_flow_combined.json';
         }
 
         const response = await fetch(dataFile);

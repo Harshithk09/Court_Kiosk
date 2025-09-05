@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import FlowRunner from './FlowRunner';
-import flow from './dv_flow_combined.json';
 
 export default function DVPage() {
+  const [flow, setFlow] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/data/dvro/dv_flow_combined.json')
+      .then(response => response.json())
+      .then(setFlow);
+  }, []);
+
   const handleFinish = ({ answers, forms }: { answers: Record<string, string>; forms: string[] }) => {
     // This is where you would send the data to your backend
     // to create a Priority A ticket and include answers/forms/summary
@@ -51,6 +58,10 @@ export default function DVPage() {
     return summary.join('. ');
   };
 
+  if (!flow) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <FlowRunner
@@ -60,4 +71,4 @@ export default function DVPage() {
       />
     </div>
   );
-} 
+}

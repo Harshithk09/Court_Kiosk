@@ -41,7 +41,7 @@ const QueueInterface = ({ onQueueJoined, onBack }) => {
           description: "Emergency protection orders, domestic violence cases - highest priority",
           estimated_duration: 30,
           required_forms: ["DV-100", "DV-109", "DV-110", "CLETS-001"],
-          flowchart_file: "dvro-flow.json"
+          flowchart_file: "dvro/dv_flow_combined.json"
         },
         {
           name: "Child Custody & Support",
@@ -59,7 +59,7 @@ const QueueInterface = ({ onQueueJoined, onBack }) => {
           description: "Dissolution of marriage, legal separation, property division",
           estimated_duration: 20,
           required_forms: ["FL-100", "FL-150", "FL-160", "FL-142"],
-          flowchart_file: "divorce_flow.json"
+          flowchart_file: "divorce/divorce_flow.json"
         },
         {
           name: "Other Family Law Services",
