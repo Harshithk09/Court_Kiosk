@@ -108,8 +108,8 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const handleEmailRequest = async () => {
     setIsSubmitting(true);
     try {
-      // Send case summary email using the new endpoint
-      const response = await fetch('/api/send-case-summary', {
+      // Send case summary email using endpoint that works in both local and deployed environments
+      const response = await fetch('/api/email/send-case-summary', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

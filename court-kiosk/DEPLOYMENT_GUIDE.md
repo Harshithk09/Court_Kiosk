@@ -84,7 +84,8 @@ cd court-kiosk
 court-kiosk/
 ├── frontend/
 │   ├── api/                    # Serverless functions
-│   │   └── send-case-summary.js
+│   │   └── email/
+│   │       └── send-case-summary.js
 │   ├── src/                    # React source code
 │   └── build/                  # Built React app
 ├── court_documents/            # PDF files for attachments
