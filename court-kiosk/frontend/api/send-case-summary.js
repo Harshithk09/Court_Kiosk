@@ -1,6 +1,8 @@
-const resend = require('resend');
+import { Resend } from 'resend';
+import fs from 'fs';
+import path from 'path';
 
-const resendClient = new resend.Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -54,6 +56,32 @@ export default async function handler(req, res) {
     // Generate notes HTML
     const notes_html = important_notes.map(note => `<li>${note}</li>`).join('');
 
+    // Prepare PDF attachments
+    const attachments = [];
+    const court_documents_path = path.join(process.cwd(), 'court_documents');
+    
+    try {
+      // Check if court_documents directory exists
+      if (fs.existsSync(court_documents_path)) {
+        // Get all PDF files from the forms list
+        for (const form of forms) {
+          const pdf_filename = `${form.code}.pdf`;
+          const pdf_path = path.join(court_documents_path, pdf_filename);
+          
+          if (fs.existsSync(pdf_path)) {
+            const pdf_content = fs.readFileSync(pdf_path);
+            attachments.push({
+              filename: pdf_filename,
+              content: pdf_content.toString('base64'),
+              type: 'application/pdf'
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error preparing PDF attachments:', error);
+    }
+
     // Create email content
     const emailContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
@@ -104,12 +132,19 @@ export default async function handler(req, res) {
     `;
 
     // Send email using Resend
-    const response = await resendClient.emails.send({
+    const emailData = {
       from: 'Family Court Clinic <onboarding@resend.dev>',
       to: [email],
       subject: `Case Summary - ${queue_number}`,
       html: emailContent,
-    });
+    };
+
+    // Add attachments if any
+    if (attachments.length > 0) {
+      emailData.attachments = attachments;
+    }
+
+    const response = await resend.emails.send(emailData);
 
     console.log('Email sent successfully:', response);
 

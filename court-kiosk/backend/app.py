@@ -43,14 +43,7 @@ llm_service = LLMService(Config.OPENAI_API_KEY)
 email_service = EmailService()
 
 
-class Config:
-    """Minimal configuration object exposed for tests."""
-    SQLALCHEMY_DATABASE_URI = app.config['SQLALCHEMY_DATABASE_URI']
-    EMAIL_HOST = Config.EMAIL_HOST
-
-    @staticmethod
-    def get_search_url(query: str) -> str:
-        return f"https://www.google.com/search?q={query}"
+# Note: Config class is imported from config.py
 
 SYSTEM_PROMPTS = {
     'en': """You are a helpful legal information assistant for a court kiosk. \
