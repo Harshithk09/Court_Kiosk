@@ -23,7 +23,7 @@ const EnhancedFlowRunner = ({ queueNumber, caseType, onComplete }) => {
   const loadFlowData = async () => {
     try {
       // Load the appropriate flowchart based on case type
-      let flowFile = 'dvro-flow.json'; // Default to DV
+      let flowFile = 'dvro/dv_flow_combined.json'; // Default to DV
       
       if (caseType?.flowchart_file) {
         flowFile = caseType.flowchart_file;

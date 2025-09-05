@@ -13,7 +13,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete all sections, especially relationship details and requested orders",
     related_forms: ["DV-109", "DV-110", "CLETS-001"],
-    flow_files: ["dv_flow_combined.json", "complete_dvro.json"]
+    flow_files: ["dvro/dv_flow_combined.json", "dvro/complete_dvro.json"]
   },
   "DV-105": {
     name: "Request for Child Custody and Visitation Orders",
@@ -25,7 +25,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Required if children are involved in the case",
     related_forms: ["DV-100", "DV-140"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
   "DV-109": {
     name: "Notice of Court Hearing",
@@ -37,7 +37,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Review carefully for hearing date, time, and location",
     related_forms: ["DV-100", "DV-110"],
-    flow_files: ["dv_flow_combined.json", "complete_dvro.json"]
+    flow_files: ["dvro/dv_flow_combined.json", "dvro/complete_dvro.json"]
   },
   "DV-110": {
     name: "Temporary Restraining Order",
@@ -49,7 +49,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Read all terms and conditions carefully",
     related_forms: ["DV-100", "DV-109"],
-    flow_files: ["dv_flow_combined.json", "complete_dvro.json"]
+    flow_files: ["dvro/dv_flow_combined.json", "dvro/complete_dvro.json"]
   },
   "DV-120": {
     name: "Response to Request for Domestic Violence Restraining Order",
@@ -61,7 +61,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Must be filed within the response period",
     related_forms: ["DV-100", "DV-109"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
   "DV-140": {
     name: "Child Custody and Visitation Order Attachment",
@@ -73,7 +73,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete items 2 & 3 if requesting custody orders",
     related_forms: ["DV-100", "DV-105"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
   "DV-250": {
     name: "Request for Order to Prevent Child Abduction",
@@ -85,7 +85,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete if there are concerns about child abduction",
     related_forms: ["DV-100", "DV-105"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
   "DV-700": {
     name: "Request for Renewal of Domestic Violence Restraining Order",
@@ -97,7 +97,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "File before the current order expires",
     related_forms: ["DV-710", "DV-720"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
   "DV-710": {
     name: "Notice of Court Hearing for Renewal",
@@ -109,7 +109,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Check for hearing date and time",
     related_forms: ["DV-700", "DV-720"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
   "DV-720": {
     name: "Renewal of Domestic Violence Restraining Order",
@@ -121,7 +121,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete with current information",
     related_forms: ["DV-700", "DV-710"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
   "DV-800": {
     name: "Request for Order to Surrender Firearms",
@@ -133,7 +133,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete if firearms are involved",
     related_forms: ["DV-100"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
 
   // Civil Harassment Forms
@@ -147,7 +147,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Use for non-domestic relationships (neighbors, coworkers, etc.)",
     related_forms: ["CH-110"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
   "CH-110": {
     name: "Civil Harassment Restraining Order",
@@ -159,7 +159,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete with harassment details",
     related_forms: ["CH-100"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
 
   // Law Enforcement Forms
@@ -173,7 +173,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Contains confidential information for law enforcement",
     related_forms: ["DV-100"],
-    flow_files: ["dv_flow_combined.json"]
+    flow_files: ["dvro/dv_flow_combined.json"]
   },
 
   // Divorce Forms
@@ -187,7 +187,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete all sections, check box for divorce or legal separation",
     related_forms: ["FL-110", "FL-105", "FL-140"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-105": {
     name: "Declaration Under Uniform Child Custody Jurisdiction and Enforcement Act",
@@ -199,7 +199,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete if you have children under 18",
     related_forms: ["FL-100", "FL-140"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-110": {
     name: "Summons",
@@ -211,7 +211,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Must be served on spouse within 60 days",
     related_forms: ["FL-100"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-115": {
     name: "Response to Petition",
@@ -223,7 +223,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Must be filed within 30 days of being served",
     related_forms: ["FL-100"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-120": {
     name: "Response",
@@ -235,7 +235,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Alternative response form",
     related_forms: ["FL-100"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-140": {
     name: "Child Custody and Visitation Order Attachment",
@@ -247,7 +247,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete if requesting custody/visitation orders",
     related_forms: ["FL-100", "FL-105"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-150": {
     name: "Income and Expense Declaration",
@@ -259,7 +259,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete with proof of income from past two months",
     related_forms: ["FL-100"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-160": {
     name: "Declaration for Default/Uncontested",
@@ -271,7 +271,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete if case is uncontested",
     related_forms: ["FL-100"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-165": {
     name: "Request to Enter Default",
@@ -283,7 +283,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Use if spouse doesn't respond",
     related_forms: ["FL-170", "FL-180"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-170": {
     name: "Declaration for Default/Uncontested",
@@ -295,7 +295,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete for default judgment",
     related_forms: ["FL-165", "FL-180"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-180": {
     name: "Judgment",
@@ -307,7 +307,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete with all requested orders",
     related_forms: ["FL-165", "FL-170", "FL-190"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-190": {
     name: "Notice of Entry of Judgment",
@@ -319,7 +319,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "File after judgment is entered",
     related_forms: ["FL-180"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-300": {
     name: "Request for Order",
@@ -331,7 +331,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Use to modify existing custody, support, or other orders",
     related_forms: ["FL-100"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-341": {
     name: "Custody and Visitation Attachment",
@@ -343,7 +343,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete if requesting custody orders",
     related_forms: ["FL-100", "FL-105"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-800": {
     name: "Declaration of Disclosure",
@@ -355,7 +355,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete financial disclosure",
     related_forms: ["FL-825"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FL-825": {
     name: "Property Declaration",
@@ -367,7 +367,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "List all property and debts",
     related_forms: ["FL-800"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
 
   // Fee Waiver Forms
@@ -381,7 +381,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Complete if you cannot afford filing fees",
     related_forms: ["FW-003"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   },
   "FW-003": {
     name: "Order on Request to Waive Court Fees",
@@ -393,7 +393,7 @@ export const formsDatabase = {
     pdf_path: null,
     instructions: "Filed by court after reviewing fee waiver request",
     related_forms: ["FW-001"],
-    flow_files: ["divorce_flow_enhanced.json"]
+    flow_files: ["divorce/divorce_flow_enhanced.json"]
   }
 };
 

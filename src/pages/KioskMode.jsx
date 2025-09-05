@@ -7,7 +7,7 @@ const KioskMode = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/data/dv_flow_combined.json')
+    fetch('/data/dvro/dv_flow_combined.json')
       .then(response => response.json())
       .then(data => {
         setFlow(data);

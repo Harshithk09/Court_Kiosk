@@ -157,7 +157,7 @@ const EnhancedKioskInterface = () => {
 
   const loadFlowData = async () => {
     try {
-      const response = await fetch('/data/dv_flow_combined.json');
+      const response = await fetch('/data/dvro/dv_flow_combined.json');
       const data = await response.json();
       setFlowData(data);
       setCurrentNode(data.start);

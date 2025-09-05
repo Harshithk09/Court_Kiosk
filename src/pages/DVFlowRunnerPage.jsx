@@ -6,7 +6,7 @@ const DVFlowRunnerPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/data/dv_flow_combined.json')
+    fetch('/data/dvro/dv_flow_combined.json')
       .then(response => response.json())
       .then(data => {
         setFlow(data);
