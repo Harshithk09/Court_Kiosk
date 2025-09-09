@@ -1,6 +1,6 @@
 import React from 'react';
 import FlowRunner from './FlowRunner';
-import flow from './dv_flow_combined.json';
+import flow from '../data/dv_flow_combined.json';
 
 export default function DVPage() {
   const handleFinish = ({ answers, forms }: { answers: Record<string, string>; forms: string[] }) => {
