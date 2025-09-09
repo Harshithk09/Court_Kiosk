@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './DVROFlowRunner.css';
 
 const DVROFlowRunner = () => {
-  const [currentNode, setCurrentNode] = useState('menu');
+  const [currentNode, setCurrentNode] = useState('');
   const [flowHistory, setFlowHistory] = useState([]);
   const [answers, setAnswers] = useState({});
   const [flowData, setFlowData] = useState(null);
@@ -15,6 +15,7 @@ const DVROFlowRunner = () => {
         const response = await fetch('/data/dv_flow_combined.json');
         const data = await response.json();
         setFlowData(data);
+        setCurrentNode(data.start);
         setLoading(false);
       } catch (error) {
         console.error('Error loading flow data:', error);
@@ -26,12 +27,14 @@ const DVROFlowRunner = () => {
   }, []);
 
   const handleOptionSelect = (option) => {
-    const nextNode = option.next || option;
+    const nextNode = option.to || option.next || option;
     setFlowHistory(prev => [...prev, { node: currentNode, answer: option }]);
     setCurrentNode(nextNode);
-    
+
     if (option.value) {
       setAnswers(prev => ({ ...prev, [currentNode]: option.value }));
+    } else if (option.text) {
+      setAnswers(prev => ({ ...prev, [currentNode]: option.text }));
     }
   };
 
@@ -44,29 +47,29 @@ const DVROFlowRunner = () => {
   };
 
   const renderNode = (nodeId) => {
-    if (!flowData || !flowData.pages[nodeId]) {
+    if (!flowData || !flowData.nodes[nodeId]) {
       return <div className="error">Node not found: {nodeId}</div>;
     }
 
-    const node = flowData.pages[nodeId];
+    const node = flowData.nodes[nodeId];
     const options = node.options || [];
 
     switch (node.type) {
+      case 'decision':
       case 'question':
         return (
           <div className="node decision-node">
             <div className="node-content">
-              <p className="node-info">{node.info?.en || node.info}</p>
-              <h3 className="node-question">{node.question?.en || node.question}</h3>
+              <h3 className="node-question">{node.text}</h3>
             </div>
             <div className="node-options">
               {options.map((option, index) => (
                 <button
                   key={index}
                   className="btn btn-option"
-                  onClick={() => handleOptionSelect({ next: option.next, value: option.value })}
+                  onClick={() => handleOptionSelect(option)}
                 >
-                  {option.label?.en || option.label}
+                  {option.text}
                 </button>
               ))}
             </div>
@@ -74,10 +77,11 @@ const DVROFlowRunner = () => {
         );
 
       case 'process':
+      case 'start':
         return (
           <div className="node process-node">
             <div className="node-content">
-              <p className="node-text">{node.info?.en || node.info}</p>
+              <p className="node-text">{node.text}</p>
             </div>
             <div className="node-actions">
               {options.length > 0 ? (
@@ -85,37 +89,35 @@ const DVROFlowRunner = () => {
                   <button
                     key={index}
                     className="btn btn-primary"
-                    onClick={() => handleOptionSelect({ next: option.next, value: option.value })}
+                    onClick={() => handleOptionSelect(option)}
                   >
-                    {option.label?.en || 'Continue'}
+                    {option.text || 'Continue'}
                   </button>
                 ))
               ) : (
                 <button
                   className="btn btn-primary"
-                  onClick={() => handleOptionSelect('menu')}
+                  onClick={() => setCurrentNode(flowData.start)}
                 >
-                  Back to Menu
+                  Back to Start
                 </button>
               )}
             </div>
           </div>
         );
 
-
-
       case 'end':
         return (
           <div className="node end-node">
             <div className="node-content">
               <h2 className="node-title">Process Complete</h2>
-              <p className="node-text">{node.info?.en || node.info}</p>
+              <p className="node-text">{node.text}</p>
             </div>
             <div className="node-actions">
               <button
                 className="btn btn-secondary"
                 onClick={() => {
-                  setCurrentNode('menu');
+                  setCurrentNode(flowData.start);
                   setFlowHistory([]);
                   setAnswers({});
                 }}
