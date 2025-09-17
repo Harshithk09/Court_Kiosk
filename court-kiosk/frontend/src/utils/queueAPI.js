@@ -479,3 +479,58 @@ export const getCaseSummary = async (queueNumber) => {
     return { success: false };
   }
 };
+
+/**
+ * Send comprehensive email with case summary and PDF attachments
+ * @param {Object} emailData - Email data including case information
+ * @returns {Promise<Object>} Email sending result
+ */
+export const sendComprehensiveEmail = async (emailData) => {
+  try {
+    return await makeRequest('/api/send-comprehensive-email', {
+      method: 'POST',
+      body: JSON.stringify(emailData)
+    });
+  } catch (error) {
+    console.log('Failed to send comprehensive email:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Generate case summary and optionally add to queue
+ * @param {Object} summaryData - Case summary data
+ * @returns {Promise<Object>} Case summary generation result
+ */
+export const generateCaseSummary = async (summaryData) => {
+  try {
+    return await makeRequest('/api/generate-case-summary', {
+      method: 'POST',
+      body: JSON.stringify(summaryData)
+    });
+  } catch (error) {
+    console.log('Failed to generate case summary:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send email for a specific case summary
+ * @param {number} summaryId - Case summary ID
+ * @param {boolean} includeQueue - Whether to include queue information
+ * @returns {Promise<Object>} Email sending result
+ */
+export const sendCaseSummaryEmail = async (summaryId, includeQueue = false) => {
+  try {
+    return await makeRequest('/api/send-case-summary-email', {
+      method: 'POST',
+      body: JSON.stringify({
+        summary_id: summaryId,
+        include_queue: includeQueue
+      })
+    });
+  } catch (error) {
+    console.log('Failed to send case summary email:', error.message);
+    return { success: false, error: error.message };
+  }
+};

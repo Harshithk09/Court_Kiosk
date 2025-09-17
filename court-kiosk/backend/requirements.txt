@@ -4,4 +4,7 @@ Flask-CORS==4.0.0
 openai==0.28.1
 python-dotenv==1.0.0
 Werkzeug==2.3.7
-resend==0.6.0 
+resend==0.6.0
+reportlab==4.0.4
+PyPDF2==3.0.1
+requests==2.31.0 

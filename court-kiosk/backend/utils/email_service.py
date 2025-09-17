@@ -1,7 +1,10 @@
 import os
 import resend
+import json
+import tempfile
 from datetime import datetime
 from config import Config
+from .pdf_service import PDFService
 
 # Initialize Resend
 if Config.RESEND_API_KEY:
@@ -11,6 +14,7 @@ class EmailService:
     def __init__(self):
         self.from_email = "Court Kiosk <noreply@courtkiosk.com>"
         self.support_email = "support@courtkiosk.com"
+        self.pdf_service = PDFService()
     
     def get_form_url(self, form_code: str) -> str:
         """Return a public hyperlink for a given Judicial Council form code.
@@ -192,6 +196,304 @@ class EmailService:
         except Exception as e:
             print(f"Error sending facilitator notification: {e}")
             return {"success": False, "error": str(e)}
+    
+    def send_comprehensive_case_email(self, case_data: dict, include_queue: bool = False) -> dict:
+        """Send comprehensive email with case summary, PDF attachments, and optional queue info"""
+        try:
+            if not Config.RESEND_API_KEY:
+                print("Resend API key not configured, skipping email send")
+                return {"success": False, "error": "Email service not configured"}
+            
+            user_email = case_data.get('user_email')
+            if not user_email:
+                return {"success": False, "error": "No email address provided"}
+            
+            # Generate case summary PDF
+            case_summary_path = self.pdf_service.generate_case_summary_pdf(case_data)
+            
+            # Generate form PDFs
+            forms = case_data.get('documents_needed', [])
+            if isinstance(forms, str):
+                try:
+                    forms = json.loads(forms)
+                except:
+                    forms = []
+            
+            form_attachments = self.pdf_service.generate_forms_package(forms, case_data)
+            
+            # Prepare email content
+            subject = f"Your Court Case Summary - {case_data.get('queue_number', 'N/A')}"
+            html_content = self._generate_comprehensive_email_html(case_data, include_queue)
+            
+            # Prepare attachments
+            attachments = []
+            
+            # Add case summary PDF
+            if os.path.exists(case_summary_path):
+                with open(case_summary_path, 'rb') as f:
+                    attachments.append({
+                        'filename': f"Case_Summary_{case_data.get('queue_number', 'N/A')}.pdf",
+                        'content': f.read(),
+                        'type': 'application/pdf'
+                    })
+            
+            # Add form PDFs
+            for form_attachment in form_attachments:
+                if os.path.exists(form_attachment['path']):
+                    with open(form_attachment['path'], 'rb') as f:
+                        attachments.append({
+                            'filename': form_attachment['filename'],
+                            'content': f.read(),
+                            'type': 'application/pdf'
+                        })
+            
+            # Send email with attachments
+            email_data = {
+                "from": self.from_email,
+                "to": user_email,
+                "subject": subject,
+                "html": html_content
+            }
+            
+            # Add attachments if any
+            if attachments:
+                email_data["attachments"] = attachments
+            
+            response = resend.Emails.send(email_data)
+            
+            # Clean up temporary files
+            try:
+                os.remove(case_summary_path)
+                for form_attachment in form_attachments:
+                    if os.path.exists(form_attachment['path']):
+                        os.remove(form_attachment['path'])
+            except:
+                pass
+            
+            print(f"Comprehensive case email sent successfully to {user_email}")
+            response_id = response.get('id')
+            # Ensure response_id is serializable
+            if isinstance(response_id, bytes):
+                response_id = response_id.decode('utf-8')
+            return {"success": True, "id": str(response_id) if response_id else None}
+            
+        except Exception as e:
+            print(f"Error sending comprehensive case email: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def _generate_comprehensive_email_html(self, case_data: dict, include_queue: bool = False) -> str:
+        """Generate comprehensive HTML email content"""
+        queue_number = case_data.get('queue_number', 'N/A')
+        case_type = case_data.get('case_type', 'Unknown')
+        priority = case_data.get('priority_level', 'C')
+        language = case_data.get('language', 'en')
+        user_name = case_data.get('user_name', '')
+        
+        # Get forms and steps
+        forms = case_data.get('documents_needed', [])
+        if isinstance(forms, str):
+            try:
+                forms = json.loads(forms)
+            except:
+                forms = []
+        
+        next_steps = case_data.get('next_steps', [])
+        if isinstance(next_steps, str):
+            try:
+                next_steps = json.loads(next_steps)
+            except:
+                next_steps = []
+        
+        # Priority color mapping
+        priority_colors = {
+            'A': '#dc2626',  # Red - DV cases
+            'B': '#ea580c',  # Orange - Civil harassment, elder abuse
+            'C': '#ca8a04',  # Yellow - Workplace violence
+            'D': '#16a34a'   # Green - General questions
+        }
+        priority_color = priority_colors.get(priority, '#6b7280')
+        
+        # Generate forms HTML
+        forms_html = ""
+        if forms:
+            forms_html = "<h3>📋 Required Forms (Attached as PDFs):</h3><ul>"
+            for form in forms:
+                form_url = self.get_form_url(form)
+                forms_html += f'<li><strong>{form}</strong> - <a href="{form_url}" target="_blank">Download Official Form</a></li>'
+            forms_html += "</ul>"
+        
+        # Generate next steps HTML
+        steps_html = ""
+        if next_steps:
+            steps_html = "<h3>📝 Next Steps:</h3><ol>"
+            for step in next_steps:
+                steps_html += f"<li>{step}</li>"
+            steps_html += "</ol>"
+        
+        # Queue information HTML
+        queue_html = ""
+        if include_queue and queue_number != 'N/A':
+            queue_html = f"""
+            <div style="background-color: {priority_color}; color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                <h2 style="margin: 0; font-size: 24px;">Your Queue Number</h2>
+                <div style="font-size: 48px; font-weight: bold; margin: 10px 0;">{queue_number}</div>
+                <p style="margin: 0;">Please keep this number visible while waiting for assistance</p>
+            </div>
+            """
+        
+        return f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Court Case Summary</title>
+            <style>
+                body {{ 
+                    font-family: Arial, sans-serif; 
+                    line-height: 1.6; 
+                    color: #333; 
+                    max-width: 600px; 
+                    margin: 0 auto; 
+                    padding: 20px; 
+                    background-color: #f9fafb;
+                }}
+                .header {{ 
+                    background-color: #1f2937; 
+                    color: white; 
+                    padding: 30px; 
+                    text-align: center; 
+                    border-radius: 8px 8px 0 0; 
+                }}
+                .content {{ 
+                    background-color: white; 
+                    padding: 30px; 
+                    border: 1px solid #e5e7eb; 
+                }}
+                .case-info {{ 
+                    background-color: #f3f4f6; 
+                    padding: 20px; 
+                    border-radius: 8px; 
+                    margin: 20px 0; 
+                    border-left: 4px solid {priority_color};
+                }}
+                .section {{ 
+                    margin: 25px 0; 
+                    padding: 20px; 
+                    background-color: #f9fafb; 
+                    border-radius: 8px; 
+                    border: 1px solid #e5e7eb;
+                }}
+                .footer {{ 
+                    background-color: #1f2937; 
+                    color: white; 
+                    padding: 20px; 
+                    text-align: center; 
+                    border-radius: 0 0 8px 8px; 
+                    font-size: 14px; 
+                }}
+                .priority-badge {{
+                    background-color: {priority_color};
+                    color: white;
+                    padding: 5px 15px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    display: inline-block;
+                }}
+                h1 {{ color: white; margin: 0; }}
+                h2 {{ color: #1f2937; margin-top: 0; }}
+                h3 {{ color: #374151; }}
+                ul, ol {{ padding-left: 20px; }}
+                li {{ margin: 8px 0; }}
+                .important {{ 
+                    background-color: #fef2f2; 
+                    border: 1px solid #fecaca; 
+                    color: #dc2626; 
+                    padding: 15px; 
+                    border-radius: 8px; 
+                    margin: 20px 0;
+                }}
+                .attachment-note {{
+                    background-color: #ecfdf5;
+                    border: 1px solid #bbf7d0;
+                    color: #166534;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 20px 0;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🏛️ San Mateo Family Court Clinic</h1>
+                <p>Your Case Summary & Next Steps</p>
+            </div>
+            
+            <div class="content">
+                {queue_html}
+                
+                <div class="case-info">
+                    <h2>📋 Case Information</h2>
+                    <p><strong>Case Type:</strong> {case_type}</p>
+                    <p><strong>Priority Level:</strong> <span class="priority-badge">{priority}</span></p>
+                    <p><strong>Language:</strong> {language.upper()}</p>
+                    <p><strong>Date Generated:</strong> {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
+                    {f'<p><strong>Client Name:</strong> {user_name}</p>' if user_name else ''}
+                </div>
+                
+                {forms_html}
+                
+                <div class="attachment-note">
+                    <h3>📎 PDF Attachments</h3>
+                    <p>This email includes the following PDF attachments:</p>
+                    <ul>
+                        <li><strong>Case Summary Report</strong> - Complete overview of your case</li>
+                        {''.join([f'<li><strong>{form} Form</strong> - Template and instructions</li>' for form in forms])}
+                    </ul>
+                </div>
+                
+                {steps_html}
+                
+                <div class="section">
+                    <h3>⏰ Important Timeline</h3>
+                    <ul>
+                        <li><strong>Immediate:</strong> Complete all required forms</li>
+                        <li><strong>Within 24 hours:</strong> Make 3 copies of each form</li>
+                        <li><strong>Before hearing:</strong> Serve the other party (at least 5 days before)</li>
+                        <li><strong>Court hearing:</strong> Arrive 15 minutes early with all documents</li>
+                    </ul>
+                </div>
+                
+                <div class="important">
+                    <h3>🚨 Important Reminders</h3>
+                    <ul>
+                        <li>If you are in immediate danger, call <strong>911</strong></li>
+                        <li>Keep copies of all forms with you at all times</li>
+                        <li>Service must be completed at least 5 days before hearing</li>
+                        <li>Bring all evidence and witnesses to court</li>
+                        <li>Dress appropriately for court (business attire)</li>
+                        <li>If you have questions, contact court staff</li>
+                    </ul>
+                </div>
+                
+                <div class="section">
+                    <h3>📞 Contact Information</h3>
+                    <p><strong>San Mateo Family Court Clinic</strong></p>
+                    <p>Phone: (650) 261-5100</p>
+                    <p>Hours: Monday - Friday, 8:00 AM - 5:00 PM</p>
+                    <p>Email: familycourt@sanmateocourt.org</p>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>San Mateo Family Court Clinic<br>
+                This is an automated message. Please do not reply to this email.</p>
+                <p>Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
+            </div>
+        </body>
+        </html>
+        """
     
     def _generate_case_summary_html(self, case_data):
         """Generate HTML for case summary email"""

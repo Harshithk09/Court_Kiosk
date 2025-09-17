@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle } from 'lucide-react';
-import { getQueue, callNext, completeCase, getCaseSummary, addTestData } from '../utils/queueAPI';
+import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send } from 'lucide-react';
+import { getQueue, callNext, completeCase, getCaseSummary, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
 import FormsManagement from '../components/FormsManagement';
 import FormsSummary from '../components/FormsSummary';
 
@@ -14,6 +14,7 @@ const AdminDashboard = () => {
   const [selectedCase, setSelectedCase] = useState(null);
   const [caseSummary, setCaseSummary] = useState(null);
   const [error, setError] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     fetchQueue();
@@ -105,6 +106,44 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error fetching case summary:', error);
       setCaseSummary(null);
+    }
+  };
+
+  const handleSendEmail = async (caseItem) => {
+    if (!caseItem.user_email) {
+      setError('No email address available for this case');
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const result = await sendComprehensiveEmail({
+        email: caseItem.user_email,
+        user_name: caseItem.user_name,
+        case_type: caseItem.case_type || 'Domestic Violence Restraining Order',
+        priority: caseItem.priority || caseItem.priority_level || 'A',
+        language: caseItem.language || 'en',
+        queue_number: caseItem.queue_number,
+        forms: caseItem.documents_needed || [],
+        next_steps: caseItem.next_steps || [],
+        summary: caseItem.conversation_summary || '',
+        phone_number: caseItem.phone_number,
+        include_queue: true // Always include queue info in admin emails
+      });
+      
+      if (result.success) {
+        setError(null);
+        alert(language === 'en' 
+          ? `Email sent successfully to ${caseItem.user_email}` 
+          : `Correo enviado exitosamente a ${caseItem.user_email}`);
+      } else {
+        setError(result.error || 'Failed to send email');
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      setError('Failed to send email');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -551,6 +590,19 @@ const AdminDashboard = () => {
                               </div>
                               <div className="flex space-x-2">
                                 <div className={`w-3 h-3 ${getStatusColor(item.status)} rounded-full`}></div>
+                                {item.user_email && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSendEmail(item);
+                                    }}
+                                    disabled={sendingEmail}
+                                    className="flex items-center px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                    title={language === 'en' ? 'Send Email Summary' : 'Enviar Resumen por Correo'}
+                                  >
+                                    <Send className="w-3 h-3" />
+                                  </button>
+                                )}
                                 {item.status === 'waiting' && (
                                   <button
                                     onClick={(e) => {
@@ -705,6 +757,20 @@ const AdminDashboard = () => {
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
+                  {selectedCase.user_email && (
+                    <button
+                      onClick={() => handleSendEmail(selectedCase)}
+                      disabled={sendingEmail}
+                      className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      {sendingEmail 
+                        ? (language === 'en' ? 'Sending...' : 'Enviando...')
+                        : (language === 'en' ? 'Send Email Summary' : 'Enviar Resumen por Correo')
+                      }
+                    </button>
+                  )}
+                  
                   <button
                     onClick={() => handleCompleteCase(selectedCase.queue_number)}
                     className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

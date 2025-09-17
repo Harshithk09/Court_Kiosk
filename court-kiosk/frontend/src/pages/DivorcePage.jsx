@@ -1,8 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Shield, Clock, Home } from 'lucide-react';
 
 const DivorcePage = () => {
+  const { language, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
 
   const handleStartApplication = () => {
@@ -27,16 +29,20 @@ const DivorcePage = () => {
               Back to Home
             </button>
             
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mr-3">
-                  <Shield className="w-5 h-5 text-white" />
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-white" />
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Family Court Clinic</h2>
-                  <span className="text-sm text-gray-500">EN</span>
-                </div>
+                <span className="font-semibold text-gray-900">Family Court Clinic</span>
               </div>
+
+              <button
+                onClick={toggleLanguage}
+                className="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
+              >
+                {language === 'es' ? 'EN' : 'ES'}
+              </button>
             </div>
           </div>
         </div>
@@ -46,7 +52,7 @@ const DivorcePage = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
           {/* Title */}
-          <h1 className="text-4xl font-bold text-gray-900 mb-6">
+          <h1 className="text-6xl font-bold text-gray-900 mb-6">
             Divorce & Legal Separation
           </h1>
           
@@ -72,7 +78,7 @@ const DivorcePage = () => {
           {/* Call to Action */}
           <button
             onClick={handleStartApplication}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-4 px-8 rounded-lg text-lg transition-colors duration-200 flex items-center mx-auto mb-6"
+            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-6 px-8 rounded-lg text-lg transition-colors duration-200 flex items-center mx-auto mb-6"
           >
             <Shield className="w-6 h-6 mr-3" />
             Start Divorce Guide
