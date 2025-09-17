@@ -12,13 +12,13 @@ import {
 import formsDatabase, { 
   getFormsSummary 
 } from '../data/formsDatabase';
-import FormsUpload from './FormsUpload';
-import FormsBulkUpdate from './FormsBulkUpdate';
-import { exportFormsToCSV, exportFormsToJSON } from '../utils/formsExport';
-import { 
-  exportFormsListToCSV, 
-  exportSetupInstructions 
-} from '../utils/generateFormsFolder';
+// import FormsUpload from './FormsUpload';
+// import FormsBulkUpdate from './FormsBulkUpdate';
+// import { exportFormsToCSV, exportFormsToJSON } from '../utils/formsExport';
+// import { 
+//   exportFormsListToCSV, 
+//   exportSetupInstructions 
+// } from '../utils/generateFormsFolder';
 
 const FormsManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,7 +28,7 @@ const FormsManagement = () => {
   const [sortBy, setSortBy] = useState('code');
   const [sortOrder, setSortOrder] = useState('asc');
   const [showUpload, setShowUpload] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'upload', 'bulk-update', 'setup'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'setup'
 
   // Get forms summary
   const summary = useMemo(() => getFormsSummary(), []);
@@ -312,26 +312,6 @@ const FormsManagement = () => {
             Overview
           </button>
           <button 
-            onClick={() => setActiveTab('upload')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'upload' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Upload PDFs
-          </button>
-          <button 
-            onClick={() => setActiveTab('bulk-update')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'bulk-update' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Bulk Update
-          </button>
-          <button 
             onClick={() => setActiveTab('setup')}
             className={`px-4 py-2 rounded-lg font-medium ${
               activeTab === 'setup' 
@@ -432,19 +412,6 @@ const FormsManagement = () => {
           </div>
         )}
 
-        {activeTab === 'upload' && (
-          <FormsUpload 
-            onUploadComplete={(results) => {
-              console.log('Upload completed:', results);
-              // Here you would typically refresh the forms data
-              // or update the forms database
-            }}
-          />
-        )}
-
-        {activeTab === 'bulk-update' && (
-          <FormsBulkUpdate />
-        )}
 
         {activeTab === 'setup' && (
           <div className="space-y-6">
@@ -453,21 +420,8 @@ const FormsManagement = () => {
               <p className="text-blue-800 mb-4">
                 Use these tools to set up your forms folder structure and get organized for PDF management.
               </p>
-              <div className="flex space-x-4">
-                <button 
-                  onClick={exportFormsListToCSV}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Forms List (CSV)
-                </button>
-                <button 
-                  onClick={exportSetupInstructions}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Setup Instructions
-                </button>
+              <div className="text-blue-700">
+                <p>Forms setup functionality has been simplified. Use the overview tab to manage your forms database.</p>
               </div>
             </div>
             
