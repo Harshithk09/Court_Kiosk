@@ -1,14 +1,8 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "court-kiosk/frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    }
-  ],
+  "buildCommand": "cd court-kiosk/frontend && npm run build",
+  "outputDirectory": "court-kiosk/frontend/build",
+  "installCommand": "cd court-kiosk/frontend && npm install",
   "routes": [
     {
       "src": "/static/(.*)",
