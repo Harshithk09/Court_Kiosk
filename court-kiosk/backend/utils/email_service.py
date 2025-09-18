@@ -2,6 +2,7 @@ import os
 import resend
 import json
 import tempfile
+import base64
 from datetime import datetime
 from config import Config
 from .pdf_service import PDFService
@@ -233,7 +234,7 @@ class EmailService:
                 with open(case_summary_path, 'rb') as f:
                     attachments.append({
                         'filename': f"Case_Summary_{case_data.get('queue_number', 'N/A')}.pdf",
-                        'content': f.read(),
+                        'content': base64.b64encode(f.read()).decode('utf-8'),
                         'type': 'application/pdf'
                     })
             
@@ -243,7 +244,7 @@ class EmailService:
                     with open(form_attachment['path'], 'rb') as f:
                         attachments.append({
                             'filename': form_attachment['filename'],
-                            'content': f.read(),
+                            'content': base64.b64encode(f.read()).decode('utf-8'),
                             'type': 'application/pdf'
                         })
             

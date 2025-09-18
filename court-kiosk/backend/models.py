@@ -40,7 +40,7 @@ class QueueTicket(db.Model):
     status = db.Column(db.String(50), default='waiting')  # waiting, serving, done, no_show
     position = db.Column(db.Integer, nullable=False)  # Simple visible queue number
     priority_level = db.Column(db.String(10), default='C')  # A, B, C, D
-    facilitator_id = db.Column(db.Integer, db.ForeignKey('facilitator.id'), nullable=True)
+    facilitator_id = db.Column(db.Integer, nullable=True)  # Removed FK constraint for now
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -76,7 +76,7 @@ class QueueEntry(db.Model):
     conversation_summary = db.Column(db.Text, nullable=True)
     documents_needed = db.Column(db.Text, nullable=True)
     estimated_wait_time = db.Column(db.Integer, nullable=True)  # in minutes
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)  # Renamed from created_at for consistency
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     facilitator_notes = db.Column(db.Text, nullable=True)
     
@@ -96,7 +96,7 @@ class QueueEntry(db.Model):
             'conversation_summary': self.conversation_summary,
             'documents_needed': json.loads(self.documents_needed) if self.documents_needed else [],
             'estimated_wait_time': self.estimated_wait_time,
-            'created_at': self.created_at.isoformat(),
+            'timestamp': self.timestamp.isoformat(),  # Updated to use timestamp
             'updated_at': self.updated_at.isoformat(),
             'facilitator_notes': self.facilitator_notes
         }
