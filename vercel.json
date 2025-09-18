@@ -10,6 +10,7 @@
       }
     }
   ],
+  "outputDirectory": "court-kiosk/frontend/build",
   "routes": [
     {
       "src": "/static/(.*)",
