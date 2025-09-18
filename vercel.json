@@ -1,8 +1,15 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "rootDirectory": "court-kiosk/frontend",
-  "buildCommand": "npm run build",
-  "outputDirectory": "build",
+  "builds": [
+    {
+      "src": "court-kiosk/frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
   "routes": [
     {
       "src": "/static/(.*)",
