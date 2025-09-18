@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "outputDirectory": "court-kiosk/frontend/build",
   "builds": [
     {
       "src": "court-kiosk/frontend/package.json",
