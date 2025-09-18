@@ -12,6 +12,7 @@ import {
   CheckCircle,
   FileText as FileTextIcon
 } from 'lucide-react';
+import SanMateoCourtLogo from '../components/SanMateoCourtLogo';
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -215,7 +216,7 @@ const UserKiosk = () => {
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-blue-500 rounded-lg mr-3"></div>
+              <SanMateoCourtLogo size={32} className="mr-3" />
               <h1 className="text-2xl font-bold text-gray-900">
                 {language === 'en' ? 'Court Kiosk' : 'Quiosco de la Corte'}
               </h1>

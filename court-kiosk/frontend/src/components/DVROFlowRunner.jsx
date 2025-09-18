@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './DVROFlowRunner.css';
 
 const DVROFlowRunner = () => {
@@ -7,6 +7,7 @@ const DVROFlowRunner = () => {
   const [answers, setAnswers] = useState({});
   const [flowData, setFlowData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const progressScrollRef = useRef(null);
 
   useEffect(() => {
     // Load the flow data
@@ -27,7 +28,13 @@ const DVROFlowRunner = () => {
 
   const handleOptionSelect = (option) => {
     const nextNode = option.next || option;
-    setFlowHistory(prev => [...prev, { node: currentNode, answer: option }]);
+    const stepData = {
+      node: currentNode,
+      answer: option,
+      stepNumber: flowHistory.length + 1,
+      timestamp: new Date().toISOString()
+    };
+    setFlowHistory(prev => [...prev, stepData]);
     setCurrentNode(nextNode);
     
     if (option.value) {
@@ -35,12 +42,55 @@ const DVROFlowRunner = () => {
     }
   };
 
+  // Auto-scroll to current step when it changes
+  useEffect(() => {
+    if (progressScrollRef.current && flowHistory.length > 0) {
+      // Find the current step element (last step in history)
+      const currentStepElement = progressScrollRef.current.querySelector('.progress-step.current-step');
+      if (currentStepElement) {
+        // Scroll only within the sidebar container
+        const container = progressScrollRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = currentStepElement.getBoundingClientRect();
+        
+        // Calculate if element is outside the visible area
+        const isAbove = elementRect.top < containerRect.top;
+        const isBelow = elementRect.bottom > containerRect.bottom;
+        
+        if (isAbove || isBelow) {
+          // Scroll the container, not the whole page
+          const scrollTop = currentStepElement.offsetTop - container.offsetTop - (container.clientHeight / 2) + (currentStepElement.clientHeight / 2);
+          container.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
+  }, [flowHistory, currentNode]);
+
   const handleBack = () => {
     if (flowHistory.length > 0) {
       const previousStep = flowHistory[flowHistory.length - 1];
       setFlowHistory(prev => prev.slice(0, -1));
       setCurrentNode(previousStep.node);
     }
+  };
+
+  // Get all steps for display
+  const getAllSteps = () => {
+    return flowHistory;
+  };
+
+  // Get step text for display
+  const getStepText = (step) => {
+    if (!flowData || !flowData.pages[step.node]) return 'Unknown step';
+    
+    const node = flowData.pages[step.node];
+    const nodeText = node.text || node.question || node.info || 'Step completed';
+    
+    // Truncate long text for better display
+    return nodeText.length > 60 ? nodeText.substring(0, 60) + '...' : nodeText;
   };
 
   const renderNode = (nodeId) => {
@@ -173,10 +223,21 @@ const DVROFlowRunner = () => {
 
       <div className="flow-summary">
         <h3>Your Progress</h3>
-        <div className="answers-summary">
-          {Object.entries(answers).map(([question, answer]) => (
-            <div key={question} className="answer-item">
-              <strong>{question}:</strong> {answer}
+        <div ref={progressScrollRef} className="progress-steps">
+          {getAllSteps().map((step, index) => (
+            <div 
+              key={`${step.stepNumber}-${step.timestamp}`} 
+              className={`progress-step ${index === getAllSteps().length - 1 ? 'current-step' : ''}`}
+            >
+              <div className="step-number">{step.stepNumber}</div>
+              <div className="step-content">
+                <div className="step-text">{getStepText(step)}</div>
+                {step.answer && step.answer.label && (
+                  <div className="step-answer">
+                    <strong>Your choice:</strong> {step.answer.label.en || step.answer.label}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>

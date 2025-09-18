@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CompletionPage from './CompletionPage';
+import ErrorBoundary from './ErrorBoundary';
 
 const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   const [currentNodeId, setCurrentNodeId] = useState(flow?.start || 'DVROStart');
-  const [answers] = useState({});
   const [history, setHistory] = useState([flow?.start || 'DVROStart']);
   const [showSummary, setShowSummary] = useState(false);
+  const progressScrollRef = useRef(null);
 
   const currentNode = flow?.nodes?.[currentNodeId];
   const outgoingEdges = flow?.edges?.filter(edge => edge.from === currentNodeId) || [];
@@ -18,6 +19,38 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
     setCurrentNodeId(nextNodeId);
     setHistory(prev => [...prev, nextNodeId]);
   };
+
+  // Auto-scroll to current step when it changes
+  useEffect(() => {
+    if (progressScrollRef.current) {
+      // Find the current step element
+      const currentStepElement = progressScrollRef.current.querySelector('.progress-step.current');
+      if (currentStepElement) {
+        // Scroll only within the sidebar container
+        const container = progressScrollRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = currentStepElement.getBoundingClientRect();
+        
+        // Calculate if element is outside the visible area
+        const isAbove = elementRect.top < containerRect.top;
+        const isBelow = elementRect.bottom > containerRect.bottom;
+        
+        if (isAbove || isBelow) {
+          // Scroll the container, not the whole page
+          const scrollTop = currentStepElement.offsetTop - container.offsetTop - (container.clientHeight / 2) + (currentStepElement.clientHeight / 2);
+          container.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      // Any cleanup needed when component unmounts or dependencies change
+    };
+  }, [currentNodeId, history]);
 
   const handleBack = () => {
     if (history.length > 1) {
@@ -49,6 +82,11 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
     }
   };
 
+  // Get all steps for display
+  const getAllSteps = () => {
+    return history;
+  };
+
   const handleComplete = () => {
     setShowSummary(true);
   };
@@ -62,7 +100,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   if (showSummary) {
     return (
       <CompletionPage
-        answers={answers}
+        answers={{}}
         history={history}
         flow={flow}
         onBack={handleSummaryBack}
@@ -92,32 +130,33 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   const hasMultipleChoices = outgoingEdges.length > 1;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              ← Back
-            </button>
-            <h1 className="text-xl font-bold text-gray-900">Family Court Clinic</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={onHome}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-            >
-              Home
-            </button>
-            <div className="text-sm text-gray-600">
-              Step {history.length}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleBack}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                ← Back
+              </button>
+              <h1 className="text-xl font-bold text-gray-900">Family Court Clinic</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={onHome}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+              >
+                Home
+              </button>
+              <div className="text-sm text-gray-600">
+                Step {history.length}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <div className="max-w-6xl mx-auto py-8 px-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -126,8 +165,8 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Progress</h3>
               
-              <div className="space-y-2">
-                {history.map((nodeId, index) => {
+              <div ref={progressScrollRef} className="space-y-2 max-h-96 overflow-y-auto">
+                {getAllSteps().map((nodeId, index) => {
                   const node = flow?.nodes?.[nodeId];
                   const isCurrent = nodeId === currentNodeId;
                   const isClickable = index < history.length - 1; // Can't click current node
@@ -135,9 +174,9 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                   return (
                     <div
                       key={nodeId}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors progress-step ${
                         isCurrent 
-                          ? 'bg-blue-100 border-blue-300 text-blue-900' 
+                          ? 'bg-blue-100 border-blue-300 text-blue-900 current' 
                           : isClickable
                             ? 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                             : 'bg-gray-50 border-gray-200'
@@ -146,7 +185,9 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                     >
                       <div className="flex items-center space-x-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                          isCurrent ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+                          isCurrent 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-gray-300 text-gray-600'
                         }`}>
                           {index + 1}
                         </div>
@@ -268,7 +309,8 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
            </div>
          </div>
        </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 
