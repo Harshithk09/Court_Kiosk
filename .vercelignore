@@ -1,0 +1,32 @@
+# Ignore backend files for frontend deployment
+court-kiosk/backend/
+court-kiosk/court_documents/
+court-kiosk/venv/
+court-kiosk/__pycache__/
+court-kiosk/*.pyc
+court-kiosk/*.pyo
+court-kiosk/*.pyd
+court-kiosk/.Python
+court-kiosk/env/
+court-kiosk/venv/
+court-kiosk/.venv/
+court-kiosk/.env
+court-kiosk/.env.local
+court-kiosk/.env.development.local
+court-kiosk/.env.test.local
+court-kiosk/.env.production.local
+
+# Ignore development files
+court-kiosk/frontend/node_modules/
+court-kiosk/frontend/.env.local
+court-kiosk/frontend/.env.development.local
+court-kiosk/frontend/.env.test.local
+court-kiosk/frontend/.env.production.local
+court-kiosk/frontend/npm-debug.log*
+court-kiosk/frontend/yarn-debug.log*
+court-kiosk/frontend/yarn-error.log*
+
+# Ignore git files
+.git/
+.gitignore
+README.md
