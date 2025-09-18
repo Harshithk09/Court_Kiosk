@@ -5,7 +5,7 @@
       "src": "court-kiosk/frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "court-kiosk/frontend/build"
+        "distDir": "build"
       }
     }
   ],
