@@ -6,7 +6,7 @@ import { Shield, Home } from 'lucide-react';
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
-  'http://localhost:1904';
+  'http://localhost:4000';
 
 export default function DVROPage() {
   const { language, toggleLanguage } = useLanguage();

@@ -165,26 +165,27 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Progress</h3>
               
-              <div ref={progressScrollRef} className="space-y-2 max-h-96 overflow-y-auto">
+              <div ref={progressScrollRef} className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg overflow-hidden">
                 {getAllSteps().map((nodeId, index) => {
                   const node = flow?.nodes?.[nodeId];
                   const isCurrent = nodeId === currentNodeId;
                   const isClickable = index < history.length - 1; // Can't click current node
+                  const isLast = index === getAllSteps().length - 1;
                   
                   return (
                     <div
                       key={nodeId}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors progress-step ${
+                      className={`p-4 cursor-pointer transition-colors progress-step ${
                         isCurrent 
-                          ? 'bg-blue-100 border-blue-300 text-blue-900 current' 
+                          ? 'bg-blue-100 text-blue-900 current' 
                           : isClickable
-                            ? 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                            : 'bg-gray-50 border-gray-200'
-                      }`}
+                            ? 'bg-white hover:bg-gray-50'
+                            : 'bg-gray-50'
+                      } ${!isLast ? 'border-b border-gray-200' : ''}`}
                       onClick={isClickable ? () => handleHistoryClick(nodeId) : undefined}
                     >
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
                           isCurrent 
                             ? 'bg-blue-600 text-white' 
                             : 'bg-gray-300 text-gray-600'
@@ -192,10 +193,10 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                           {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm truncate ${
+                          <p className={`text-sm ${
                             isCurrent ? 'font-medium' : ''
                           }`}>
-                            {node?.text?.substring(0, 40)}...
+                            {node?.text?.substring(0, 45)}...
                           </p>
                         </div>
                       </div>
@@ -229,24 +230,27 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
               {!isEndNode && (
                 <div className="space-y-4">
                   {hasMultipleChoices ? (
-                    // Multiple choices - show all outgoing edges as buttons
-                    <div className="space-y-3">
+                    // Multiple choices - show all outgoing edges as buttons with clear dividers
+                    <div className="border border-gray-300 rounded-lg overflow-hidden">
                       {outgoingEdges.map((edge, index) => {
                         const targetNode = flow?.nodes?.[edge.to];
                         const buttonText = edge.when || targetNode?.text || `Option ${index + 1}`;
                         const description = edge.when ? targetNode?.text : null;
+                        const isLast = index === outgoingEdges.length - 1;
                         
                         return (
                           <button
                             key={index}
                             onClick={() => handleChoice(index)}
-                            className="w-full text-left p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                            className={`w-full text-left p-5 border-none bg-white hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
+                              !isLast ? 'border-b border-gray-200' : ''
+                            }`}
                           >
-                            <div className="font-medium text-gray-900 text-lg">
+                            <div className="font-medium text-gray-900 text-lg mb-1">
                               {buttonText}
                             </div>
                             {description && (
-                              <div className="text-sm text-gray-600 mt-2">
+                              <div className="text-sm text-gray-600">
                                 {description}
                               </div>
                             )}
