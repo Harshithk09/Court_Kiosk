@@ -108,8 +108,11 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const handleEmailRequest = async () => {
     setIsSubmitting(true);
     try {
+      // Use environment-based API URL
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:1904';
+      
       // Send case summary email using the new endpoint
-      const response = await fetch('http://localhost:1904/api/email/send-case-summary', {
+      const response = await fetch(`${apiUrl}/api/email/send-case-summary`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
