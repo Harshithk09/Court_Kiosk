@@ -1,5 +1,7 @@
+import { getApiBaseUrl } from './apiConfig';
+
 // Queue API utility for connecting with enhanced backend
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:1904';
+const API_BASE_URL = getApiBaseUrl();
 
 // Configuration constants
 const CONFIG = {
