@@ -6,16 +6,13 @@ import {
   HeartHandshake, 
   FileText, 
   Users, 
-  Languages,
   ChevronRight,
   Clock,
   CheckCircle,
   FileText as FileTextIcon,
   AlertTriangle,
   MapPin,
-  Phone,
-  Scale,
-  Globe
+  Phone
 } from 'lucide-react';
 import ModernHeader from '../components/ModernHeader';
 import ModernCard from '../components/ModernCard';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scale, Shield, Users, Globe } from 'lucide-react';
+import { Scale, Shield, Globe } from 'lucide-react';
 
 const ModernHeader = ({ title, subtitle, showLanguageToggle = true, onLanguageToggle, currentLanguage = 'en' }) => {
   return (

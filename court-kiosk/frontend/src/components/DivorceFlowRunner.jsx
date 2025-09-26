@@ -3,7 +3,7 @@ import SimpleFlowRunner from '../components/SimpleFlowRunner';
 import ModernHeader from './ModernHeader';
 import ModernCard from './ModernCard';
 import ModernButton from './ModernButton';
-import { CheckCircle, User, Mail, Phone, ArrowLeft, Home } from 'lucide-react';
+import { CheckCircle, User, Mail, Phone, ArrowLeft } from 'lucide-react';
 import './ModernHeader.css';
 import './ModernCard.css';
 import './ModernButton.css';
