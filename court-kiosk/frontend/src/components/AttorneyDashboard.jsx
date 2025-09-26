@@ -19,7 +19,7 @@ import {
   Brain,
   Target,
   Timer,
-  BookOpen,
+  Calendar,
   AlertCircle
 } from 'lucide-react';
 import { getQueue, callNext, completeCase, sendComprehensiveEmail } from '../utils/queueAPI';
