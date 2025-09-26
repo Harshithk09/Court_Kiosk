@@ -238,6 +238,49 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                         const description = edge.when ? targetNode?.text : null;
                         const isLast = index === outgoingEdges.length - 1;
                         
+                        // Check if this is an informational message that shouldn't be a button
+                        const isQualificationMessage = edge.to === 'DVStart' || targetNode?.text?.includes('You may qualify for a Domestic Violence');
+                        const isTimingInfo = edge.to === 'DVTiming' || targetNode?.text?.includes('Important Information: If you file for a Domestic Violence Restraining Order before noon');
+                        const isInformationalNode = isQualificationMessage || isTimingInfo;
+                        
+                        if (isInformationalNode) {
+                          // Render as plain text/info box instead of button
+                          const isTimingMessage = isTimingInfo;
+                          return (
+                            <div
+                              key={index}
+                              className={`w-full p-5 ${
+                                isTimingMessage 
+                                  ? 'bg-yellow-50 border-l-4 border-yellow-400' 
+                                  : 'bg-blue-50 border-l-4 border-blue-400'
+                              } ${
+                                !isLast ? 'border-b border-gray-200' : ''
+                              }`}
+                            >
+                              <div className={`font-medium text-lg mb-1 ${
+                                isTimingMessage ? 'text-yellow-900' : 'text-blue-900'
+                              }`}>
+                                {buttonText}
+                              </div>
+                              {description && (
+                                <div className={`text-sm ${
+                                  isTimingMessage ? 'text-yellow-700' : 'text-blue-700'
+                                }`}>
+                                  {description}
+                                </div>
+                              )}
+                              <div className="mt-3">
+                                <button
+                                  onClick={() => handleChoice(index)}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                >
+                                  Continue
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+                        
                         return (
                           <button
                             key={index}

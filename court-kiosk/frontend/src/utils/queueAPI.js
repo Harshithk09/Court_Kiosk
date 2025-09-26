@@ -1,5 +1,6 @@
-// Queue API utility for connecting with enhanced backend
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+// Queue API utility for connecting with backend
+// Default to Flask backend port for local dev; override with REACT_APP_API_URL in env
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:1904';
 
 // Configuration constants
 const CONFIG = {
@@ -116,23 +117,30 @@ const loadMockQueue = () => {
  */
 export const addToQueue = async (queueData) => {
   const backendCall = async () => {
-    const result = await makeRequest('/api/queue/join', {
+    // Align with Flask backend: /api/generate-queue
+    const result = await makeRequest('/api/generate-queue', {
       method: 'POST',
       body: JSON.stringify({
         case_type: queueData.case_type || CONFIG.DEFAULT_CASE_TYPE,
+        priority: queueData.priority || CONFIG.DEFAULT_PRIORITY,
+        language: queueData.language || CONFIG.DEFAULT_LANGUAGE,
         user_name: queueData.user_name || '',
         user_email: queueData.user_email || '',
-        phone_number: queueData.phone_number || '',
-        language: queueData.language || CONFIG.DEFAULT_LANGUAGE
+        phone_number: queueData.phone_number || ''
       })
     });
 
-    // Send SMS with queue number if phone number provided
-    if (result.success && result.queue_number && queueData.phone_number) {
+    // Flask returns { queue_number } on success
+    if (result.queue_number && queueData.phone_number) {
       await sendQueueNumberSMS(result.queue_number, queueData.phone_number);
     }
 
-    return result;
+    return {
+      success: Boolean(result.queue_number),
+      queue_number: result.queue_number,
+      estimated_wait_time: CONFIG.DEFAULT_WAIT_TIME,
+      priority_level: queueData.priority || CONFIG.DEFAULT_PRIORITY
+    };
   };
 
   const fallbackCall = async () => {
@@ -284,33 +292,13 @@ export const addTestData = async () => {
 export const getQueue = async () => {
   const backendCall = async () => {
     console.log('Fetching queue data from backend...');
-    const data = await makeRequest('/api/queue/status');
+    // Align with Flask backend: /api/queue
+    const data = await makeRequest('/api/queue');
     console.log('Backend queue data received:', data);
     
-    // Transform enhanced backend data to match expected format
-    const allQueueEntries = [
-      ...(data.waiting || []),
-      ...(data.in_progress || []),
-      ...(data.completed || [])
-    ];
-    
-    console.log('Transformed queue entries:', allQueueEntries);
-    
-    // Find the currently active entry (in_progress or the first waiting)
-    let currentNumber = null;
-    if (data.in_progress && data.in_progress.length > 0) {
-      currentNumber = data.in_progress[0];
-    } else if (data.waiting && data.waiting.length > 0) {
-      currentNumber = data.waiting[0];
-    }
-    
-    const result = {
-      queue: allQueueEntries,
-      current_number: currentNumber
-    };
-    
-    console.log('Final queue result:', result);
-    return result;
+    // Flask already returns { queue: [...], current_number: {...} }
+    console.log('Final queue result:', data);
+    return data;
   };
 
   const fallbackCall = async () => {
@@ -336,7 +324,8 @@ export const getQueue = async () => {
  */
 export const callNext = async () => {
   const backendCall = async () => {
-    return await makeRequest('/api/queue/next', {
+    // Align with Flask backend: /api/call-next
+    return await makeRequest('/api/call-next', {
       method: 'POST'
     });
   };
@@ -369,8 +358,10 @@ export const callNext = async () => {
  */
 export const completeCase = async (queueNumber) => {
   const backendCall = async () => {
-    return await makeRequest(`/api/queue/${queueNumber}/complete`, {
-      method: 'POST'
+    // Align with Flask backend: /api/complete-case with JSON body
+    return await makeRequest(`/api/complete-case`, {
+      method: 'POST',
+      body: JSON.stringify({ queue_number: queueNumber })
     });
   };
 

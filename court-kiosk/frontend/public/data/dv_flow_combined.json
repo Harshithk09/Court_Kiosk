@@ -18,7 +18,7 @@
     "DVCheck2": { "type": "decision", "text": "Are they someone you: dated, married, or had an intimate relationship with, or are related to (parent, child, sibling, grandparent — by birth or marriage?" },
     "DVCheck3": { "type": "decision", "text": "Are you 12 or older?" },
     "DVStart": { "type": "process", "text": "You may qualify for a Domestic Violence Restraining Order" },
-    "DVTiming": { "type": "process", "text": "Note: If you file for a Domestic Violence Restraining Order before noon, you should get a response from the court that same day." },
+    "DVTiming": { "text": "Important Information: If you file for a Domestic Violence Restraining Order before noon, you should get a response from the court that same day." },
     "DVMinor": { "type": "process", "text": "If you're under 12, a trusted adult must help you file. Please contact the Self-Help Center in-person or online via LiveChat for assistance." },
     "DVAlt": { "type": "process", "text": "You may qualify for a different restraining order: Civil Harassment, Elder Abuse, Workplace Violence" },
     "DVNotQual": { "type": "process", "text": "A restraining order is only available if there has been abuse. You may want to speak to a legal aid provider about other options." },

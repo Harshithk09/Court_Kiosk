@@ -38,10 +38,10 @@ CORS(app, origins=cors_origins,
 
 # Configure rate limiting
 limiter = Limiter(
-    app,
     key_func=get_remote_address,
     default_limits=["1000 per hour", "100 per minute"]
 )
+limiter.init_app(app)
 
 # Add security headers
 @app.after_request
@@ -1090,6 +1090,24 @@ def send_email_with_attachments(to_email, subject, body, attachments):
     except Exception as e:
         app.logger.error(f"Error sending email: {str(e)}")
         return False
+
+# --- Simple SMS endpoints (mock/dev) ---
+@app.route('/api/sms/send-queue-number', methods=['POST'])
+def send_queue_number_sms():
+    """Mock endpoint to send queue number via SMS.
+    In development, we just log and return success so the frontend can proceed.
+    """
+    try:
+        data = request.get_json() or {}
+        queue_number = data.get('queue_number')
+        phone_number = data.get('phone_number')
+        if not queue_number or not phone_number:
+            return jsonify({'success': False, 'error': 'Missing queue_number or phone_number'}), 400
+        app.logger.info(f"[SMS] Would send queue number {queue_number} to {phone_number}")
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error in send_queue_number_sms: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
     with app.app_context():

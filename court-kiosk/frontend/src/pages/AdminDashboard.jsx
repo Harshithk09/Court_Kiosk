@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send } from 'lucide-react';
-import { getQueue, callNext, completeCase, getCaseSummary, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
+import { getQueue, callNext, completeCase, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
 import FormsManagement from '../components/FormsManagement';
 import FormsSummary from '../components/FormsSummary';
 
@@ -95,18 +95,8 @@ const AdminDashboard = () => {
 
   const handleCaseSelect = async (caseItem) => {
     setSelectedCase(caseItem);
-    try {
-      // Get detailed case summary from backend
-      const summaryData = await getCaseSummary(caseItem.queue_number);
-      if (summaryData.success) {
-        setCaseSummary(summaryData.summary);
-      } else {
-        setCaseSummary(null);
-      }
-    } catch (error) {
-      console.error('Error fetching case summary:', error);
-      setCaseSummary(null);
-    }
+    // Flask backend does not expose a separate summary endpoint; use conversation_summary if present
+    setCaseSummary(caseItem.conversation_summary || null);
   };
 
   const handleSendEmail = async (caseItem) => {
