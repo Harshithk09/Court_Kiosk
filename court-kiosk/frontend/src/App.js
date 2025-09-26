@@ -4,6 +4,7 @@ import './App.css';
 import UserKiosk from './pages/UserKiosk';
 import ExperimentIndex from './pages/ExperimentIndex';
 import AdminDashboard from './pages/AdminDashboard';
+import AttorneyDashboard from './components/AttorneyDashboard';
 import DVROPage from './pages/DVROPage';
 import DivorcePage from './pages/DivorcePage';
 import DivorceFlowRunner from './components/DivorceFlowRunner';
@@ -24,6 +25,7 @@ function App() {
                 <Route path="/" element={<UserKiosk />} />
                 <Route path="/experiment" element={<ExperimentIndex />} />
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/attorney" element={<AttorneyDashboard />} />
                 <Route path="/dvro" element={<DVROPage />} />
                 <Route path="/divorce" element={<DivorcePage />} />
                 <Route path="/divorce-flow" element={<DivorceFlowRunner />} />
