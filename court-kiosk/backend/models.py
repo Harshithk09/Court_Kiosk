@@ -1,6 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
+import hashlib
+import secrets
 
 db = SQLAlchemy()
 
@@ -31,6 +33,89 @@ class CaseSummary(db.Model):
             'user_name': self.user_name,
             'language': self.language,
             'created_at': self.created_at.isoformat()
+        }
+
+class User(db.Model):
+    """Admin users for the court kiosk system"""
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), default='admin')  # admin, facilitator, viewer
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+    
+    def set_password(self, password):
+        """Hash and set password"""
+        salt = secrets.token_hex(16)
+        password_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+        self.password_hash = f"{salt}:{password_hash.hex()}"
+    
+    def check_password(self, password):
+        """Check if provided password matches hash"""
+        if not self.password_hash or ':' not in self.password_hash:
+            return False
+        salt, stored_hash = self.password_hash.split(':')
+        password_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+        return password_hash.hex() == stored_hash
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'role': self.role,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat(),
+            'last_login': self.last_login.isoformat() if self.last_login else None
+        }
+
+class UserSession(db.Model):
+    """Active user sessions for authentication"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    session_token = db.Column(db.String(255), unique=True, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+    
+    def is_expired(self):
+        return datetime.utcnow() > self.expires_at
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'session_token': self.session_token,
+            'expires_at': self.expires_at.isoformat(),
+            'created_at': self.created_at.isoformat(),
+            'ip_address': self.ip_address
+        }
+
+class AuditLog(db.Model):
+    """Audit log for tracking admin actions"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    action = db.Column(db.String(100), nullable=False)  # login, logout, complete_case, send_email, etc.
+    resource_type = db.Column(db.String(50), nullable=True)  # case, queue, user, etc.
+    resource_id = db.Column(db.String(50), nullable=True)  # ID of the affected resource
+    details = db.Column(db.Text, nullable=True)  # JSON string with additional details
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'action': self.action,
+            'resource_type': self.resource_type,
+            'resource_id': self.resource_id,
+            'details': json.loads(self.details) if self.details else None,
+            'ip_address': self.ip_address,
+            'timestamp': self.timestamp.isoformat()
         }
 
 class QueueTicket(db.Model):

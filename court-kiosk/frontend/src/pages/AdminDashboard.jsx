@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon } from 'lucide-react';
 import { getQueue, callNext, completeCase, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
+import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
 import FormsManagement from '../components/FormsManagement';
 import FormsSummary from '../components/FormsSummary';
 
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
+  const { user, logout, sessionToken } = useAuth();
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'forms'
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
@@ -15,6 +18,8 @@ const AdminDashboard = () => {
   const [caseSummary, setCaseSummary] = useState(null);
   const [error, setError] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [showCaseSummaryModal, setShowCaseSummaryModal] = useState(false);
+  const [caseSummaryData, setCaseSummaryData] = useState(null);
 
   useEffect(() => {
     fetchQueue();
@@ -26,7 +31,15 @@ const AdminDashboard = () => {
     try {
       setError(null);
       console.log('AdminDashboard: Fetching queue data...');
-      const data = await getQueue();
+      
+      // Use authenticated API if available, fallback to regular API
+      let data;
+      if (sessionToken) {
+        data = await getAdminQueue(sessionToken);
+      } else {
+        data = await getQueue();
+      }
+      
       console.log('AdminDashboard: Received queue data:', data);
       
       // Ensure queue is always an array
@@ -60,7 +73,11 @@ const AdminDashboard = () => {
 
   const handleCallNext = async () => {
     try {
-      await callNext();
+      if (sessionToken) {
+        await callNextAuthenticated(sessionToken);
+      } else {
+        await callNext();
+      }
       fetchQueue();
     } catch (error) {
       console.error('Error calling next number:', error);
@@ -70,7 +87,11 @@ const AdminDashboard = () => {
 
   const handleCompleteCase = async (queueNumber) => {
     try {
-      await completeCase(queueNumber);
+      if (sessionToken) {
+        await completeCaseAuthenticated(queueNumber, sessionToken);
+      } else {
+        await completeCase(queueNumber);
+      }
       fetchQueue();
       if (selectedCase?.queue_number === queueNumber) {
         setSelectedCase(null);
@@ -97,6 +118,11 @@ const AdminDashboard = () => {
     setSelectedCase(caseItem);
     // Flask backend does not expose a separate summary endpoint; use conversation_summary if present
     setCaseSummary(caseItem.conversation_summary || null);
+  };
+
+  const handleShowCaseSummary = (caseItem) => {
+    setCaseSummaryData(caseItem);
+    setShowCaseSummaryModal(true);
   };
 
   const handleSendEmail = async (caseItem) => {
@@ -339,6 +365,21 @@ const AdminDashboard = () => {
                 <Globe className="w-4 h-4 mr-2" />
                 {language === 'en' ? 'Español' : 'English'}
               </button>
+              {user && (
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center px-3 py-2 bg-purple-100 text-purple-800 rounded-lg">
+                    <UserIcon className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-medium">{user.username}</span>
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Logout' : 'Cerrar Sesión'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -441,13 +482,22 @@ const AdminDashboard = () => {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => handleCompleteCase(currentNumber.queue_number)}
-                className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                {language === 'en' ? 'Complete Case' : 'Completar Caso'}
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => handleShowCaseSummary(currentNumber)}
+                  className="flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Case Summary' : 'Resumen del Caso'}
+                </button>
+                <button
+                  onClick={() => handleCompleteCase(currentNumber.queue_number)}
+                  className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Complete Case' : 'Completar Caso'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -747,6 +797,14 @@ const AdminDashboard = () => {
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
+                  <button
+                    onClick={() => handleShowCaseSummary(selectedCase)}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'View Case Summary' : 'Ver Resumen del Caso'}
+                  </button>
+
                   {selectedCase.user_email && (
                     <button
                       onClick={() => handleSendEmail(selectedCase)}
@@ -799,6 +857,264 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <FormsSummary />
           <FormsManagement />
+        </div>
+      )}
+
+      {/* Case Summary Modal */}
+      {showCaseSummaryModal && caseSummaryData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {language === 'en' ? 'Case Summary' : 'Resumen del Caso'}
+              </h2>
+              <button
+                onClick={() => setShowCaseSummaryModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Case Header */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className={`w-12 h-12 ${getPriorityColor(caseSummaryData.priority || caseSummaryData.priority_level)} rounded-lg flex items-center justify-center mr-4`}>
+                      <span className="text-xl font-bold text-white">
+                        {caseSummaryData.queue_number}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {getPriorityLabel(caseSummaryData.priority || caseSummaryData.priority_level)[language]}
+                      </h3>
+                      <p className="text-gray-600">
+                        {language === 'en' ? 'Priority' : 'Prioridad'} {caseSummaryData.priority || caseSummaryData.priority_level}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Status' : 'Estado'}
+                    </p>
+                    <p className="font-medium capitalize">
+                      {caseSummaryData.status}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Information */}
+              {(caseSummaryData.user_name || caseSummaryData.user_email || caseSummaryData.phone_number) && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'User Information' : 'Información del Usuario'}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {caseSummaryData.user_name && (
+                      <div className="flex items-center p-3 bg-blue-50 rounded-lg">
+                        <Users className="w-5 h-5 text-blue-600 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            {language === 'en' ? 'Name' : 'Nombre'}
+                          </p>
+                          <p className="font-medium">{caseSummaryData.user_name}</p>
+                        </div>
+                      </div>
+                    )}
+                    {caseSummaryData.user_email && (
+                      <div className="flex items-center p-3 bg-green-50 rounded-lg">
+                        <Mail className="w-5 h-5 text-green-600 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            {language === 'en' ? 'Email' : 'Correo'}
+                          </p>
+                          <p className="font-medium">{caseSummaryData.user_email}</p>
+                        </div>
+                      </div>
+                    )}
+                    {caseSummaryData.phone_number && (
+                      <div className="flex items-center p-3 bg-purple-50 rounded-lg">
+                        <Phone className="w-5 h-5 text-purple-600 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            {language === 'en' ? 'Phone' : 'Teléfono'}
+                          </p>
+                          <p className="font-medium">{caseSummaryData.phone_number}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Case Details */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                  {language === 'en' ? 'Case Details' : 'Detalles del Caso'}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Case Type' : 'Tipo de Caso'}
+                    </p>
+                    <p className="font-medium">
+                      {caseSummaryData.case_type || getPriorityLabel(caseSummaryData.priority || caseSummaryData.priority_level)[language]}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Language' : 'Idioma'}
+                    </p>
+                    <p className="font-medium uppercase">
+                      {caseSummaryData.language || 'en'}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Wait Time' : 'Tiempo de Espera'}
+                    </p>
+                    <p className="font-medium">
+                      {calculateWaitTime(caseSummaryData.arrived_at || caseSummaryData.timestamp || caseSummaryData.created_at)}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Arrived At' : 'Llegó a las'}
+                    </p>
+                    <p className="font-medium">
+                      {caseSummaryData.arrived_at || caseSummaryData.timestamp || caseSummaryData.created_at 
+                        ? new Date(caseSummaryData.arrived_at || caseSummaryData.timestamp || caseSummaryData.created_at).toLocaleString()
+                        : 'N/A'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conversation Summary */}
+              {caseSummaryData.conversation_summary && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Conversation Summary' : 'Resumen de Conversación'}
+                  </h4>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {caseSummaryData.conversation_summary}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Current Step */}
+              {caseSummaryData.current_node && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Current Step' : 'Paso Actual'}
+                  </h4>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-gray-700">{caseSummaryData.current_node}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Documents Needed */}
+              {caseSummaryData.documents_needed && caseSummaryData.documents_needed.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Documents Needed' : 'Documentos Necesarios'}
+                  </h4>
+                  <div className="space-y-2">
+                    {caseSummaryData.documents_needed.map((doc, index) => (
+                      <div key={index} className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                        <p className="text-gray-700">{doc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Next Steps */}
+              {caseSummaryData.next_steps && caseSummaryData.next_steps.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Next Steps' : 'Próximos Pasos'}
+                  </h4>
+                  <div className="space-y-2">
+                    {caseSummaryData.next_steps.map((step, index) => (
+                      <div key={index} className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
+                        <p className="text-gray-700">{step}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Answers/History */}
+              {caseSummaryData.answers && Object.keys(caseSummaryData.answers).length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Case Answers' : 'Respuestas del Caso'}
+                  </h4>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {Object.entries(caseSummaryData.answers).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-gray-600 capitalize">
+                            {key.replace(/_/g, ' ')}:
+                          </span>
+                          <span className="font-medium">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* History */}
+              {caseSummaryData.history && caseSummaryData.history.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Case History' : 'Historial del Caso'}
+                  </h4>
+                  <div className="space-y-2">
+                    {caseSummaryData.history.map((item, index) => (
+                      <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                        <p className="text-gray-700">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowCaseSummaryModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {language === 'en' ? 'Close' : 'Cerrar'}
+              </button>
+              {caseSummaryData.user_email && (
+                <button
+                  onClick={() => {
+                    handleSendEmail(caseSummaryData);
+                    setShowCaseSummaryModal(false);
+                  }}
+                  disabled={sendingEmail}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Send Email' : 'Enviar Correo'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

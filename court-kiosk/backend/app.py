@@ -16,8 +16,9 @@ from email import encoders
 from utils.llm_service import LLMService
 from utils.email_service import EmailService
 from utils.case_summary_service import CaseSummaryService
+from utils.auth_service import AuthService
 from config import Config
-from models import db, QueueEntry
+from models import db, QueueEntry, User, UserSession, AuditLog
 from validation_schemas import (
     validate_request_data, AskQuestionSchema, SubmitSessionSchema, 
     GenerateQueueSchema, DVRORAGSchema, CallNextSchema, CompleteCaseSchema,
@@ -1109,7 +1110,257 @@ def send_queue_number_sms():
         app.logger.error(f"Error in send_queue_number_sms: {str(e)}")
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
+# =============================================================================
+# AUTHENTICATION ENDPOINTS
+# =============================================================================
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Login endpoint for admin users"""
+    try:
+        data = request.get_json()
+        if not data or not data.get('username') or not data.get('password'):
+            return jsonify({'success': False, 'error': 'Username and password required'}), 400
+        
+        result = AuthService.authenticate_user(data['username'], data['password'])
+        
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 401
+            
+    except Exception as e:
+        app.logger.error(f"Login error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/api/auth/logout', methods=['POST'])
+@AuthService.require_auth
+def logout():
+    """Logout endpoint"""
+    try:
+        session_token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        result = AuthService.logout_user(session_token)
+        return jsonify(result), 200
+    except Exception as e:
+        app.logger.error(f"Logout error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/api/auth/me', methods=['GET'])
+@AuthService.require_auth
+def get_current_user():
+    """Get current user information"""
+    try:
+        user = request.current_user
+        return jsonify({'success': True, 'user': user.to_dict()}), 200
+    except Exception as e:
+        app.logger.error(f"Get current user error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/api/auth/users', methods=['GET'])
+@AuthService.require_auth
+@AuthService.require_role('admin')
+def get_users():
+    """Get all users (admin only)"""
+    try:
+        users = User.query.filter_by(is_active=True).all()
+        return jsonify({
+            'success': True, 
+            'users': [user.to_dict() for user in users]
+        }), 200
+    except Exception as e:
+        app.logger.error(f"Get users error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/api/auth/users', methods=['POST'])
+@AuthService.require_auth
+@AuthService.require_role('admin')
+def create_user():
+    """Create new user (admin only)"""
+    try:
+        data = request.get_json()
+        if not data or not data.get('username') or not data.get('email') or not data.get('password'):
+            return jsonify({'success': False, 'error': 'Username, email, and password required'}), 400
+        
+        result = AuthService.create_user(
+            username=data['username'],
+            email=data['email'],
+            password=data['password'],
+            role=data.get('role', 'admin')
+        )
+        
+        if result['success']:
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        app.logger.error(f"Create user error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/api/auth/audit-logs', methods=['GET'])
+@AuthService.require_auth
+@AuthService.require_role('admin')
+def get_audit_logs():
+    """Get audit logs (admin only)"""
+    try:
+        limit = int(request.args.get('limit', 100))
+        offset = int(request.args.get('offset', 0))
+        user_id = request.args.get('user_id')
+        action = request.args.get('action')
+        
+        logs = AuthService.get_audit_logs(
+            limit=limit,
+            offset=offset,
+            user_id=int(user_id) if user_id else None,
+            action=action
+        )
+        
+        return jsonify({'success': True, 'logs': logs}), 200
+    except Exception as e:
+        app.logger.error(f"Get audit logs error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+# =============================================================================
+# PROTECTED ADMIN ENDPOINTS (require authentication)
+# =============================================================================
+
+@app.route('/api/admin/queue', methods=['GET'])
+@AuthService.require_auth
+def get_admin_queue():
+    """Get queue data for admin dashboard (protected)"""
+    try:
+        # Log the action
+        AuthService.log_action(
+            user_id=request.current_user.id,
+            action='view_queue',
+            resource_type='queue'
+        )
+        
+        # Use existing queue logic but with authentication
+        queue_entries = QueueEntry.query.filter_by(status='waiting').order_by(QueueEntry.priority_level, QueueEntry.created_at).all()
+        current_entry = QueueEntry.query.filter_by(status='in_progress').first()
+        
+        queue_data = []
+        for entry in queue_entries:
+            queue_data.append({
+                'queue_number': entry.queue_number,
+                'priority': entry.priority_level,
+                'case_type': entry.case_type,
+                'user_name': entry.user_name,
+                'user_email': entry.user_email,
+                'phone_number': entry.phone_number,
+                'language': entry.language,
+                'status': entry.status,
+                'created_at': entry.created_at.isoformat(),
+                'arrived_at': entry.created_at.isoformat(),
+                'conversation_summary': entry.conversation_summary,
+                'documents_needed': entry.documents_needed,
+                'next_steps': entry.next_steps
+            })
+        
+        current_number = None
+        if current_entry:
+            current_number = {
+                'queue_number': current_entry.queue_number,
+                'priority': current_entry.priority_level,
+                'case_type': current_entry.case_type,
+                'user_name': current_entry.user_name,
+                'created_at': current_entry.created_at.isoformat()
+            }
+        
+        return jsonify({
+            'success': True,
+            'queue': queue_data,
+            'current_number': current_number
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"Get admin queue error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/api/admin/call-next', methods=['POST'])
+@AuthService.require_auth
+def admin_call_next():
+    """Call next case (protected)"""
+    try:
+        # Log the action
+        AuthService.log_action(
+            user_id=request.current_user.id,
+            action='call_next',
+            resource_type='queue'
+        )
+        
+        # Use existing call next logic
+        next_entry = QueueEntry.query.filter_by(status='waiting').order_by(QueueEntry.priority_level, QueueEntry.created_at).first()
+        
+        if not next_entry:
+            return jsonify({'success': False, 'error': 'No cases in queue'}), 400
+        
+        # Update status
+        next_entry.status = 'in_progress'
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'queue_entry': {
+                'queue_number': next_entry.queue_number,
+                'priority': next_entry.priority_level,
+                'case_type': next_entry.case_type,
+                'user_name': next_entry.user_name
+            }
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"Admin call next error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/api/admin/complete-case', methods=['POST'])
+@AuthService.require_auth
+def admin_complete_case():
+    """Complete case (protected)"""
+    try:
+        data = request.get_json()
+        queue_number = data.get('queue_number')
+        
+        if not queue_number:
+            return jsonify({'success': False, 'error': 'Queue number required'}), 400
+        
+        # Log the action
+        AuthService.log_action(
+            user_id=request.current_user.id,
+            action='complete_case',
+            resource_type='case',
+            resource_id=queue_number
+        )
+        
+        # Use existing complete case logic
+        entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
+        if not entry:
+            return jsonify({'success': False, 'error': 'Case not found'}), 404
+        
+        entry.status = 'completed'
+        db.session.commit()
+        
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        app.logger.error(f"Admin complete case error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=False, port=1904)
+        
+        # Create default admin user if none exists
+        if not User.query.filter_by(username='admin').first():
+            admin_user = User(
+                username='admin',
+                email='admin@court.gov',
+                role='admin'
+            )
+            admin_user.set_password('admin123')  # Change this in production!
+            db.session.add(admin_user)
+            db.session.commit()
+            print("Created default admin user: admin/admin123")
+    
+    app.run(debug=False, port=5001)
