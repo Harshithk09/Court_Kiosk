@@ -17,7 +17,7 @@ from utils.llm_service import LLMService
 from utils.email_service import EmailService
 from utils.case_summary_service import CaseSummaryService
 from config import Config
-from models import db, QueueEntry
+from models import db, QueueEntry, FlowProgress, FacilitatorCase
 from validation_schemas import (
     validate_request_data, AskQuestionSchema, SubmitSessionSchema, 
     GenerateQueueSchema, DVRORAGSchema, CallNextSchema, CompleteCaseSchema,
@@ -540,37 +540,169 @@ def generate_queue():
         logger.error(f"Error in /api/generate-queue: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
+def _parse_json_list(value):
+    if not value:
+        return []
+    if isinstance(value, list):
+        return value
+    try:
+        parsed = json.loads(value)
+        if isinstance(parsed, list):
+            return parsed
+        if isinstance(parsed, str):
+            return [parsed]
+        return []
+    except Exception:
+        if isinstance(value, str):
+            return [value]
+        return []
+
+
+def _parse_next_steps(value):
+    if not value:
+        return []
+    if isinstance(value, list):
+        return value
+    try:
+        parsed = json.loads(value)
+        if isinstance(parsed, list):
+            return parsed
+        if isinstance(parsed, str):
+            return [parsed]
+    except Exception:
+        if isinstance(value, str):
+            return [step.strip() for step in value.split('\n') if step.strip()]
+    return []
+
+
+def _build_facilitator_map(entry_ids):
+    if not entry_ids:
+        return {}
+
+    facilitator_cases = FacilitatorCase.query \
+        .filter(FacilitatorCase.queue_entry_id.in_(entry_ids)) \
+        .order_by(FacilitatorCase.created_at.desc()) \
+        .all()
+
+    facilitator_map = {}
+    for case in facilitator_cases:
+        if case.queue_entry_id in facilitator_map:
+            continue
+        facilitator_map[case.queue_entry_id] = {
+            'recommended_forms': _parse_json_list(case.recommended_forms),
+            'recommended_next_steps': _parse_next_steps(case.next_steps),
+            'facilitator_notes': case.priority_notes,
+            'created_at': case.created_at
+        }
+    return facilitator_map
+
+
+def _build_progress_map(entry_ids):
+    if not entry_ids:
+        return {}
+
+    progress_entries = FlowProgress.query \
+        .filter(FlowProgress.queue_entry_id.in_(entry_ids)) \
+        .order_by(FlowProgress.timestamp.asc()) \
+        .all()
+
+    progress_map = {entry_id: [] for entry_id in entry_ids}
+    for progress in progress_entries:
+        progress_map.setdefault(progress.queue_entry_id, []).append({
+            'node_id': progress.node_id,
+            'node_text': progress.node_text,
+            'user_response': progress.user_response,
+            'timestamp': progress.timestamp.isoformat()
+        })
+    return progress_map
+
+
 @app.route('/api/queue', methods=['GET'])
 def get_queue():
-    # Get all waiting entries, ordered by priority and timestamp
-    queue = QueueEntry.query.filter_by(status='waiting').order_by(
+    now = datetime.utcnow()
+
+    queue_entries = QueueEntry.query.filter(
+        QueueEntry.status.in_(['waiting', 'in_progress', 'called'])
+    ).order_by(
         QueueEntry.priority_level.asc(),
         QueueEntry.timestamp.asc()
     ).all()
-    
-    # Get currently called number
+
+    entry_ids = [entry.id for entry in queue_entries]
+    progress_map = _build_progress_map(entry_ids)
+    facilitator_map = _build_facilitator_map(entry_ids)
+
+    def build_wait_minutes(entry):
+        try:
+            diff = now - entry.timestamp
+            minutes = int(diff.total_seconds() // 60)
+            return max(minutes, 0)
+        except Exception:
+            return 0
+
+    queue_payload = []
+    for entry in queue_entries:
+        facilitator_data = facilitator_map.get(entry.id, {})
+        documents_needed = _parse_json_list(entry.documents_needed)
+        wait_minutes = build_wait_minutes(entry)
+        recent_steps = progress_map.get(entry.id, [])[-3:]
+
+        queue_payload.append({
+            'queue_number': entry.queue_number,
+            'case_type': entry.case_type,
+            'priority': entry.priority_level,
+            'priority_level': entry.priority_level,
+            'timestamp': entry.timestamp.isoformat(),
+            'language': entry.language,
+            'user_name': entry.user_name,
+            'user_email': entry.user_email,
+            'phone_number': entry.phone_number,
+            'status': 'in_progress' if entry.status == 'called' else entry.status,
+            'current_node': entry.current_node,
+            'conversation_summary': entry.conversation_summary,
+            'documents_needed': documents_needed,
+            'estimated_wait_time': entry.estimated_wait_time,
+            'wait_time_minutes': wait_minutes,
+            'recent_steps': recent_steps,
+            'recommended_forms': facilitator_data.get('recommended_forms', []),
+            'recommended_next_steps': facilitator_data.get('recommended_next_steps', []),
+            'facilitator_notes': facilitator_data.get('facilitator_notes') or entry.facilitator_notes,
+            'updated_at': entry.updated_at.isoformat()
+        })
+
     current = QueueEntry.query.filter_by(status='called').order_by(QueueEntry.timestamp.desc()).first()
-    
-    return jsonify({
-        'queue': [{
-            'queue_number': item.queue_number,
-            'case_type': item.case_type,
-            'priority': item.priority_level,
-            'timestamp': item.timestamp.isoformat(),
-            'language': item.language,
-            'user_name': item.user_name,
-            'user_email': item.user_email,
-            'phone_number': item.phone_number
-        } for item in queue],
-        'current_number': {
+
+    current_payload = None
+    if current:
+        facilitator_data = facilitator_map.get(current.id, {})
+        documents_needed = _parse_json_list(current.documents_needed)
+        wait_minutes = build_wait_minutes(current)
+        current_payload = {
             'queue_number': current.queue_number,
             'case_type': current.case_type,
             'priority': current.priority_level,
+            'priority_level': current.priority_level,
             'timestamp': current.timestamp.isoformat(),
+            'language': current.language,
             'user_name': current.user_name,
             'user_email': current.user_email,
-            'phone_number': current.phone_number
-        } if current else None
+            'phone_number': current.phone_number,
+            'status': 'in_progress',
+            'current_node': current.current_node,
+            'conversation_summary': current.conversation_summary,
+            'documents_needed': documents_needed,
+            'estimated_wait_time': current.estimated_wait_time,
+            'wait_time_minutes': wait_minutes,
+            'recent_steps': progress_map.get(current.id, [])[-3:],
+            'recommended_forms': facilitator_data.get('recommended_forms', []),
+            'recommended_next_steps': facilitator_data.get('recommended_next_steps', []),
+            'facilitator_notes': facilitator_data.get('facilitator_notes') or current.facilitator_notes,
+            'updated_at': current.updated_at.isoformat()
+        }
+
+    return jsonify({
+        'queue': queue_payload,
+        'current_number': current_payload
     })
 
 @app.route('/api/call-next', methods=['POST'])
@@ -777,6 +909,94 @@ def send_comprehensive_email():
     except Exception as e:
         app.logger.error(f"Error sending comprehensive email: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/queue/<queue_number>/summary', methods=['GET'])
+def get_queue_summary(queue_number):
+    entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
+    if not entry:
+        return jsonify({'success': False, 'error': 'Queue entry not found'}), 404
+
+    progress_map = _build_progress_map([entry.id])
+    facilitator_map = _build_facilitator_map([entry.id])
+
+    documents_needed = _parse_json_list(entry.documents_needed)
+    wait_minutes = 0
+    try:
+        wait_minutes = max(int((datetime.utcnow() - entry.timestamp).total_seconds() // 60), 0)
+    except Exception:
+        wait_minutes = 0
+
+    progress_entries = progress_map.get(entry.id, [])
+    facilitator_data = facilitator_map.get(entry.id, {})
+
+    summary_text = entry.conversation_summary or ''
+    if not summary_text and progress_entries:
+        summary_text = "\n".join([f"• {step['node_text']}" for step in progress_entries[-5:]])
+
+    recommended_forms = facilitator_data.get('recommended_forms', []) or documents_needed
+    recommended_next_steps = facilitator_data.get('recommended_next_steps', [])
+
+    advice_items = []
+    for form in recommended_forms:
+        advice_items.append(f"Assist the client with {form}.")
+    for step in recommended_next_steps:
+        advice_items.append(step)
+
+    if not advice_items:
+        advice_items.append('Review the case details with the client and confirm their next legal steps.')
+
+    case_payload = {
+        'queue_number': entry.queue_number,
+        'case_type': entry.case_type,
+        'priority': entry.priority_level,
+        'priority_level': entry.priority_level,
+        'status': entry.status,
+        'language': entry.language,
+        'user_name': entry.user_name,
+        'user_email': entry.user_email,
+        'phone_number': entry.phone_number,
+        'current_node': entry.current_node,
+        'conversation_summary': entry.conversation_summary,
+        'documents_needed': documents_needed,
+        'estimated_wait_time': entry.estimated_wait_time,
+        'wait_time_minutes': wait_minutes,
+        'timestamp': entry.timestamp.isoformat(),
+        'updated_at': entry.updated_at.isoformat(),
+        'facilitator_notes': facilitator_data.get('facilitator_notes') or entry.facilitator_notes
+    }
+
+    return jsonify({
+        'success': True,
+        'case': case_payload,
+        'progress': progress_entries,
+        'summary_text': summary_text,
+        'recommended_forms': recommended_forms,
+        'recommended_next_steps': recommended_next_steps,
+        'advice': advice_items
+    })
+
+
+@app.route('/api/system/status', methods=['GET'])
+def get_system_status():
+    email_configured = bool(Config.RESEND_API_KEY or (
+        Config.EMAIL_HOST and Config.EMAIL_USER and Config.EMAIL_PASS
+    ))
+
+    provider = 'resend' if Config.RESEND_API_KEY else 'smtp' if email_configured else 'unconfigured'
+
+    return jsonify({
+        'success': True,
+        'email': {
+            'configured': email_configured,
+            'provider': provider,
+            'from_address': getattr(Config, 'EMAIL_USER', None)
+        },
+        'api': {
+            'deployed': bool(os.getenv('VERCEL') or os.getenv('VERCEL_URL') or os.getenv('RENDER')),  # heuristic
+            'vercel_url': os.getenv('VERCEL_URL')
+        }
+    })
 
 @app.route('/api/generate-case-summary', methods=['POST'])
 def generate_case_summary():

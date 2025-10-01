@@ -286,31 +286,17 @@ export const addTestData = async () => {
 export const getQueue = async () => {
   const backendCall = async () => {
     console.log('Fetching queue data from backend...');
-    const data = await makeRequest('/api/queue/status');
+    const data = await makeRequest('/api/queue');
     console.log('Backend queue data received:', data);
-    
-    // Transform enhanced backend data to match expected format
-    const allQueueEntries = [
-      ...(data.waiting || []),
-      ...(data.in_progress || []),
-      ...(data.completed || [])
-    ];
-    
-    console.log('Transformed queue entries:', allQueueEntries);
-    
-    // Find the currently active entry (in_progress or the first waiting)
-    let currentNumber = null;
-    if (data.in_progress && data.in_progress.length > 0) {
-      currentNumber = data.in_progress[0];
-    } else if (data.waiting && data.waiting.length > 0) {
-      currentNumber = data.waiting[0];
-    }
-    
+
+    const queueEntries = data.queue || [];
+    const currentNumber = data.current_number || null;
+
     const result = {
-      queue: allQueueEntries,
+      queue: queueEntries,
       current_number: currentNumber
     };
-    
+
     console.log('Final queue result:', result);
     return result;
   };
@@ -478,6 +464,19 @@ export const getCaseSummary = async (queueNumber) => {
     return await makeRequest(`/api/queue/${queueNumber}/summary`);
   } catch (error) {
     console.log('Failed to get case summary:', error.message);
+    return { success: false };
+  }
+};
+
+/**
+ * Get system status information including email configuration
+ * @returns {Promise<Object>} System status payload
+ */
+export const getSystemStatus = async () => {
+  try {
+    return await makeRequest('/api/system/status');
+  } catch (error) {
+    console.log('Failed to fetch system status:', error.message);
     return { success: false };
   }
 };
