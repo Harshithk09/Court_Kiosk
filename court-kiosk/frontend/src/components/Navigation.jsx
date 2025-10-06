@@ -1,16 +1,40 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import LogoSeal from './LogoSeal';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 
 const Navigation = () => {
   const location = useLocation();
+  const { t } = useLanguage();
 
-  const navItems = [
-    { path: '/', label: 'Home', description: 'Main kiosk interface' },
-    { path: '/dvro', label: 'DVRO Flow', description: 'Original DVRO flow' },
-    { path: '/divorce', label: 'Divorce Flow', description: 'Divorce process guide' },
-    { path: '/admin', label: 'Admin', description: 'Administrative dashboard' }
-  ];
+  const navItems = useMemo(() => ([
+    {
+      path: '/',
+      label: t('navigation.home'),
+      description: t('navigation.homeDescription')
+    },
+    {
+      path: '/dvro',
+      label: t('navigation.dvroFlow'),
+      description: t('navigation.dvroDescription')
+    },
+    {
+      path: '/divorce',
+      label: t('navigation.divorceFlow'),
+      description: t('navigation.divorceDescription')
+    },
+    {
+      path: '/admin',
+      label: t('navigation.admin'),
+      description: t('navigation.adminDescription')
+    },
+    {
+      path: '/attorney',
+      label: t('navigation.attorney'),
+      description: t('navigation.attorneyDescription')
+    }
+  ]), [t]);
 
   return (
     <nav className="bg-white border-b border-gray-200 px-4 py-2">
@@ -41,9 +65,12 @@ const Navigation = () => {
               ))}
             </div>
           </div>
-          
-          <div className="text-xs text-gray-500">
-            Enhanced DVRO System
+
+          <div className="flex items-center gap-4">
+            <LanguageSelector size="sm" />
+            <div className="text-xs text-gray-500">
+              {t('navigation.footerTagline')}
+            </div>
           </div>
         </div>
       </div>

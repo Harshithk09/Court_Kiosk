@@ -1,7 +1,11 @@
 import React from 'react';
-import { Scale, Globe, Shield } from 'lucide-react';
+import { Scale, Shield } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 
-const ModernCourtHeader = ({ onLanguageToggle, currentLanguage = 'en' }) => {
+const ModernCourtHeader = ({ showLanguageSelector = true }) => {
+  const { t } = useLanguage();
+
   return (
     <header className="relative z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -13,31 +17,23 @@ const ModernCourtHeader = ({ onLanguageToggle, currentLanguage = 'en' }) => {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold text-foreground">
-                San Mateo Family Court
+                {t('common.appName')}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Self-Service Kiosk
+                {t('common.appSubtitle')}
               </p>
             </div>
           </div>
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
-            {/* Language Toggle */}
-            {onLanguageToggle && (
-              <button
-                onClick={onLanguageToggle}
-                className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-card/50 border border-border/50 text-sm font-medium text-foreground hover:bg-card/80 transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                <span>{currentLanguage === 'en' ? 'Español' : 'English'}</span>
-              </button>
-            )}
+            {/* Language Selector */}
+            {showLanguageSelector && <LanguageSelector size="sm" />}
 
             {/* Security Status */}
             <div className="inline-flex items-center space-x-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-sm font-medium text-green-600">
               <Shield className="w-4 h-4" />
-              <span>Secure Session</span>
+              <span>{t('common.secureSessionLabel')}</span>
             </div>
           </div>
         </div>

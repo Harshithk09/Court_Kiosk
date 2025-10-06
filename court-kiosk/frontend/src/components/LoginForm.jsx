@@ -5,6 +5,7 @@ import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 const LoginForm = ({ onLoginSuccess }) => {
   const { language } = useLanguage();
+  const isSpanish = language === 'es';
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
@@ -45,12 +46,12 @@ const LoginForm = ({ onLoginSuccess }) => {
             <Lock className="h-6 w-6 text-blue-600" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {language === 'en' ? 'Admin Login' : 'Inicio de Sesión de Administrador'}
+            {isSpanish ? 'Inicio de Sesión de Administrador' : 'Admin Login'}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {language === 'en' 
-              ? 'Sign in to access the court kiosk admin dashboard'
-              : 'Inicia sesión para acceder al panel de administración del kiosco judicial'
+            {isSpanish
+              ? 'Inicia sesión para acceder al panel de administración del kiosco judicial'
+              : 'Sign in to access the court kiosk admin dashboard'
             }
           </p>
         </div>
@@ -70,7 +71,7 @@ const LoginForm = ({ onLoginSuccess }) => {
           <div className="space-y-4">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                {language === 'en' ? 'Username' : 'Nombre de Usuario'}
+                {isSpanish ? 'Nombre de Usuario' : 'Username'}
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -84,14 +85,14 @@ const LoginForm = ({ onLoginSuccess }) => {
                   value={formData.username}
                   onChange={handleChange}
                   className="appearance-none relative block w-full pl-10 pr-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder={language === 'en' ? 'Enter your username' : 'Ingresa tu nombre de usuario'}
+                  placeholder={isSpanish ? 'Ingresa tu nombre de usuario' : 'Enter your username'}
                 />
               </div>
             </div>
             
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                {language === 'en' ? 'Password' : 'Contraseña'}
+                {isSpanish ? 'Contraseña' : 'Password'}
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -105,7 +106,7 @@ const LoginForm = ({ onLoginSuccess }) => {
                   value={formData.password}
                   onChange={handleChange}
                   className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder={language === 'en' ? 'Enter your password' : 'Ingresa tu contraseña'}
+                  placeholder={isSpanish ? 'Ingresa tu contraseña' : 'Enter your password'}
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <button
@@ -133,20 +134,20 @@ const LoginForm = ({ onLoginSuccess }) => {
               {loading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {language === 'en' ? 'Signing in...' : 'Iniciando sesión...'}
+                  {isSpanish ? 'Iniciando sesión...' : 'Signing in...'}
                 </div>
               ) : (
-                language === 'en' ? 'Sign In' : 'Iniciar Sesión'
+                isSpanish ? 'Iniciar Sesión' : 'Sign In'
               )}
             </button>
           </div>
 
           <div className="text-center">
             <div className="text-sm text-gray-600">
-              {language === 'en' ? 'Default credentials:' : 'Credenciales por defecto:'}
+              {isSpanish ? 'Credenciales por defecto:' : 'Default credentials:'}
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              {language === 'en' ? 'Username: admin | Password: admin123' : 'Usuario: admin | Contraseña: admin123'}
+              {isSpanish ? 'Usuario: admin | Contraseña: admin123' : 'Username: admin | Password: admin123'}
             </div>
           </div>
         </form>
