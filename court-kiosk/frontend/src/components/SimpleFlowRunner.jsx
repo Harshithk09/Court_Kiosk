@@ -175,29 +175,36 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                   return (
                     <div
                       key={nodeId}
-                      className={`p-4 cursor-pointer transition-colors progress-step ${
+                      className={`p-6 cursor-pointer transition-all duration-200 progress-step ${
                         isCurrent 
-                          ? 'bg-blue-100 text-blue-900 current' 
+                          ? 'bg-blue-100 text-blue-900 current shadow-md border-l-4 border-blue-500' 
                           : isClickable
-                            ? 'bg-white hover:bg-gray-50'
-                            : 'bg-gray-50'
+                            ? 'bg-white hover:bg-blue-50 hover:shadow-sm border-l-4 border-transparent hover:border-blue-300'
+                            : 'bg-gray-50 border-l-4 border-gray-300'
                       } ${!isLast ? 'border-b border-gray-200' : ''}`}
                       onClick={isClickable ? () => handleHistoryClick(nodeId) : undefined}
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+                      <div className="flex items-start space-x-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm ${
                           isCurrent 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-gray-300 text-gray-600'
+                            ? 'bg-blue-600 text-white shadow-lg' 
+                            : isClickable
+                              ? 'bg-white text-gray-600 border-2 border-gray-300 hover:border-blue-400'
+                              : 'bg-gray-300 text-gray-600'
                         }`}>
                           {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm ${
-                            isCurrent ? 'font-medium' : ''
+                          <p className={`text-base leading-relaxed ${
+                            isCurrent ? 'font-semibold' : isClickable ? 'font-medium' : 'font-normal'
                           }`}>
-                            {node?.text?.substring(0, 45)}...
+                            {node?.text?.substring(0, 60)}...
                           </p>
+                          {isClickable && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Tap to go back
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -239,43 +246,78 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                         const isLast = index === outgoingEdges.length - 1;
                         
                         // Check if this is an informational message that shouldn't be a button
-                        const isQualificationMessage = edge.to === 'DVStart' || targetNode?.text?.includes('You may qualify for a Domestic Violence');
-                        const isTimingInfo = edge.to === 'DVTiming' || targetNode?.text?.includes('Important Information: If you file for a Domestic Violence Restraining Order before noon');
-                        const isInformationalNode = isQualificationMessage || isTimingInfo;
+                        // Only treat as informational if it's a direct edge without a "when" condition (meaning it's not a user choice)
+                        const isInformationalNode = !edge.when && (
+                          edge.to === 'DVStart' || 
+                          edge.to === 'DVTiming' || 
+                          edge.to === 'DVForms' ||
+                          targetNode?.text?.includes('Important Information: If you file for a Domestic Violence Restraining Order before noon') ||
+                          targetNode?.text?.includes('To start a Domestic Violence Restraining Order (DVRO), fill out required forms')
+                        );
                         
                         if (isInformationalNode) {
                           // Render as plain text/info box instead of button
-                          const isTimingMessage = isTimingInfo;
+                          const isTimingMessage = edge.to === 'DVTiming' || targetNode?.text?.includes('Important Information: If you file for a Domestic Violence Restraining Order before noon');
+                          const isFormsMessage = edge.to === 'DVForms' || targetNode?.text?.includes('To start a Domestic Violence Restraining Order (DVRO), fill out required forms');
                           return (
                             <div
                               key={index}
-                              className={`w-full p-5 ${
+                              className={`w-full p-8 rounded-xl shadow-sm ${
                                 isTimingMessage 
                                   ? 'bg-yellow-50 border-l-4 border-yellow-400' 
-                                  : 'bg-blue-50 border-l-4 border-blue-400'
+                                  : isFormsMessage
+                                    ? 'bg-gray-50 border-l-4 border-gray-400'
+                                    : 'bg-blue-50 border-l-4 border-blue-400'
                               } ${
-                                !isLast ? 'border-b border-gray-200' : ''
+                                !isLast ? 'border-b-2 border-gray-200' : ''
                               }`}
                             >
-                              <div className={`font-medium text-lg mb-1 ${
-                                isTimingMessage ? 'text-yellow-900' : 'text-blue-900'
-                              }`}>
-                                {buttonText}
-                              </div>
-                              {description && (
-                                <div className={`text-sm ${
-                                  isTimingMessage ? 'text-yellow-700' : 'text-blue-700'
+                              <div className="flex items-start space-x-4">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  isTimingMessage 
+                                    ? 'bg-yellow-200' 
+                                    : isFormsMessage
+                                      ? 'bg-gray-200'
+                                      : 'bg-blue-200'
                                 }`}>
-                                  {description}
+                                  <div className={`w-6 h-6 rounded-full ${
+                                    isTimingMessage 
+                                      ? 'bg-yellow-600' 
+                                      : isFormsMessage
+                                        ? 'bg-gray-600'
+                                        : 'bg-blue-600'
+                                  }`}></div>
                                 </div>
-                              )}
-                              <div className="mt-3">
-                                <button
-                                  onClick={() => handleChoice(index)}
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                                >
-                                  Continue
-                                </button>
+                                <div className="flex-1">
+                                  <div className={`font-semibold text-xl mb-2 ${
+                                    isTimingMessage ? 'text-yellow-900' : isFormsMessage ? 'text-gray-900' : 'text-blue-900'
+                                  }`}>
+                                    {buttonText}
+                                  </div>
+                                  {description && (
+                                    <div className={`text-base leading-relaxed ${
+                                      isTimingMessage ? 'text-yellow-700' : isFormsMessage ? 'text-gray-700' : 'text-blue-700'
+                                    }`}>
+                                      {description}
+                                    </div>
+                                  )}
+                                  {/* Only show Continue button for the last informational node (DVForms) */}
+                                  {isFormsMessage && (
+                                    <div className="mt-6">
+                                      <button
+                                        onClick={() => handleChoice(index)}
+                                        className="px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-semibold text-lg shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+                                      >
+                                        <div className="flex items-center justify-center space-x-3">
+                                          <span>Continue</span>
+                                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                          </svg>
+                                        </div>
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           );
@@ -285,18 +327,25 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                           <button
                             key={index}
                             onClick={() => handleChoice(index)}
-                            className={`w-full text-left p-5 border-none bg-white hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
-                              !isLast ? 'border-b border-gray-200' : ''
+                            className={`w-full text-left p-8 border-none bg-white hover:bg-blue-50 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-inset shadow-sm hover:shadow-md ${
+                              !isLast ? 'border-b-2 border-gray-200' : ''
                             }`}
                           >
-                            <div className="font-medium text-gray-900 text-lg mb-1">
-                              {buttonText}
-                            </div>
-                            {description && (
-                              <div className="text-sm text-gray-600">
-                                {description}
+                            <div className="flex items-start space-x-4">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                                <div className="w-4 h-4 rounded-full bg-blue-600"></div>
                               </div>
-                            )}
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-900 text-xl mb-2">
+                                  {buttonText}
+                                </div>
+                                {description && (
+                                  <div className="text-base text-gray-600 leading-relaxed">
+                                    {description}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </button>
                         );
                       })}
@@ -305,9 +354,14 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                     // Single next step
                     <button
                       onClick={() => handleNext(outgoingEdges[0].to)}
-                      className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg"
+                      className="w-full p-8 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-semibold text-xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300"
                     >
-                      Continue
+                      <div className="flex items-center justify-center space-x-3">
+                        <span>Continue</span>
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </button>
                   ) : outgoingEdges.length === 0 ? (
                     // No outgoing edges - end of flow

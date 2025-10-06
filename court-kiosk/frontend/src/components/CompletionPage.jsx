@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { addToQueue } from '../utils/queueAPI';
+import { buildApiUrl } from '../utils/apiConfig';
 
 const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const [selectedOption, setSelectedOption] = useState('');
@@ -108,11 +109,8 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const handleEmailRequest = async () => {
     setIsSubmitting(true);
     try {
-      // Use environment-based API URL
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:1904';
-      
-      // Send case summary email using the new endpoint
-      const response = await fetch(`${apiUrl}/api/email/send-case-summary`, {
+      // Send case summary email using the centralized API configuration
+      const response = await fetch(buildApiUrl('/api/email/send-case-summary'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

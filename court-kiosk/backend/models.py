@@ -161,7 +161,7 @@ class QueueEntry(db.Model):
     conversation_summary = db.Column(db.Text, nullable=True)
     documents_needed = db.Column(db.Text, nullable=True)
     estimated_wait_time = db.Column(db.Integer, nullable=True)  # in minutes
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)  # Renamed from created_at for consistency
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     facilitator_notes = db.Column(db.Text, nullable=True)
     
@@ -181,7 +181,7 @@ class QueueEntry(db.Model):
             'conversation_summary': self.conversation_summary,
             'documents_needed': json.loads(self.documents_needed) if self.documents_needed else [],
             'estimated_wait_time': self.estimated_wait_time,
-            'timestamp': self.timestamp.isoformat(),  # Updated to use timestamp
+            'timestamp': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'facilitator_notes': self.facilitator_notes
         }

@@ -543,36 +543,40 @@ def generate_queue():
 
 @app.route('/api/queue', methods=['GET'])
 def get_queue():
-    # Get all waiting entries, ordered by priority and timestamp
-    queue = QueueEntry.query.filter_by(status='waiting').order_by(
-        QueueEntry.priority_level.asc(),
-        QueueEntry.timestamp.asc()
-    ).all()
-    
-    # Get currently called number
-    current = QueueEntry.query.filter_by(status='called').order_by(QueueEntry.timestamp.desc()).first()
-    
-    return jsonify({
-        'queue': [{
-            'queue_number': item.queue_number,
-            'case_type': item.case_type,
-            'priority': item.priority_level,
-            'timestamp': item.timestamp.isoformat(),
-            'language': item.language,
-            'user_name': item.user_name,
-            'user_email': item.user_email,
-            'phone_number': item.phone_number
-        } for item in queue],
-        'current_number': {
-            'queue_number': current.queue_number,
-            'case_type': current.case_type,
-            'priority': current.priority_level,
-            'timestamp': current.timestamp.isoformat(),
-            'user_name': current.user_name,
-            'user_email': current.user_email,
-            'phone_number': current.phone_number
-        } if current else None
-    })
+    try:
+        # Get all waiting entries, ordered by priority and timestamp
+        queue = QueueEntry.query.filter_by(status='waiting').order_by(
+            QueueEntry.priority_level.asc(),
+            QueueEntry.created_at.asc()
+        ).all()
+        
+        # Get currently called number
+        current = QueueEntry.query.filter_by(status='called').order_by(QueueEntry.created_at.desc()).first()
+        
+        return jsonify({
+            'queue': [{
+                'queue_number': item.queue_number,
+                'case_type': item.case_type,
+                'priority': item.priority_level,
+                'timestamp': item.created_at.isoformat(),
+                'language': item.language,
+                'user_name': item.user_name,
+                'user_email': item.user_email,
+                'phone_number': item.phone_number
+            } for item in queue],
+            'current_number': {
+                'queue_number': current.queue_number,
+                'case_type': current.case_type,
+                'priority': current.priority_level,
+                'timestamp': current.created_at.isoformat(),
+                'user_name': current.user_name,
+                'user_email': current.user_email,
+                'phone_number': current.phone_number
+            } if current else None
+        })
+    except Exception as e:
+        logger.error(f"Error in /api/queue: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/call-next', methods=['POST'])
 def call_next():
