@@ -1,107 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import {
-  Users,
-  CheckCircle,
-  RefreshCw,
-  Shield,
-  Heart,
-  FileText,
-  Globe,
-  Phone,
-  Mail,
-  Clock,
-  AlertTriangle,
-  Send,
-  ClipboardList,
-  ListChecks,
-  Timer,
-  Activity
-} from 'lucide-react';
-import {
-  getQueue,
-  callNext,
-  completeCase,
-  getCaseSummary,
-  addTestData,
-  sendComprehensiveEmail,
-  getSystemStatus
-} from '../utils/queueAPI';
+import { useAuth } from '../contexts/AuthContext';
+import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon } from 'lucide-react';
+import { getQueue, callNext, completeCase, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
+import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
 import FormsManagement from '../components/FormsManagement';
 import FormsSummary from '../components/FormsSummary';
 
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
+  const { user, logout, sessionToken } = useAuth();
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'forms'
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedCase, setSelectedCase] = useState(null);
   const [caseSummary, setCaseSummary] = useState(null);
-  const [caseProgress, setCaseProgress] = useState([]);
-  const [caseAdvice, setCaseAdvice] = useState([]);
-  const [caseForms, setCaseForms] = useState([]);
-  const [caseNextSteps, setCaseNextSteps] = useState([]);
-  const [systemStatus, setSystemStatus] = useState(null);
   const [error, setError] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [showCaseSummaryModal, setShowCaseSummaryModal] = useState(false);
+  const [caseSummaryData, setCaseSummaryData] = useState(null);
 
-  const normalizeCaseData = (data) => {
-    if (!data) return null;
-
-    const createdAt = data.arrived_at || data.timestamp || data.created_at;
-    const waitMinutesFromApi =
-      typeof data.wait_time_minutes === 'number'
-        ? data.wait_time_minutes
-        : data.waitTimeMinutes;
-
-    let waitMinutes = waitMinutesFromApi ?? 0;
-    if (!waitMinutes && createdAt) {
-      const createdDate = new Date(createdAt);
-      const now = new Date();
-      waitMinutes = createdDate <= now
-        ? Math.max(Math.floor((now - createdDate) / (1000 * 60)), 0)
-        : 0;
-    }
-
-    return {
-      ...data,
-      priority: data.priority || data.priority_level,
-      priority_level: data.priority_level || data.priority,
-      waitTimeMinutes: waitMinutes,
-      waitTimeFormatted: data.wait_time_formatted || data.waitTimeFormatted || calculateWaitTime(createdAt),
-      documents_needed: data.documents_needed || [],
-      recommended_forms: data.recommended_forms || [],
-      recommended_next_steps: data.recommended_next_steps || [],
-      recent_steps: data.recent_steps || []
-    };
-  };
+  useEffect(() => {
+    fetchQueue();
+    const interval = setInterval(fetchQueue, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchQueue = async () => {
     try {
       setError(null);
       console.log('AdminDashboard: Fetching queue data...');
-      const data = await getQueue();
+      
+      // Use authenticated API if available, fallback to regular API
+      let data;
+      if (sessionToken) {
+        data = await getAdminQueue(sessionToken);
+      } else {
+        data = await getQueue();
+      }
+      
       console.log('AdminDashboard: Received queue data:', data);
-
+      
       // Ensure queue is always an array
       const queueArray = data.queue || [];
       console.log('AdminDashboard: Setting queue array:', queueArray);
       setQueue(queueArray);
-      setCurrentNumber(data.current_number ? normalizeCaseData(data.current_number) : null);
-
-      setSelectedCase((previous) => {
-        if (!previous) return previous;
-        const updated = queueArray.find(item => item.queue_number === previous.queue_number);
-        if (!updated) {
-          return previous;
-        }
-        return {
-          ...previous,
-          ...normalizeCaseData(updated)
-        };
-      });
-
+      setCurrentNumber(data.current_number || null);
+      
       // Log queue statistics
       console.log('AdminDashboard: Queue statistics:');
       console.log('- Total cases:', queueArray.length);
@@ -125,34 +71,13 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchSystemStatus = async () => {
-    try {
-      const status = await getSystemStatus();
-      if (status.success) {
-        setSystemStatus(status);
-      } else {
-        setSystemStatus(null);
-      }
-    } catch (statusError) {
-      console.error('Error fetching system status:', statusError);
-      setSystemStatus(null);
-    }
-  };
-
-  useEffect(() => {
-    fetchQueue();
-    fetchSystemStatus();
-    const interval = setInterval(fetchQueue, 5000); // Refresh every 5 seconds
-    const statusInterval = setInterval(fetchSystemStatus, 60000);
-    return () => {
-      clearInterval(interval);
-      clearInterval(statusInterval);
-    };
-  }, []);
-
   const handleCallNext = async () => {
     try {
-      await callNext();
+      if (sessionToken) {
+        await callNextAuthenticated(sessionToken);
+      } else {
+        await callNext();
+      }
       fetchQueue();
     } catch (error) {
       console.error('Error calling next number:', error);
@@ -162,15 +87,15 @@ const AdminDashboard = () => {
 
   const handleCompleteCase = async (queueNumber) => {
     try {
-      await completeCase(queueNumber);
+      if (sessionToken) {
+        await completeCaseAuthenticated(queueNumber, sessionToken);
+      } else {
+        await completeCase(queueNumber);
+      }
       fetchQueue();
       if (selectedCase?.queue_number === queueNumber) {
         setSelectedCase(null);
         setCaseSummary(null);
-        setCaseProgress([]);
-        setCaseAdvice([]);
-        setCaseForms([]);
-        setCaseNextSteps([]);
       }
     } catch (error) {
       console.error('Error completing case:', error);
@@ -190,49 +115,14 @@ const AdminDashboard = () => {
   };
 
   const handleCaseSelect = async (caseItem) => {
-    const normalized = normalizeCaseData(caseItem);
-    setSelectedCase(normalized);
-    setCaseSummary(normalized?.conversation_summary || null);
-    setCaseProgress(normalized?.recent_steps || []);
-    setCaseAdvice(normalized?.recommended_next_steps || []);
-    setCaseForms((normalized?.recommended_forms?.length ? normalized.recommended_forms : normalized?.documents_needed) || []);
-    setCaseNextSteps(normalized?.recommended_next_steps || []);
-    try {
-      // Get detailed case summary from backend
-      const summaryData = await getCaseSummary(caseItem.queue_number);
-      if (summaryData.success) {
-        setCaseSummary(summaryData.summary_text || summaryData.summary || normalized?.conversation_summary || null);
-        setCaseProgress(summaryData.progress || []);
-        const adviceItems = summaryData.advice || [];
-        setCaseAdvice(adviceItems);
+    setSelectedCase(caseItem);
+    // Flask backend does not expose a separate summary endpoint; use conversation_summary if present
+    setCaseSummary(caseItem.conversation_summary || null);
+  };
 
-        const updatedCase = summaryData.case ? normalizeCaseData(summaryData.case) : null;
-        if (updatedCase) {
-          setSelectedCase(prev => ({ ...prev, ...updatedCase }));
-        }
-
-        const forms = summaryData.recommended_forms && summaryData.recommended_forms.length > 0
-          ? summaryData.recommended_forms
-          : (updatedCase?.documents_needed || normalized?.documents_needed || []);
-        setCaseForms(forms);
-
-        const nextSteps = summaryData.recommended_next_steps && summaryData.recommended_next_steps.length > 0
-          ? summaryData.recommended_next_steps
-          : adviceItems;
-        setCaseNextSteps(nextSteps);
-      } else {
-        setCaseSummary(null);
-        setCaseProgress([]);
-        setCaseAdvice([]);
-        setCaseNextSteps([]);
-      }
-    } catch (error) {
-      console.error('Error fetching case summary:', error);
-      setCaseSummary(null);
-      setCaseProgress([]);
-      setCaseAdvice([]);
-      setCaseNextSteps([]);
-    }
+  const handleShowCaseSummary = (caseItem) => {
+    setCaseSummaryData(caseItem);
+    setShowCaseSummaryModal(true);
   };
 
   const handleSendEmail = async (caseItem) => {
@@ -250,15 +140,9 @@ const AdminDashboard = () => {
         priority: caseItem.priority || caseItem.priority_level || 'A',
         language: caseItem.language || 'en',
         queue_number: caseItem.queue_number,
-        forms: (caseItem.recommended_forms && caseItem.recommended_forms.length > 0)
-          ? caseItem.recommended_forms
-          : caseItem.documents_needed || (caseItem.queue_number === selectedCase?.queue_number ? caseForms : []),
-        next_steps: (caseItem.recommended_next_steps && caseItem.recommended_next_steps.length > 0)
-          ? caseItem.recommended_next_steps
-          : caseItem.next_steps || (caseItem.queue_number === selectedCase?.queue_number ? caseNextSteps : []),
-        summary: caseItem.queue_number === selectedCase?.queue_number
-          ? (caseSummary || caseItem.conversation_summary || '')
-          : (caseItem.conversation_summary || ''),
+        forms: caseItem.documents_needed || [],
+        next_steps: caseItem.next_steps || [],
+        summary: caseItem.conversation_summary || '',
         phone_number: caseItem.phone_number,
         include_queue: true // Always include queue info in admin emails
       });
@@ -313,7 +197,6 @@ const AdminDashboard = () => {
     switch (status) {
       case 'waiting': return 'bg-yellow-500';
       case 'in_progress': return 'bg-blue-500';
-      case 'called': return 'bg-blue-500';
       case 'completed': return 'bg-green-500';
       case 'cancelled': return 'bg-red-500';
       default: return 'bg-gray-500';
@@ -355,18 +238,6 @@ const AdminDashboard = () => {
     return null;
   };
 
-  const formatMinutes = (minutes) => {
-    if (!minutes || minutes <= 0) {
-      return '0m';
-    }
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hrs > 0) {
-      return `${hrs}h ${mins}m`;
-    }
-    return `${mins}m`;
-  };
-
   // Ensure queue is an array before using reduce
   // const groupedQueue = (queue || []).reduce((acc, item) => {
   //   // Handle both 'priority' and 'priority_level' field names
@@ -381,40 +252,33 @@ const AdminDashboard = () => {
   const priorityOrder = ['A', 'B', 'C', 'D'];
 
   // Calculate wait times for all cases
-  const queueWithWaitTimes = queue.map(item => normalizeCaseData(item));
+  const queueWithWaitTimes = queue.map(item => {
+    const createdAt = item.arrived_at || item.timestamp || item.created_at;
+    let waitTimeMinutes = 0;
+    
+    if (createdAt) {
+      const created = new Date(createdAt);
+      const now = new Date();
+      // Ensure we don't get negative times
+      if (created <= now) {
+        waitTimeMinutes = Math.floor((now - created) / (1000 * 60));
+      }
+    }
+    
+    return {
+      ...item,
+      waitTimeMinutes,
+      waitTimeFormatted: calculateWaitTime(createdAt)
+    };
+  });
 
   // Count cases by status
   const waitingCount = queueWithWaitTimes.filter(item => item.status === 'waiting').length;
   const inProgressCount = queueWithWaitTimes.filter(item => item.status === 'in_progress').length;
   const completedCount = queueWithWaitTimes.filter(item => item.status === 'completed').length;
 
-  const totalWaitMinutes = queueWithWaitTimes.reduce((acc, item) => acc + (item.waitTimeMinutes || 0), 0);
-  const longestWait = queueWithWaitTimes.reduce((max, item) => Math.max(max, item.waitTimeMinutes || 0), 0);
-  const averageWait = queueWithWaitTimes.length > 0
-    ? Math.round(totalWaitMinutes / queueWithWaitTimes.length)
-    : 0;
-  const overdueCount = queueWithWaitTimes.filter(item => item.status === 'waiting' && (item.waitTimeMinutes || 0) >= 30).length;
-  const criticalCount = queueWithWaitTimes.filter(item => item.status === 'waiting' && (item.waitTimeMinutes || 0) >= 60).length;
-  const emailConfigured = systemStatus?.email?.configured;
-  const emailProvider = systemStatus?.email?.provider;
-  const vercelUrl = systemStatus?.api?.vercel_url;
-
-  const uniqueAdvice = Array.from(new Set((caseAdvice || []).filter(Boolean)));
-  const displayNextSteps = (caseNextSteps && caseNextSteps.length > 0) ? caseNextSteps : uniqueAdvice;
-  const displayForms = caseForms || [];
-  const progressTimeline = (caseProgress || []).slice(-6).reverse();
-  const selectedWaitAlert = selectedCase ? getWaitTimeAlert(selectedCase.waitTimeMinutes || 0) : null;
-  const caseNeedsAttention = (selectedCase?.waitTimeMinutes || 0) >= 30;
-  const emailStatusLabel = emailConfigured
-    ? `Online (${(emailProvider || 'smtp').toUpperCase()})`
-    : 'Not Configured';
-  const emailStatusClass = emailConfigured ? 'text-green-600' : 'text-red-600';
-  const deploymentStatus = systemStatus?.api?.deployed
-    ? (vercelUrl ? `Live @ ${vercelUrl}` : 'Live deployment detected')
-    : 'Running locally';
-
   // Sort by priority and wait time
-  const sortedQueue = [...queueWithWaitTimes].sort((a, b) => {
+  const sortedQueue = queueWithWaitTimes.sort((a, b) => {
     const priorityOrder = { 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
     // Handle both 'priority' and 'priority_level' field names
     const aPriorityValue = a.priority || a.priority_level || 'C';
@@ -447,17 +311,18 @@ const AdminDashboard = () => {
       {/* Header */}
       <div className="bg-white shadow-lg border-b">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 {language === 'en' ? 'Facilitator Dashboard' : 'Panel del Facilitador'}
               </h1>
               <p className="text-gray-600 mt-1">
-                {language === 'en'
-                  ? 'Track every client and keep the line moving'
-                  : 'Supervisa cada caso y evita tiempos de espera largos'}
+                {language === 'en' 
+                  ? 'Manage queue and assist clients'
+                  : 'Gestiona la cola y asiste a los clientes'
+                }
               </p>
-              <div className="flex flex-wrap gap-6 mt-3">
+              <div className="flex space-x-6 mt-3">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                   <span className="text-sm font-medium text-gray-700">
@@ -478,7 +343,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex space-x-4">
               <button
                 onClick={fetchQueue}
                 className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -500,74 +365,21 @@ const AdminDashboard = () => {
                 <Globe className="w-4 h-4 mr-2" />
                 {language === 'en' ? 'Español' : 'English'}
               </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Operational Overview */}
-      <div className="max-w-7xl mx-auto px-4 mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div className="bg-white border border-blue-100 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">
-                  {language === 'en' ? 'Longest Wait' : 'Espera más larga'}
-                </p>
-                <p className="text-2xl font-semibold text-gray-900">{formatMinutes(longestWait)}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {language === 'en'
-                    ? `${criticalCount} urgent ${criticalCount === 1 ? 'case' : 'cases'}`
-                    : `${criticalCount} caso${criticalCount === 1 ? '' : 's'} urgente${criticalCount === 1 ? '' : 's'}`}
-                </p>
-              </div>
-              <Timer className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-          <div className="bg-white border border-orange-100 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">
-                  {language === 'en' ? '30+ min waiting' : '30+ min esperando'}
-                </p>
-                <p className="text-2xl font-semibold text-gray-900">{overdueCount}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {language === 'en'
-                    ? 'Check on these clients now'
-                    : 'Revisa estos clientes ahora'}
-                </p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-orange-500" />
-            </div>
-          </div>
-          <div className="bg-white border border-green-100 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">
-                  {language === 'en' ? 'Active consultations' : 'Consultas activas'}
-                </p>
-                <p className="text-2xl font-semibold text-gray-900">{inProgressCount}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {language === 'en'
-                    ? `Avg wait ${formatMinutes(averageWait)}`
-                    : `Espera prom. ${formatMinutes(averageWait)}`}
-                </p>
-              </div>
-              <Activity className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">
-                  {language === 'en' ? 'Email & API status' : 'Estado del correo y API'}
-                </p>
-                <p className={`text-2xl font-semibold ${emailStatusClass}`}>
-                  {emailStatusLabel}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">{deploymentStatus}</p>
-              </div>
-              <Mail className="w-8 h-8 text-gray-500" />
+              {user && (
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center px-3 py-2 bg-purple-100 text-purple-800 rounded-lg">
+                    <UserIcon className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-medium">{user.username}</span>
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Logout' : 'Cerrar Sesión'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -620,7 +432,7 @@ const AdminDashboard = () => {
       {activeTab === 'queue' && (
         <>
           {/* Wait Time Alerts */}
-          {overdueCount > 0 && (
+          {queueWithWaitTimes.filter(item => item.waitTimeMinutes >= 30).length > 0 && (
             <div className="max-w-7xl mx-auto px-4 py-4">
               <div className="bg-orange-100 border border-orange-400 text-orange-800 px-4 py-3 rounded">
                 <div className="flex items-center">
@@ -629,7 +441,7 @@ const AdminDashboard = () => {
                     {language === 'en' ? 'Long Wait Alert:' : 'Alerta de Espera Larga:'}
                   </span>
                   <span className="ml-2">
-                    {overdueCount}
+                    {queueWithWaitTimes.filter(item => item.waitTimeMinutes >= 30).length} 
                     {language === 'en' ? ' clients waiting 30+ minutes' : ' clientes esperando 30+ minutos'}
                   </span>
                 </div>
@@ -663,18 +475,29 @@ const AdminDashboard = () => {
                       {language === 'en' ? 'Name:' : 'Nombre:'} {currentNumber.user_name}
                     </p>
                   )}
-                  <p className="text-gray-600">
-                    {language === 'en' ? 'Wait time:' : 'Tiempo de espera:'} {currentNumber.waitTimeFormatted}
-                  </p>
+                  {currentNumber.created_at && (
+                    <p className="text-gray-600">
+                      {language === 'en' ? 'Wait time:' : 'Tiempo de espera:'} {calculateWaitTime(currentNumber.created_at)}
+                    </p>
+                  )}
                 </div>
               </div>
-              <button
-                onClick={() => handleCompleteCase(currentNumber.queue_number)}
-                className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                {language === 'en' ? 'Complete Case' : 'Completar Caso'}
-              </button>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => handleShowCaseSummary(currentNumber)}
+                  className="flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Case Summary' : 'Resumen del Caso'}
+                </button>
+                <button
+                  onClick={() => handleCompleteCase(currentNumber.queue_number)}
+                  className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Complete Case' : 'Completar Caso'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -691,21 +514,21 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-          {/* Currently In Progress Cases */}
-          {inProgressCount > 0 && (
-            <div className="max-w-7xl mx-auto px-4 py-4">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  {language === 'en' ? 'Currently In Progress' : 'Actualmente En Progreso'}
-                </h2>
-                <div className="space-y-3">
-                  {queueWithWaitTimes.filter(item => item.status === 'in_progress').map((item) => (
-                    <div key={item.queue_number} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                      <div className="flex items-center">
-                        <span className="text-2xl font-bold text-gray-900 mr-3">
-                          {item.queue_number}
-                        </span>
-                        <div>
+      {/* Currently In Progress Cases */}
+      {inProgressCount > 0 && (
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              {language === 'en' ? 'Currently In Progress' : 'Actualmente En Progreso'}
+            </h2>
+            <div className="space-y-3">
+              {queueWithWaitTimes.filter(item => item.status === 'in_progress').map((item) => (
+                <div key={item.queue_number} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center">
+                    <span className="text-2xl font-bold text-gray-900 mr-3">
+                      {item.queue_number}
+                    </span>
+                    <div>
                       <p className="font-medium text-gray-900">
                         {getPriorityLabel(item.priority || item.priority_level)[language]}
                       </p>
@@ -715,11 +538,6 @@ const AdminDashboard = () => {
                           {item.waitTimeFormatted}
                         </span>
                       </div>
-                      {item.recent_steps && item.recent_steps.length > 0 && (
-                        <p className="text-xs text-blue-800 mt-1">
-                          {item.recent_steps[item.recent_steps.length - 1].node_text}
-                        </p>
-                      )}
                       {item.user_name && (
                         <p className="text-sm text-gray-600">
                           {item.user_name}
@@ -742,11 +560,11 @@ const AdminDashboard = () => {
       )}
 
       {/* Main Content Grid */}
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Queue by Priority - Left Column */}
-              <div className="lg:col-span-2">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Queue by Priority - Left Column */}
+          <div className="lg:col-span-2">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
               {language === 'en' ? 'Queue by Priority' : 'Cola por Prioridad'}
             </h2>
             
@@ -783,8 +601,8 @@ const AdminDashboard = () => {
                             <div
                               key={item.queue_number}
                               className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                                selectedCase?.queue_number === item.queue_number
-                                  ? 'bg-blue-50 border-2 border-blue-200'
+                                selectedCase?.queue_number === item.queue_number 
+                                  ? 'bg-blue-50 border-2 border-blue-200' 
                                   : 'bg-gray-50 hover:bg-gray-100'
                               } ${waitTimeAlert ? waitTimeAlert : ''}`}
                               onClick={() => handleCaseSelect(item)}
@@ -803,11 +621,6 @@ const AdminDashboard = () => {
                                       {item.waitTimeFormatted}
                                     </span>
                                   </div>
-                                  {item.recent_steps && item.recent_steps.length > 0 && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      {item.recent_steps[item.recent_steps.length - 1].node_text}
-                                    </p>
-                                  )}
                                   {item.user_name && (
                                     <p className="text-sm text-gray-600">
                                       {item.user_name}
@@ -865,225 +678,171 @@ const AdminDashboard = () => {
           </div>
 
           {/* Case Details - Right Column */}
-              <div className="lg:col-span-1">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  {language === 'en' ? 'Case Details' : 'Detalles del Caso'}
-                </h2>
-
-                {selectedCase ? (
-                  <div className={`bg-white rounded-lg shadow-md p-6 space-y-6 ${selectedWaitAlert ? selectedWaitAlert : ''}`}>
-                    {/* Basic Case Info */}
-                    <div className="space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center space-x-3">
-                            <span className="text-3xl font-bold text-gray-900">{selectedCase.queue_number}</span>
-                            <div className={`px-3 py-1 ${getPriorityColor(selectedCase.priority)} text-white rounded-full text-sm font-medium`}>
-                              {selectedCase.priority}
-                            </div>
-                          </div>
-                          <p className="text-gray-600 mt-1">
-                            {selectedCase.case_type || getPriorityLabel(selectedCase.priority || selectedCase.priority_level)[language]}
-                          </p>
-                          <p className={`text-sm mt-1 ${getWaitTimeColor(selectedCase.waitTimeMinutes || 0)}`}>
-                            {language === 'en' ? 'Wait time:' : 'Tiempo de espera:'} {selectedCase.waitTimeFormatted}
-                          </p>
-                        </div>
-                        {caseNeedsAttention && (
-                          <div className="flex items-center bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            {language === 'en' ? 'Needs attention' : 'Necesita atención'}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-500">{language === 'en' ? 'Status' : 'Estado'}</p>
-                          <p className="font-medium capitalize">{selectedCase.status}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">{language === 'en' ? 'Language' : 'Idioma'}</p>
-                          <p className="font-medium uppercase">{selectedCase.language}</p>
-                        </div>
-                        {selectedCase.current_node && (
-                          <div className="lg:col-span-2">
-                            <p className="text-gray-500">{language === 'en' ? 'Current step' : 'Paso actual'}</p>
-                            <p className="font-medium text-gray-900">{selectedCase.current_node}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Contact Information */}
-                    {(selectedCase.user_name || selectedCase.user_email || selectedCase.phone_number) && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Client details' : 'Datos del cliente'}</h4>
-                        <div className="space-y-2">
-                          {selectedCase.user_name && (
-                            <div className="flex items-center text-sm">
-                              <Users className="w-4 h-4 text-gray-400 mr-2" />
-                              <span>{selectedCase.user_name}</span>
-                            </div>
-                          )}
-                          {selectedCase.user_email && (
-                            <div className="flex items-center text-sm">
-                              <Mail className="w-4 h-4 text-gray-400 mr-2" />
-                              <span>{selectedCase.user_email}</span>
-                            </div>
-                          )}
-                          {selectedCase.phone_number && (
-                            <div className="flex items-center text-sm">
-                              <Phone className="w-4 h-4 text-gray-400 mr-2" />
-                              <span>{selectedCase.phone_number}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Recommended Actions */}
-                    {displayNextSteps.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Next actions for the client' : 'Próximas acciones para el cliente'}</h4>
-                        <div className="space-y-2">
-                          {displayNextSteps.map((step, index) => (
-                            <div key={`${step}-${index}`} className="flex items-start bg-blue-50 border border-blue-100 rounded-lg p-3">
-                              <ListChecks className="w-4 h-4 text-blue-500 mr-2 mt-0.5" />
-                              <span className="text-sm text-gray-700">{step}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Forms to prepare */}
-                    {displayForms.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Forms to prepare' : 'Formularios a preparar'}</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {displayForms.map((doc, index) => (
-                            <span key={`${doc}-${index}`} className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                              <FileText className="w-3 h-3 mr-1" />
-                              {doc}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Facilitator talking points */}
-                    {uniqueAdvice.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Talking points for staff' : 'Puntos clave para el personal'}</h4>
-                        <div className="space-y-2">
-                          {uniqueAdvice.map((item, index) => (
-                            <div key={`${item}-${index}`} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
-                              {item}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Progress Timeline */}
-                    {progressTimeline.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Recent progress' : 'Progreso reciente'}</h4>
-                        <div className="space-y-3">
-                          {progressTimeline.map((step, index) => (
-                            <div key={`${step.node_id}-${index}`} className="flex items-start">
-                              <ClipboardList className="w-4 h-4 text-indigo-500 mt-1 mr-2" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{step.node_text}</p>
-                                {step.user_response && (
-                                  <p className="text-xs text-gray-500 mt-1">{step.user_response}</p>
-                                )}
-                                {step.timestamp && (
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {new Date(step.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Facilitator Notes */}
-                    {selectedCase.facilitator_notes && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Facilitator notes' : 'Notas del facilitador'}</h4>
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-gray-800 whitespace-pre-wrap">
-                          {selectedCase.facilitator_notes}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Case Summary */}
-                    {caseSummary && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Case summary' : 'Resumen del caso'}</h4>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{caseSummary}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Conversation Summary */}
-                    {selectedCase.conversation_summary && !caseSummary && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Conversation summary' : 'Resumen de conversación'}</h4>
-                        <div className="bg-blue-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedCase.conversation_summary}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="space-y-3">
-                      {selectedCase.user_email && (
-                        <button
-                          onClick={() => handleSendEmail(selectedCase)}
-                          disabled={sendingEmail}
-                          className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          {sendingEmail
-                            ? (language === 'en' ? 'Sending...' : 'Enviando...')
-                            : (language === 'en' ? 'Send Email Summary' : 'Enviar resumen por correo')}
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => handleCompleteCase(selectedCase.queue_number)}
-                        className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        {language === 'en' ? 'Complete Case' : 'Completar caso'}
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setSelectedCase(null);
-                          setCaseSummary(null);
-                          setCaseAdvice([]);
-                          setCaseForms([]);
-                          setCaseProgress([]);
-                          setCaseNextSteps([]);
-                        }}
-                        className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        {language === 'en' ? 'Clear Selection' : 'Limpiar selección'}
-                      </button>
+          <div className="lg:col-span-1">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              {language === 'en' ? 'Case Details' : 'Detalles del Caso'}
+            </h2>
+            
+            {selectedCase ? (
+              <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+                {/* Basic Case Info */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Case Information</h3>
+                    <div className={`px-3 py-1 ${getPriorityColor(selectedCase.priority)} text-white rounded-full text-sm font-medium`}>
+                      {selectedCase.priority}
                     </div>
                   </div>
-                ) : (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <div className="text-center text-gray-500">
-                      <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>{language === 'en' ? 'Select a case to view details' : 'Selecciona un caso para ver detalles'}</p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <span className="text-3xl font-bold text-gray-900 mr-3">
+                        {selectedCase.queue_number}
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-500">{language === 'en' ? 'Case Type' : 'Tipo de Caso'}</p>
+                        <p className="font-medium">{selectedCase.case_type || getPriorityLabel(selectedCase.priority || selectedCase.priority_level)[language]}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">{language === 'en' ? 'Status' : 'Estado'}</p>
+                        <p className="font-medium capitalize">{selectedCase.status}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">{language === 'en' ? 'Language' : 'Idioma'}</p>
+                        <p className="font-medium uppercase">{selectedCase.language}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">{language === 'en' ? 'Wait Time' : 'Tiempo de Espera'}</p>
+                        <p className={`font-medium ${getWaitTimeColor(selectedCase.waitTimeMinutes || 0)}`}>
+                          {selectedCase.waitTimeFormatted || calculateWaitTime(selectedCase.arrived_at || selectedCase.timestamp || selectedCase.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* User Information */}
+                {(selectedCase.user_name || selectedCase.user_email || selectedCase.phone_number) && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'User Information' : 'Información del Usuario'}</h4>
+                    <div className="space-y-2">
+                      {selectedCase.user_name && (
+                        <div className="flex items-center text-sm">
+                          <Users className="w-4 h-4 text-gray-400 mr-2" />
+                          <span>{selectedCase.user_name}</span>
+                        </div>
+                      )}
+                      {selectedCase.user_email && (
+                        <div className="flex items-center text-sm">
+                          <Mail className="w-4 h-4 text-gray-400 mr-2" />
+                          <span>{selectedCase.user_email}</span>
+                        </div>
+                      )}
+                      {selectedCase.phone_number && (
+                        <div className="flex items-center text-sm">
+                          <Phone className="w-4 h-4 text-gray-400 mr-2" />
+                          <span>{selectedCase.phone_number}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Case Summary */}
+                {caseSummary && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Case Summary' : 'Resumen del Caso'}</h4>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{caseSummary}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Conversation Summary */}
+                {selectedCase.conversation_summary && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Conversation Summary' : 'Resumen de Conversación'}</h4>
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedCase.conversation_summary}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Current Node */}
+                {selectedCase.current_node && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Current Step' : 'Paso Actual'}</h4>
+                    <div className="bg-yellow-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-700">{selectedCase.current_node}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Documents Needed */}
+                {selectedCase.documents_needed && selectedCase.documents_needed.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Documents Needed' : 'Documentos Necesarios'}</h4>
+                    <div className="space-y-2">
+                      {selectedCase.documents_needed.map((doc, index) => (
+                        <div key={index} className="bg-green-50 border border-green-200 rounded px-3 py-2">
+                          <p className="text-sm text-gray-700">{doc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handleShowCaseSummary(selectedCase)}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'View Case Summary' : 'Ver Resumen del Caso'}
+                  </button>
+
+                  {selectedCase.user_email && (
+                    <button
+                      onClick={() => handleSendEmail(selectedCase)}
+                      disabled={sendingEmail}
+                      className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      {sendingEmail 
+                        ? (language === 'en' ? 'Sending...' : 'Enviando...')
+                        : (language === 'en' ? 'Send Email Summary' : 'Enviar Resumen por Correo')
+                      }
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => handleCompleteCase(selectedCase.queue_number)}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Complete Case' : 'Completar Caso'}
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setSelectedCase(null);
+                      setCaseSummary(null);
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    {language === 'en' ? 'Clear Selection' : 'Limpiar Selección'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="text-center text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>{language === 'en' ? 'Select a case to view details' : 'Selecciona un caso para ver detalles'}</p>
                 </div>
               </div>
             )}
@@ -1098,6 +857,264 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <FormsSummary />
           <FormsManagement />
+        </div>
+      )}
+
+      {/* Case Summary Modal */}
+      {showCaseSummaryModal && caseSummaryData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {language === 'en' ? 'Case Summary' : 'Resumen del Caso'}
+              </h2>
+              <button
+                onClick={() => setShowCaseSummaryModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Case Header */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className={`w-12 h-12 ${getPriorityColor(caseSummaryData.priority || caseSummaryData.priority_level)} rounded-lg flex items-center justify-center mr-4`}>
+                      <span className="text-xl font-bold text-white">
+                        {caseSummaryData.queue_number}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {getPriorityLabel(caseSummaryData.priority || caseSummaryData.priority_level)[language]}
+                      </h3>
+                      <p className="text-gray-600">
+                        {language === 'en' ? 'Priority' : 'Prioridad'} {caseSummaryData.priority || caseSummaryData.priority_level}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Status' : 'Estado'}
+                    </p>
+                    <p className="font-medium capitalize">
+                      {caseSummaryData.status}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Information */}
+              {(caseSummaryData.user_name || caseSummaryData.user_email || caseSummaryData.phone_number) && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'User Information' : 'Información del Usuario'}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {caseSummaryData.user_name && (
+                      <div className="flex items-center p-3 bg-blue-50 rounded-lg">
+                        <Users className="w-5 h-5 text-blue-600 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            {language === 'en' ? 'Name' : 'Nombre'}
+                          </p>
+                          <p className="font-medium">{caseSummaryData.user_name}</p>
+                        </div>
+                      </div>
+                    )}
+                    {caseSummaryData.user_email && (
+                      <div className="flex items-center p-3 bg-green-50 rounded-lg">
+                        <Mail className="w-5 h-5 text-green-600 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            {language === 'en' ? 'Email' : 'Correo'}
+                          </p>
+                          <p className="font-medium">{caseSummaryData.user_email}</p>
+                        </div>
+                      </div>
+                    )}
+                    {caseSummaryData.phone_number && (
+                      <div className="flex items-center p-3 bg-purple-50 rounded-lg">
+                        <Phone className="w-5 h-5 text-purple-600 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            {language === 'en' ? 'Phone' : 'Teléfono'}
+                          </p>
+                          <p className="font-medium">{caseSummaryData.phone_number}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Case Details */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                  {language === 'en' ? 'Case Details' : 'Detalles del Caso'}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Case Type' : 'Tipo de Caso'}
+                    </p>
+                    <p className="font-medium">
+                      {caseSummaryData.case_type || getPriorityLabel(caseSummaryData.priority || caseSummaryData.priority_level)[language]}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Language' : 'Idioma'}
+                    </p>
+                    <p className="font-medium uppercase">
+                      {caseSummaryData.language || 'en'}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Wait Time' : 'Tiempo de Espera'}
+                    </p>
+                    <p className="font-medium">
+                      {calculateWaitTime(caseSummaryData.arrived_at || caseSummaryData.timestamp || caseSummaryData.created_at)}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">
+                      {language === 'en' ? 'Arrived At' : 'Llegó a las'}
+                    </p>
+                    <p className="font-medium">
+                      {caseSummaryData.arrived_at || caseSummaryData.timestamp || caseSummaryData.created_at 
+                        ? new Date(caseSummaryData.arrived_at || caseSummaryData.timestamp || caseSummaryData.created_at).toLocaleString()
+                        : 'N/A'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conversation Summary */}
+              {caseSummaryData.conversation_summary && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Conversation Summary' : 'Resumen de Conversación'}
+                  </h4>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {caseSummaryData.conversation_summary}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Current Step */}
+              {caseSummaryData.current_node && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Current Step' : 'Paso Actual'}
+                  </h4>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-gray-700">{caseSummaryData.current_node}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Documents Needed */}
+              {caseSummaryData.documents_needed && caseSummaryData.documents_needed.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Documents Needed' : 'Documentos Necesarios'}
+                  </h4>
+                  <div className="space-y-2">
+                    {caseSummaryData.documents_needed.map((doc, index) => (
+                      <div key={index} className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                        <p className="text-gray-700">{doc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Next Steps */}
+              {caseSummaryData.next_steps && caseSummaryData.next_steps.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Next Steps' : 'Próximos Pasos'}
+                  </h4>
+                  <div className="space-y-2">
+                    {caseSummaryData.next_steps.map((step, index) => (
+                      <div key={index} className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
+                        <p className="text-gray-700">{step}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Answers/History */}
+              {caseSummaryData.answers && Object.keys(caseSummaryData.answers).length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Case Answers' : 'Respuestas del Caso'}
+                  </h4>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {Object.entries(caseSummaryData.answers).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-gray-600 capitalize">
+                            {key.replace(/_/g, ' ')}:
+                          </span>
+                          <span className="font-medium">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* History */}
+              {caseSummaryData.history && caseSummaryData.history.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    {language === 'en' ? 'Case History' : 'Historial del Caso'}
+                  </h4>
+                  <div className="space-y-2">
+                    {caseSummaryData.history.map((item, index) => (
+                      <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                        <p className="text-gray-700">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowCaseSummaryModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {language === 'en' ? 'Close' : 'Cerrar'}
+              </button>
+              {caseSummaryData.user_email && (
+                <button
+                  onClick={() => {
+                    handleSendEmail(caseSummaryData);
+                    setShowCaseSummaryModal(false);
+                  }}
+                  disabled={sendingEmail}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {language === 'en' ? 'Send Email' : 'Enviar Correo'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

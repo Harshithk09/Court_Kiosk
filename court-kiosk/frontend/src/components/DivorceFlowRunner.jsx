@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
+import ModernHeader from './ModernHeader';
+import ModernCard from './ModernCard';
+import ModernButton from './ModernButton';
+import { CheckCircle, User, Mail, Phone, ArrowLeft } from 'lucide-react';
+import './ModernHeader.css';
+import './ModernCard.css';
+import './ModernButton.css';
 
 const DivorceFlowRunner = () => {
   const [flow, setFlow] = useState(null);
@@ -88,10 +95,17 @@ const DivorceFlowRunner = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading divorce process guide...</p>
+      <div className="min-h-screen bg-gray-50">
+        <ModernHeader 
+          title="Divorce & Separation" 
+          subtitle="Loading process guide..." 
+          showLanguageToggle={false}
+        />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <ModernCard variant="elevated" className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading divorce process guide...</p>
+          </ModernCard>
         </div>
       </div>
     );
@@ -99,9 +113,16 @@ const DivorceFlowRunner = () => {
 
   if (!flow) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600">Failed to load flow data</p>
+      <div className="min-h-screen bg-gray-50">
+        <ModernHeader 
+          title="Divorce & Separation" 
+          subtitle="Error loading process guide" 
+          showLanguageToggle={false}
+        />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <ModernCard variant="error" className="text-center">
+            <p className="text-white font-medium">Failed to load flow data</p>
+          </ModernCard>
         </div>
       </div>
     );
@@ -110,112 +131,131 @@ const DivorceFlowRunner = () => {
   // Show queue form after flow completion
   if (showQueueForm) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+      <div className="min-h-screen bg-gray-50">
+        <ModernHeader 
+          title="Divorce & Separation" 
+          subtitle="Process Complete" 
+          showLanguageToggle={true}
+        />
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <ModernCard variant="elevated" className="text-center">
+            <div className="mb-8">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Divorce Process Complete!</h1>
-              <p className="text-gray-600">You've completed the divorce process overview. To get help from a court facilitator, please provide your information below.</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">Divorce Process Complete!</h1>
+              <p className="text-gray-600 text-lg">You've completed the divorce process overview. To get help from a court facilitator, please provide your information below.</p>
             </div>
 
             {!queueNumber ? (
-              <div className="space-y-6">
+              <div className="space-y-6 text-left">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <User className="w-4 h-4 mr-2" />
                     Full Name *
                   </label>
                   <input
                     type="text"
                     value={userInfo.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Enter your full name"
                     required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <Mail className="w-4 h-4 mr-2" />
                     Email Address
                   </label>
                   <input
                     type="email"
                     value={userInfo.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Enter your email address"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <Phone className="w-4 h-4 mr-2" />
                     Phone Number
                   </label>
                   <input
                     type="tel"
                     value={userInfo.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Enter your phone number"
                   />
                 </div>
 
-                <button
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                <ModernButton
+                  variant="primary"
+                  size="large"
+                  className="w-full"
                   onClick={handleAddToQueue}
                   disabled={isAddingToQueue}
+                  loading={isAddingToQueue}
                 >
                   {isAddingToQueue ? 'Adding to Queue...' : 'Join Queue'}
-                </button>
+                </ModernButton>
               </div>
             ) : (
               <div className="text-center">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-                  <h3 className="text-xl font-semibold text-green-900 mb-4">Successfully Added to Queue!</h3>
-                  <div className="text-6xl font-bold text-green-600 mb-4">#{queueNumber}</div>
-                  <p className="text-green-700 text-lg">Please wait to be called by a court facilitator.</p>
-                </div>
+                <ModernCard variant="success" className="mb-6">
+                  <h3 className="text-2xl font-bold text-white mb-4">Successfully Added to Queue!</h3>
+                  <div className="text-8xl font-black text-white mb-6">#{queueNumber}</div>
+                  <p className="text-white text-xl font-medium">Please wait to be called by a court facilitator.</p>
+                </ModernCard>
                 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-                  <h4 className="font-semibold text-blue-900 mb-2">Your Case Summary</h4>
-                  <div className="text-blue-800 text-sm space-y-1">
+                <ModernCard variant="outlined" className="mb-6 text-left">
+                  <h4 className="font-bold text-gray-900 mb-4 text-lg">Your Case Summary</h4>
+                  <div className="text-gray-700 space-y-2">
                     <p><strong>Case Type:</strong> Divorce & Separation</p>
                     <p><strong>Priority:</strong> C</p>
                     {flowResults?.forms && flowResults.forms.length > 0 && (
                       <p><strong>Forms Identified:</strong> {flowResults.forms.join(', ')}</p>
                     )}
                   </div>
-                </div>
+                </ModernCard>
               </div>
             )}
 
             <div className="mt-8 text-center">
-              <button
+              <ModernButton
+                variant="secondary"
+                size="medium"
                 onClick={handleStartOver}
-                className="bg-gray-500 text-white py-2 px-6 rounded-lg font-medium hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                icon={<ArrowLeft className="w-4 h-4" />}
+                iconPosition="left"
               >
                 Start Over
-              </button>
+              </ModernButton>
             </div>
-          </div>
+          </ModernCard>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <SimpleFlowRunner
-        flow={flow}
-        onFinish={handleFlowFinish}
-        onBack={() => window.history.back()}
-        onHome={() => window.location.href = '/'}
+    <div className="min-h-screen bg-gray-50">
+      <ModernHeader 
+        title="Divorce & Separation" 
+        subtitle="Guided Process Assistant" 
+        showLanguageToggle={true}
       />
+      <div className="py-8">
+        <SimpleFlowRunner
+          flow={flow}
+          onFinish={handleFlowFinish}
+          onBack={() => window.history.back()}
+          onHome={() => window.location.href = '/'}
+        />
+      </div>
     </div>
   );
 };

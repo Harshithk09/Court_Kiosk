@@ -16,7 +16,7 @@ export class EnhancedFlowEngine extends FlowEngine {
   private completionCallback?: (data: CompletionData) => Promise<string | void>;
   private apiBaseUrl: string;
 
-  constructor(graph: Graph, apiBaseUrl = 'http://localhost:1904') {
+  constructor(graph: Graph, apiBaseUrl = 'http://localhost:4000') {
     super(graph);
     this.apiBaseUrl = apiBaseUrl;
   }

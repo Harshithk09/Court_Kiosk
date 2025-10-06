@@ -21,84 +21,34 @@ const LogoSeal = ({ size = 'default', className = '' }) => {
   return (
     <div className={`flex items-center space-x-3 ${className}`}>
       {/* Logo Icon */}
-      <div className={`${sizeClasses[size]} relative flex-shrink-0`}>
-        <svg
-          viewBox="0 0 48 48"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full"
+      <div className={`${sizeClasses[size]} relative flex-shrink-0 bg-blue-900 rounded-lg flex items-center justify-center`}>
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="24" 
+          height="24" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="white" 
+          strokeWidth="2" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          className="logo-scale"
         >
-          {/* Outer Ring */}
-          <circle cx="24" cy="24" r="24" fill="#1e40af" />
-          <circle cx="24" cy="24" r="22" fill="#1e3a8a" />
-          
-          {/* Inner Ring */}
-          <circle cx="24" cy="24" r="20" fill="#1e40af" />
-          
-          {/* Scales of Justice */}
-          <g transform="translate(14, 10)">
-            {/* Central Column */}
-            <rect x="9" y="2" width="2" height="20" fill="#fbbf24" rx="1" />
-            
-            {/* Top Bar */}
-            <rect x="4" y="2" width="12" height="2" fill="#fbbf24" rx="1" />
-            
-            {/* Left Scale */}
-            <circle cx="6" cy="12" r="3" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
-            <path d="M 6 15 L 6 22" stroke="#fbbf24" strokeWidth="1.5" />
-            <circle cx="6" cy="22" r="1.5" fill="#fbbf24" />
-            
-            {/* Right Scale */}
-            <circle cx="14" cy="12" r="3" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
-            <path d="M 14 15 L 14 22" stroke="#fbbf24" strokeWidth="1.5" />
-            <circle cx="14" cy="22" r="1.5" fill="#fbbf24" />
-            
-            {/* Connecting Lines */}
-            <path d="M 6 12 L 10 8" stroke="#fbbf24" strokeWidth="1" />
-            <path d="M 14 12 L 10 8" stroke="#fbbf24" strokeWidth="1" />
-          </g>
-          
-          {/* Text Ring */}
-          <path
-            d="M 24 4 A 20 20 0 0 1 44 24"
-            fill="none"
-            stroke="#fbbf24"
-            strokeWidth="0.5"
-          />
-          <path
-            d="M 44 24 A 20 20 0 0 1 24 44"
-            fill="none"
-            stroke="#fbbf24"
-            strokeWidth="0.5"
-          />
-          <path
-            d="M 24 44 A 20 20 0 0 1 4 24"
-            fill="none"
-            stroke="#fbbf24"
-            strokeWidth="0.5"
-          />
-          <path
-            d="M 4 24 A 20 20 0 0 1 24 4"
-            fill="none"
-            stroke="#fbbf24"
-            strokeWidth="0.5"
-          />
-          
-          {/* Decorative dots */}
-          <circle cx="24" cy="4" r="1" fill="#fbbf24" />
-          <circle cx="44" cy="24" r="1" fill="#fbbf24" />
-          <circle cx="24" cy="44" r="1" fill="#fbbf24" />
-          <circle cx="4" cy="24" r="1" fill="#fbbf24" />
+          <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
+          <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path>
+          <path d="M7 21h10"></path>
+          <path d="M12 3v18"></path>
+          <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path>
         </svg>
       </div>
       
       {/* Text */}
       <div className="flex flex-col">
         <div className={`font-bold text-gray-800 ${textSizes[size]}`}>
-          {language === 'es' ? 'Condado de San Mateo' : 'San Mateo County'}
+          {language === 'es' ? 'Tribunal de Familia de San Mateo' : 'San Mateo Family Court'}
         </div>
         <div className={`font-medium text-gray-600 ${textSizes[size]}`}>
-          {language === 'es' ? 'Kiosko de Ayuda Legal' : 'Court Self-Help Kiosk'}
+          {language === 'es' ? 'Quiosco de Autoayuda' : 'Self-Service Kiosk'}
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@ class AskQuestionSchema(Schema):
     history = fields.Str(allow_none=True, validate=validate.Length(max=5000))
 
 class SubmitSessionSchema(Schema):
-    email = fields.Email(required=True, error="Valid email address is required")
+    email = fields.Email(required=True)
     case_number = fields.Str(allow_none=True, validate=validate.Length(max=50))
     summary = fields.Str(required=True, validate=validate.Length(min=10, max=5000))
     language = fields.Str(validate=validate.OneOf(['en', 'es', 'zh', 'vi']))

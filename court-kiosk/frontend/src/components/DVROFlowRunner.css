@@ -140,8 +140,11 @@
 .node-options {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
   margin-top: 1.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .btn {
@@ -186,10 +189,16 @@
 }
 
 .btn-option:hover {
-  background: #f9fafb;
-  border-color: #3b82f6;
-  color: #3b82f6;
-  transform: translateY(-1px);
+  background: #f8fafc;
+  color: #1d4ed8;
+  transform: none;
+  box-shadow: inset 4px 0 0 #3b82f6;
+}
+
+.btn-option:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+  background: #eff6ff;
 }
 
 .btn-back {
@@ -227,24 +236,28 @@
 .progress-steps {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
   max-height: 400px;
   overflow-y: auto;
-  padding: 0.5rem;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #f9fafb;
+  overflow: hidden;
 }
 
 .progress-step {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.75rem;
+  padding: 1rem;
   background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
   transition: all 0.2s ease;
+}
+
+.progress-step:last-child {
+  border-bottom: none;
 }
 
 .progress-step:hover {

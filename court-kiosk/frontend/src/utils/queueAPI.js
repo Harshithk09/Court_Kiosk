@@ -1,7 +1,5 @@
-import { getApiBaseUrl } from './apiConfig';
-
-// Queue API utility for connecting with enhanced backend
-const API_BASE_URL = getApiBaseUrl();
+// Queue API utility for connecting with backend
+import { API_ENDPOINTS, buildApiUrl, isProduction } from './apiConfig';
 
 // Configuration constants
 const CONFIG = {
@@ -25,7 +23,8 @@ let queueCounter = 1;
  */
 const makeRequest = async (endpoint, options = {}) => {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = buildApiUrl(endpoint);
+    const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers
@@ -40,6 +39,9 @@ const makeRequest = async (endpoint, options = {}) => {
     return await response.json();
   } catch (error) {
     console.log(`API request failed for ${endpoint}:`, error.message);
+    if (isProduction()) {
+      console.error('Production API error:', error);
+    }
     throw error;
   }
 };
@@ -118,23 +120,30 @@ const loadMockQueue = () => {
  */
 export const addToQueue = async (queueData) => {
   const backendCall = async () => {
-    const result = await makeRequest('/api/queue/join', {
+    // Align with Flask backend: /api/generate-queue
+    const result = await makeRequest(API_ENDPOINTS.GENERATE_QUEUE, {
       method: 'POST',
       body: JSON.stringify({
         case_type: queueData.case_type || CONFIG.DEFAULT_CASE_TYPE,
+        priority: queueData.priority || CONFIG.DEFAULT_PRIORITY,
+        language: queueData.language || CONFIG.DEFAULT_LANGUAGE,
         user_name: queueData.user_name || '',
         user_email: queueData.user_email || '',
-        phone_number: queueData.phone_number || '',
-        language: queueData.language || CONFIG.DEFAULT_LANGUAGE
+        phone_number: queueData.phone_number || ''
       })
     });
 
-    // Send SMS with queue number if phone number provided
-    if (result.success && result.queue_number && queueData.phone_number) {
+    // Flask returns { queue_number } on success
+    if (result.queue_number && queueData.phone_number) {
       await sendQueueNumberSMS(result.queue_number, queueData.phone_number);
     }
 
-    return result;
+    return {
+      success: Boolean(result.queue_number),
+      queue_number: result.queue_number,
+      estimated_wait_time: CONFIG.DEFAULT_WAIT_TIME,
+      priority_level: queueData.priority || CONFIG.DEFAULT_PRIORITY
+    };
   };
 
   const fallbackCall = async () => {
@@ -286,19 +295,13 @@ export const addTestData = async () => {
 export const getQueue = async () => {
   const backendCall = async () => {
     console.log('Fetching queue data from backend...');
-    const data = await makeRequest('/api/queue');
+    // Align with Flask backend: /api/queue
+    const data = await makeRequest(API_ENDPOINTS.QUEUE);
     console.log('Backend queue data received:', data);
-
-    const queueEntries = data.queue || [];
-    const currentNumber = data.current_number || null;
-
-    const result = {
-      queue: queueEntries,
-      current_number: currentNumber
-    };
-
-    console.log('Final queue result:', result);
-    return result;
+    
+    // Flask already returns { queue: [...], current_number: {...} }
+    console.log('Final queue result:', data);
+    return data;
   };
 
   const fallbackCall = async () => {
@@ -324,7 +327,8 @@ export const getQueue = async () => {
  */
 export const callNext = async () => {
   const backendCall = async () => {
-    return await makeRequest('/api/queue/next', {
+    // Align with Flask backend: /api/call-next
+    return await makeRequest(API_ENDPOINTS.CALL_NEXT, {
       method: 'POST'
     });
   };
@@ -357,8 +361,10 @@ export const callNext = async () => {
  */
 export const completeCase = async (queueNumber) => {
   const backendCall = async () => {
-    return await makeRequest(`/api/queue/${queueNumber}/complete`, {
-      method: 'POST'
+    // Align with Flask backend: /api/complete-case with JSON body
+    return await makeRequest(API_ENDPOINTS.COMPLETE_CASE, {
+      method: 'POST',
+      body: JSON.stringify({ queue_number: queueNumber })
     });
   };
 
@@ -379,7 +385,7 @@ export const completeCase = async (queueNumber) => {
  */
 export const sendQueueNumberSMS = async (queueNumber, phoneNumber) => {
   try {
-    const result = await makeRequest('/api/sms/send-queue-number', {
+    const result = await makeRequest(API_ENDPOINTS.SEND_SMS, {
       method: 'POST',
       body: JSON.stringify({
         queue_number: queueNumber,
@@ -412,7 +418,7 @@ export const sendQueueNumberSMS = async (queueNumber, phoneNumber) => {
  */
 export const getFacilitators = async () => {
   try {
-    return await makeRequest('/api/facilitators');
+    return await makeRequest(API_ENDPOINTS.FACILITATORS);
   } catch (error) {
     console.log('Failed to fetch facilitators:', error.message);
     return [];
@@ -427,8 +433,8 @@ export const getFacilitators = async () => {
 export const getFacilitatorCases = async (facilitatorId = null) => {
   try {
     const url = facilitatorId 
-      ? `/api/facilitator/cases?facilitator_id=${facilitatorId}`
-      : '/api/facilitator/cases';
+      ? `${API_ENDPOINTS.FACILITATOR_CASES}?facilitator_id=${facilitatorId}`
+      : API_ENDPOINTS.FACILITATOR_CASES;
     return await makeRequest(url);
   } catch (error) {
     console.log('Failed to fetch facilitator cases:', error.message);
@@ -444,7 +450,7 @@ export const getFacilitatorCases = async (facilitatorId = null) => {
  */
 export const assignCase = async (queueNumber, facilitatorId) => {
   try {
-    return await makeRequest(`/api/queue/${queueNumber}/assign`, {
+    return await makeRequest(`${API_ENDPOINTS.ASSIGN_CASE}/${queueNumber}/assign`, {
       method: 'POST',
       body: JSON.stringify({ facilitator_id: facilitatorId })
     });
@@ -461,22 +467,9 @@ export const assignCase = async (queueNumber, facilitatorId) => {
  */
 export const getCaseSummary = async (queueNumber) => {
   try {
-    return await makeRequest(`/api/queue/${queueNumber}/summary`);
+    return await makeRequest(`${API_ENDPOINTS.ASSIGN_CASE}/${queueNumber}/summary`);
   } catch (error) {
     console.log('Failed to get case summary:', error.message);
-    return { success: false };
-  }
-};
-
-/**
- * Get system status information including email configuration
- * @returns {Promise<Object>} System status payload
- */
-export const getSystemStatus = async () => {
-  try {
-    return await makeRequest('/api/system/status');
-  } catch (error) {
-    console.log('Failed to fetch system status:', error.message);
     return { success: false };
   }
 };
@@ -488,7 +481,7 @@ export const getSystemStatus = async () => {
  */
 export const sendComprehensiveEmail = async (emailData) => {
   try {
-    return await makeRequest('/api/send-comprehensive-email', {
+    return await makeRequest(API_ENDPOINTS.SEND_EMAIL, {
       method: 'POST',
       body: JSON.stringify(emailData)
     });
@@ -505,7 +498,7 @@ export const sendComprehensiveEmail = async (emailData) => {
  */
 export const generateCaseSummary = async (summaryData) => {
   try {
-    return await makeRequest('/api/generate-case-summary', {
+    return await makeRequest(API_ENDPOINTS.CASE_SUMMARY, {
       method: 'POST',
       body: JSON.stringify(summaryData)
     });
@@ -523,7 +516,7 @@ export const generateCaseSummary = async (summaryData) => {
  */
 export const sendCaseSummaryEmail = async (summaryId, includeQueue = false) => {
   try {
-    return await makeRequest('/api/send-case-summary-email', {
+    return await makeRequest(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL, {
       method: 'POST',
       body: JSON.stringify({
         summary_id: summaryId,

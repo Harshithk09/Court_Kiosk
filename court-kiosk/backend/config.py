@@ -39,8 +39,8 @@ class Config:
     # Security
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here')
     
-    # CORS configuration
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000').split(',')
+    # CORS configuration - Allow all origins for global access
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001').split(',')
     
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
