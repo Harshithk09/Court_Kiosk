@@ -10,7 +10,6 @@ import {
   FileText, 
   Shield, 
   Heart, 
-  Globe,
   ArrowRight,
   RefreshCw,
   Send,
@@ -27,9 +26,10 @@ import ModernCard from './ModernCard';
 import ModernButton from './ModernButton';
 import './ModernCard.css';
 import './ModernButton.css';
+import LanguageSelector from '../components/LanguageSelector';
 
 const AttorneyDashboard = () => {
-  const { language, toggleLanguage } = useLanguage();
+  const { language } = useLanguage();
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -179,9 +179,9 @@ const AttorneyDashboard = () => {
       
       if (result.success) {
         setError(null);
-        alert(language === 'en' 
-          ? `Email sent successfully to ${caseItem.user_email}` 
-          : `Correo enviado exitosamente a ${caseItem.user_email}`);
+        alert(language === 'es' 
+          ? `Correo enviado exitosamente a ${caseItem.user_email}` 
+          : `Email sent successfully to ${caseItem.user_email}`);
       } else {
         setError(result.error || 'Failed to send email');
       }
@@ -289,7 +289,7 @@ const AttorneyDashboard = () => {
         <ModernCard variant="elevated" className="text-center">
           <RefreshCw className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-spin" />
           <p className="text-gray-600 font-medium">
-            {language === 'en' ? 'Loading queue...' : 'Cargando cola...'}
+            {language === 'es' ? 'Cargando cola...' : 'Loading queue...'}
           </p>
         </ModernCard>
       </div>
@@ -304,30 +304,24 @@ const AttorneyDashboard = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {language === 'en' ? 'Attorney Dashboard' : 'Panel del Abogado'}
+                {language === 'es' ? 'Panel del Abogado' : 'Attorney Dashboard'}
               </h1>
               <p className="text-gray-600 mt-1">
-                {language === 'en' 
-                  ? 'Quick case summaries and efficient client assistance'
-                  : 'Resúmenes rápidos de casos y asistencia eficiente al cliente'
+                {language === 'es' 
+                  ? 'Resúmenes rápidos de casos y asistencia eficiente al cliente'
+                  : 'Quick case summaries and efficient client assistance'
                 }
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={toggleLanguage}
-                className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                <span>{language === 'en' ? 'Español' : 'English'}</span>
-              </button>
+              <LanguageSelector size="sm" />
               <ModernButton
                 variant="primary"
                 size="medium"
                 onClick={fetchQueue}
                 icon={<RefreshCw className="w-4 h-4" />}
               >
-                {language === 'en' ? 'Refresh' : 'Actualizar'}
+                {language === 'es' ? 'Actualizar' : 'Refresh'}
               </ModernButton>
             </div>
           </div>
@@ -342,24 +336,24 @@ const AttorneyDashboard = () => {
               {/* Queue Stats */}
               <ModernCard variant="elevated">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
-                  {language === 'en' ? 'Queue Status' : 'Estado de la Cola'}
+                  {language === 'es' ? 'Estado de la Cola' : 'Queue Status'}
                 </h2>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">
-                      {language === 'en' ? 'Waiting' : 'Esperando'}
+                      {language === 'es' ? 'Esperando' : 'Waiting'}
                     </span>
                     <span className="text-2xl font-bold text-blue-600">{waitingCount}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">
-                      {language === 'en' ? 'In Progress' : 'En Progreso'}
+                      {language === 'es' ? 'En Progreso' : 'In Progress'}
                     </span>
                     <span className="text-2xl font-bold text-green-600">{inProgressCount}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">
-                      {language === 'en' ? 'Current Number' : 'Número Actual'}
+                      {language === 'es' ? 'Número Actual' : 'Current Number'}
                     </span>
                     <span className="text-2xl font-bold text-gray-900">
                       {currentNumber || '--'}
@@ -374,7 +368,7 @@ const AttorneyDashboard = () => {
                     onClick={handleCallNext}
                     icon={<UserCheck className="w-5 h-5" />}
                   >
-                    {language === 'en' ? 'Call Next' : 'Llamar Siguiente'}
+                    {language === 'es' ? 'Llamar Siguiente' : 'Call Next'}
                   </ModernButton>
                 </div>
               </ModernCard>
@@ -382,7 +376,7 @@ const AttorneyDashboard = () => {
               {/* Queue List */}
               <ModernCard variant="elevated">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
-                  {language === 'en' ? 'Waiting Queue' : 'Cola de Espera'}
+                  {language === 'es' ? 'Cola de Espera' : 'Waiting Queue'}
                 </h2>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {sortedQueue.filter(item => item.status === 'waiting').map((item, index) => {
@@ -414,7 +408,7 @@ const AttorneyDashboard = () => {
                               {item.waitTimeFormatted}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {language === 'en' ? 'waiting' : 'esperando'}
+                              {language === 'es' ? 'esperando' : 'waiting'}
                             </div>
                           </div>
                         </div>
@@ -426,7 +420,7 @@ const AttorneyDashboard = () => {
                   })}
                   {sortedQueue.filter(item => item.status === 'waiting').length === 0 && (
                     <div className="text-center text-gray-500 py-8">
-                      {language === 'en' ? 'No cases waiting' : 'No hay casos esperando'}
+                      {language === 'es' ? 'No hay casos esperando' : 'No cases waiting'}
                     </div>
                   )}
                 </div>
@@ -463,7 +457,7 @@ const AttorneyDashboard = () => {
                         loading={sendingEmail}
                         icon={<Send className="w-4 h-4" />}
                       >
-                        {language === 'en' ? 'Send Email' : 'Enviar Email'}
+                        {language === 'es' ? 'Enviar Email' : 'Send Email'}
                       </ModernButton>
                       <ModernButton
                         variant="success"
@@ -471,7 +465,7 @@ const AttorneyDashboard = () => {
                         onClick={() => handleCompleteCase(selectedCase.queue_number)}
                         icon={<CheckCircle className="w-4 h-4" />}
                       >
-                        {language === 'en' ? 'Complete' : 'Completar'}
+                        {language === 'es' ? 'Completar' : 'Complete'}
                       </ModernButton>
                     </div>
                   </div>
@@ -480,7 +474,7 @@ const AttorneyDashboard = () => {
                 {/* Client Information */}
                 <ModernCard variant="outlined">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    {language === 'en' ? 'Client Information' : 'Información del Cliente'}
+                    {language === 'es' ? 'Información del Cliente' : 'Client Information'}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-3">
@@ -490,7 +484,7 @@ const AttorneyDashboard = () => {
                           {selectedCase.user_name || 'Not provided'}
                         </div>
                         <div className="text-sm text-gray-600">
-                          {language === 'en' ? 'Name' : 'Nombre'}
+                          {language === 'es' ? 'Nombre' : 'Name'}
                         </div>
                       </div>
                     </div>
@@ -501,7 +495,7 @@ const AttorneyDashboard = () => {
                           {selectedCase.user_email || 'Not provided'}
                         </div>
                         <div className="text-sm text-gray-600">
-                          {language === 'en' ? 'Email' : 'Correo'}
+                          {language === 'es' ? 'Correo' : 'Email'}
                         </div>
                       </div>
                     </div>
@@ -512,7 +506,7 @@ const AttorneyDashboard = () => {
                           {selectedCase.phone_number || 'Not provided'}
                         </div>
                         <div className="text-sm text-gray-600">
-                          {language === 'en' ? 'Phone' : 'Teléfono'}
+                          {language === 'es' ? 'Teléfono' : 'Phone'}
                         </div>
                       </div>
                     </div>
@@ -523,7 +517,7 @@ const AttorneyDashboard = () => {
                           {selectedCase.waitTimeFormatted}
                         </div>
                         <div className="text-sm text-gray-600">
-                          {language === 'en' ? 'Wait Time' : 'Tiempo de Espera'}
+                          {language === 'es' ? 'Tiempo de Espera' : 'Wait Time'}
                         </div>
                       </div>
                     </div>
@@ -535,7 +529,7 @@ const AttorneyDashboard = () => {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-gray-900 flex items-center">
                       <Brain className="w-5 h-5 mr-2 text-blue-600" />
-                      {language === 'en' ? 'AI-Powered Case Analysis' : 'Análisis del Caso con IA'}
+                      {language === 'es' ? 'Análisis del Caso con IA' : 'AI-Powered Case Analysis'}
                     </h3>
                     {analyzing && (
                       <div className="flex items-center text-blue-600">
@@ -551,7 +545,7 @@ const AttorneyDashboard = () => {
                       <div className="bg-white rounded-lg p-4 border border-blue-200">
                         <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
                           <Eye className="w-4 h-4 mr-2 text-blue-600" />
-                          {language === 'en' ? 'Case Overview' : 'Resumen del Caso'}
+                          {language === 'es' ? 'Resumen del Caso' : 'Case Overview'}
                         </h4>
                         <p className="text-gray-700 leading-relaxed">
                           {caseAnalysis.case_overview}
@@ -573,7 +567,7 @@ const AttorneyDashboard = () => {
                         <div className="bg-red-50 rounded-lg p-4 border border-red-200">
                           <h4 className="font-semibold text-red-900 mb-2 flex items-center">
                             <AlertCircle className="w-4 h-4 mr-2 text-red-600" />
-                            {language === 'en' ? 'Immediate Concerns' : 'Preocupaciones Inmediatas'}
+                            {language === 'es' ? 'Preocupaciones Inmediatas' : 'Immediate Concerns'}
                           </h4>
                           <ul className="space-y-1">
                             {caseAnalysis.immediate_concerns.map((concern, index) => (
@@ -590,7 +584,7 @@ const AttorneyDashboard = () => {
                       <div className="bg-white rounded-lg p-4 border border-green-200">
                         <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                           <FileText className="w-4 h-4 mr-2 text-green-600" />
-                          {language === 'en' ? 'Required Documents' : 'Documentos Requeridos'}
+                          {language === 'es' ? 'Documentos Requeridos' : 'Required Documents'}
                         </h4>
                         <div className="space-y-2">
                           {caseAnalysis.required_documents.map((doc, index) => (
@@ -620,7 +614,7 @@ const AttorneyDashboard = () => {
                       <div className="bg-white rounded-lg p-4 border border-purple-200">
                         <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                           <ArrowRight className="w-4 h-4 mr-2 text-purple-600" />
-                          {language === 'en' ? 'Next Steps' : 'Próximos Pasos'}
+                          {language === 'es' ? 'Próximos Pasos' : 'Next Steps'}
                         </h4>
                         <div className="space-y-3">
                           {caseAnalysis.next_steps.map((step, index) => (
@@ -646,7 +640,7 @@ const AttorneyDashboard = () => {
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
                         <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                           <UserCheck className="w-4 h-4 mr-2 text-blue-600" />
-                          {language === 'en' ? 'Your Action Items' : 'Sus Tareas'}
+                          {language === 'es' ? 'Sus Tareas' : 'Your Action Items'}
                         </h4>
                         <ul className="space-y-2">
                           {caseAnalysis.attorney_actions.map((action, index) => (
@@ -662,7 +656,7 @@ const AttorneyDashboard = () => {
                       <div className="bg-white rounded-lg p-4 border border-orange-200">
                         <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                           <Calendar className="w-4 h-4 mr-2 text-orange-600" />
-                          {language === 'en' ? 'Important Timeline' : 'Cronograma Importante'}
+                          {language === 'es' ? 'Cronograma Importante' : 'Important Timeline'}
                         </h4>
                         <div className="space-y-2">
                           {caseAnalysis.timeline.map((item, index) => (
@@ -684,7 +678,7 @@ const AttorneyDashboard = () => {
                       <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                         <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                           <Shield className="w-4 h-4 mr-2 text-green-600" />
-                          {language === 'en' ? 'Client Support Tips' : 'Consejos de Apoyo al Cliente'}
+                          {language === 'es' ? 'Consejos de Apoyo al Cliente' : 'Client Support Tips'}
                         </h4>
                         <ul className="space-y-2">
                           {caseAnalysis.client_support.map((tip, index) => (
@@ -700,9 +694,9 @@ const AttorneyDashboard = () => {
                     <div className="text-center py-8">
                       <RefreshCw className="w-12 h-12 text-blue-400 mx-auto mb-4 animate-spin" />
                       <p className="text-gray-600">
-                        {language === 'en' 
-                          ? 'Generating comprehensive case analysis...'
-                          : 'Generando análisis completo del caso...'
+                        {language === 'es' 
+                          ? 'Generando análisis completo del caso...'
+                          : 'Generating comprehensive case analysis...'
                         }
                       </p>
                     </div>
@@ -710,9 +704,9 @@ const AttorneyDashboard = () => {
                     <div className="text-center py-8">
                       <Brain className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600">
-                        {language === 'en' 
-                          ? 'Click on a case to generate AI-powered analysis and guidance'
-                          : 'Haga clic en un caso para generar análisis y orientación con IA'
+                        {language === 'es' 
+                          ? 'Haga clic en un caso para generar análisis y orientación con IA'
+                          : 'Click on a case to generate AI-powered analysis and guidance'
                         }
                       </p>
                     </div>
@@ -723,13 +717,13 @@ const AttorneyDashboard = () => {
                 {(selectedCase.documents_needed?.length > 0 || selectedCase.next_steps?.length > 0) && (
                   <ModernCard variant="outlined">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">
-                      {language === 'en' ? 'Forms & Next Steps' : 'Formularios y Próximos Pasos'}
+                      {language === 'es' ? 'Formularios y Próximos Pasos' : 'Forms & Next Steps'}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {selectedCase.documents_needed?.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-2">
-                            {language === 'en' ? 'Required Forms:' : 'Formularios Requeridos:'}
+                            {language === 'es' ? 'Formularios Requeridos:' : 'Required Forms:'}
                           </h4>
                           <ul className="space-y-1">
                             {selectedCase.documents_needed.map((form, index) => (
@@ -744,7 +738,7 @@ const AttorneyDashboard = () => {
                       {selectedCase.next_steps?.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-2">
-                            {language === 'en' ? 'Next Steps:' : 'Próximos Pasos:'}
+                            {language === 'es' ? 'Próximos Pasos:' : 'Next Steps:'}
                           </h4>
                           <ul className="space-y-1">
                             {selectedCase.next_steps.map((step, index) => (
@@ -764,12 +758,12 @@ const AttorneyDashboard = () => {
               <ModernCard variant="elevated" className="text-center py-16">
                 <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {language === 'en' ? 'Select a Case' : 'Seleccione un Caso'}
+                  {language === 'es' ? 'Seleccione un Caso' : 'Select a Case'}
                 </h3>
                 <p className="text-gray-600">
-                  {language === 'en' 
-                    ? 'Click on a case from the queue to view details and provide assistance'
-                    : 'Haga clic en un caso de la cola para ver detalles y proporcionar asistencia'
+                  {language === 'es' 
+                    ? 'Haga clic en un caso de la cola para ver detalles y proporcionar asistencia'
+                    : 'Click on a case from the queue to view details and provide assistance'
                   }
                 </p>
               </ModernCard>

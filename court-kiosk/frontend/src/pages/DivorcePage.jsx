@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Shield, Clock, Home } from 'lucide-react';
+import LanguageSelector from '../components/LanguageSelector';
 
 const DivorcePage = () => {
-  const { language, toggleLanguage } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
+
+  const learningTopics = useMemo(() => t('divorce.learnCards') || [], [t]);
+  const importantNotes = useMemo(() => t('divorce.notes') || [], [t]);
 
   const handleStartApplication = () => {
     navigate('/divorce-flow');
@@ -26,23 +30,18 @@ const DivorcePage = () => {
               className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
             >
               <Home className="w-4 h-4 mr-2" />
-              Back to Home
+              {t('divorce.backToHome')}
             </button>
-            
+
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
                   <Shield className="w-4 h-4 text-white" />
                 </div>
-                <span className="font-semibold text-gray-900">Family Court Clinic</span>
+                <span className="font-semibold text-gray-900">{t('divorce.clinicName')}</span>
               </div>
 
-              <button
-                onClick={toggleLanguage}
-                className="px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition-colors"
-              >
-                {language === 'es' ? 'EN' : 'ES'}
-              </button>
+              <LanguageSelector size="sm" />
             </div>
           </div>
         </div>
@@ -53,13 +52,12 @@ const DivorcePage = () => {
         <div className="text-center">
           {/* Title */}
           <h1 className="text-6xl font-bold text-gray-900 mb-6">
-            Divorce & Legal Separation
+            {t('divorce.heroTitle')}
           </h1>
-          
+
           {/* Description */}
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Get help with divorce proceedings, legal separation, and property division. 
-            We'll guide you step by step with information and specific forms needed for your case.
+            {t('divorce.heroDescription')}
           </p>
 
           {/* Information Box */}
@@ -68,8 +66,7 @@ const DivorcePage = () => {
               <div className="w-3 h-3 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
               <div className="text-left">
                 <p className="text-blue-800 font-medium">
-                  Understanding your rights and the divorce process is crucial. 
-                  This guide will help you navigate the legal requirements and prepare the necessary documentation.
+                  {t('divorce.infoBanner')}
                 </p>
               </div>
             </div>
@@ -81,7 +78,7 @@ const DivorcePage = () => {
             className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-6 px-8 rounded-lg text-lg transition-colors duration-200 flex items-center mx-auto mb-6"
           >
             <Shield className="w-6 h-6 mr-3" />
-            Start Divorce Guide
+            {t('divorce.startGuide')}
           </button>
 
           {/* Additional Information */}
@@ -89,12 +86,8 @@ const DivorcePage = () => {
             <div className="flex items-center justify-center space-x-6">
               <span className="flex items-center">
                 <Clock className="w-4 h-4 mr-1" />
-                Free and confidential
+                {t('divorce.startDetails')}
               </span>
-              <span>•</span>
-              <span>20-30 minutes</span>
-              <span>•</span>
-              <span>Step-by-step guidance</span>
             </div>
           </div>
         </div>
@@ -102,48 +95,26 @@ const DivorcePage = () => {
         {/* What You'll Learn Section */}
         <div className="mt-16">
           <h2 className="text-2xl font-semibold text-gray-900 text-center mb-8">
-            What You'll Learn
+            {t('divorce.learnTitle')}
           </h2>
-          
+
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Residency Requirements</h3>
-              <p className="text-gray-600">
-                Understand California's residency requirements and eligibility for filing divorce proceedings.
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Required Forms</h3>
-              <p className="text-gray-600">
-                Learn about essential forms like FL-100 (Petition), FL-110 (Summons), and child custody forms if applicable.
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Service Requirements</h3>
-              <p className="text-gray-600">
-                Understand how to properly serve divorce papers to your spouse within the required timeframe.
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Next Steps</h3>
-              <p className="text-gray-600">
-                Get guidance on what happens after filing, including response periods and court procedures.
-              </p>
-            </div>
+            {learningTopics.map((topic) => (
+              <div key={topic.title} className="bg-gray-50 rounded-lg p-6">
+                <h3 className="font-semibold text-gray-900 mb-3">{topic.title}</h3>
+                <p className="text-gray-600">{topic.description}</p>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Important Notes */}
         <div className="mt-12 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h3 className="font-semibold text-yellow-800 mb-3">Important Information</h3>
+          <h3 className="font-semibold text-yellow-800 mb-3">{t('divorce.notesTitle')}</h3>
           <ul className="text-yellow-700 text-sm space-y-2">
-            <li>• This guide provides general information and is not legal advice</li>
-            <li>• For complex cases or legal advice, consult with an attorney</li>
-            <li>• Court staff can help with procedural questions but cannot provide legal advice</li>
-            <li>• All forms and procedures must comply with California family law requirements</li>
+            {importantNotes.map((note, index) => (
+              <li key={index}>• {note}</li>
+            ))}
           </ul>
         </div>
       </div>

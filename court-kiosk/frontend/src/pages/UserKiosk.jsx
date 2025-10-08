@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Shield, 
   HeartHandshake, 
@@ -25,68 +25,61 @@ const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
   'http://localhost:4000';
 
+const CASE_TYPES = [
+  {
+    id: 'A',
+    priority: 'A',
+    case_type: 'DVRO',
+    icon: Shield,
+    accent: 'bg-red-50'
+  },
+  {
+    id: 'B',
+    priority: 'B',
+    case_type: 'CUSTODY',
+    icon: HeartHandshake,
+    accent: 'bg-amber-50'
+  },
+  {
+    id: 'C',
+    priority: 'C',
+    case_type: 'DIVORCE',
+    icon: FileText,
+    accent: 'bg-blue-50'
+  },
+  {
+    id: 'D',
+    priority: 'D',
+    case_type: 'OTHER',
+    icon: Users,
+    accent: 'bg-emerald-50'
+  }
+];
+
 const UserKiosk = () => {
-  const { language, toggleLanguage } = useLanguage();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
-  const [selectedCase, setSelectedCase] = useState(null);
+  const location = useLocation();
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
   const [queueNumber, setQueueNumber] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [caseSummary, setCaseSummary] = useState('');
   const [nextSteps, setNextSteps] = useState('');
 
-  const caseTypes = [
-    {
-      id: 'A',
-      priority: 'A',
-      case_type: 'DVRO',
-      title: { en: 'Domestic Violence', es: 'Violencia Doméstica' },
-      description: { 
-        en: 'Restraining orders, protection orders, emergency cases.', 
-        es: 'Órdenes de restricción, órdenes de protección, casos de emergencia.' 
-      },
-      icon: Shield,
-      accent: 'bg-red-50'
-    },
-    {
-      id: 'B',
-      priority: 'B',
-      case_type: 'CUSTODY',
-      title: { en: 'Child Custody & Support', es: 'Custodia y Manutención' },
-      description: { 
-        en: 'Child custody, support, visitation rights.', 
-        es: 'Custodia de menores, manutención infantil, derechos de visita.' 
-      },
-      icon: HeartHandshake,
-      accent: 'bg-amber-50'
-    },
-    {
-      id: 'C',
-      priority: 'C',
-      case_type: 'DIVORCE',
-      title: { en: 'Divorce & Separation', es: 'Divorcio y Separación' },
-      description: { 
-        en: 'Divorce, legal separation, serving papers, next steps.', 
-        es: 'Divorcio, separación legal, entrega de documentos, próximos pasos.' 
-      },
-      icon: FileText,
-      accent: 'bg-blue-50'
-    },
-    {
-      id: 'D',
-      priority: 'D',
-      case_type: 'OTHER',
-      title: { en: 'Other Family Law', es: 'Otro Derecho de Familia' },
-      description: { 
-        en: 'Parentage, guardianship, name change, and more.', 
-        es: 'Paternidad, tutela, cambio de nombre y más.' 
-      },
-      icon: Users,
-      accent: 'bg-emerald-50'
-    }
-  ];
+  const caseTypes = useMemo(() => (
+    CASE_TYPES.map((caseType) => ({
+      ...caseType,
+      title: t(`userKiosk.caseTypes.${caseType.id}.title`),
+      description: t(`userKiosk.caseTypes.${caseType.id}.description`)
+    }))
+  ), [t]);
 
-  const handleCaseSelection = async (caseType) => {
-    setSelectedCase(caseType);
+  const selectedCase = selectedCaseId
+    ? caseTypes.find((caseType) => caseType.id === selectedCaseId)
+    : null;
+
+  const handleCaseSelection = useCallback(async (caseType) => {
+    setSelectedCaseId(caseType.id);
     setIsProcessing(true);
 
     try {
@@ -129,25 +122,36 @@ const UserKiosk = () => {
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [language, navigate]);
 
   const resetKiosk = () => {
-    setSelectedCase(null);
+    setSelectedCaseId(null);
     setQueueNumber(null);
     setCaseSummary('');
     setNextSteps('');
   };
 
+  const preselectCaseId = location.state?.preselectCaseId;
+
+  useEffect(() => {
+    if (!preselectCaseId) {
+      return;
+    }
+    const targetCase = caseTypes.find((caseType) => caseType.id === preselectCaseId);
+    if (targetCase) {
+      handleCaseSelection(targetCase);
+    }
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [preselectCaseId, caseTypes, handleCaseSelection, navigate, location.pathname]);
+
   // Show final queue number with summary (for non-DV cases)
   if (queueNumber) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <ModernHeader 
-          title={language === 'en' ? 'Queue Number Assigned' : 'Número de Cola Asignado'} 
-          subtitle={language === 'en' ? 'Please wait to be called' : 'Por favor espera a ser llamado'} 
+        <ModernHeader
+          title={t('userKiosk.queueAssignedTitle')}
+          subtitle={t('userKiosk.queueAssignedSubtitle')}
           showLanguageToggle={true}
-          onLanguageToggle={toggleLanguage}
-          currentLanguage={language}
         />
         <div className="flex items-center justify-center min-h-[80vh] p-4">
           <div className="max-w-4xl w-full space-y-6">
@@ -155,24 +159,24 @@ const UserKiosk = () => {
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
-              
+
               <h1 className="text-4xl font-bold text-gray-900 mb-8">
-                {language === 'en' ? 'YOUR QUEUE NUMBER' : 'TU NÚMERO DE COLA'}
+                {t('userKiosk.queueNumberLabel')}
               </h1>
-              
+
               <ModernCard variant="gradient" className="mb-8">
                 <div className="text-8xl font-black text-white mb-4">#{queueNumber}</div>
                 <p className="text-white text-xl font-medium">
-                  {language === 'en' ? 'Priority Level' : 'Nivel de Prioridad'} {selectedCase?.priority}
+                  {t('userKiosk.priorityLevel', { values: { value: selectedCase?.priority ?? '' } })}
                 </p>
               </ModernCard>
 
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                  {selectedCase?.title[language]}
+                  {selectedCase?.title}
                 </h2>
                 <p className="text-gray-600 text-lg">
-                  {selectedCase?.description[language]}
+                  {selectedCase?.description}
                 </p>
               </div>
             </ModernCard>
@@ -180,7 +184,7 @@ const UserKiosk = () => {
             {caseSummary && (
               <ModernCard variant="outlined" className="text-left">
                 <h3 className="font-bold text-gray-900 mb-4 text-xl">
-                  {language === 'en' ? 'Case Summary' : 'Resumen del Caso'}
+                  {t('userKiosk.caseSummaryLabel')}
                 </h3>
                 <div className="text-gray-700 whitespace-pre-line leading-relaxed text-lg">
                   {caseSummary}
@@ -192,7 +196,7 @@ const UserKiosk = () => {
               <ModernCard variant="info" className="text-left">
                 <h3 className="font-bold text-white mb-4 flex items-center text-xl">
                   <FileTextIcon className="w-6 h-6 mr-3" />
-                  {language === 'en' ? 'Next Steps' : 'Próximos Pasos'}
+                  {t('userKiosk.nextStepsLabel')}
                 </h3>
                 <div className="text-white whitespace-pre-line leading-relaxed text-lg">
                   {nextSteps}
@@ -204,14 +208,11 @@ const UserKiosk = () => {
               <div className="flex items-center justify-center mb-4">
                 <Clock className="w-8 h-8 text-white mr-3" />
                 <span className="text-white font-bold text-xl">
-                  {language === 'en' ? 'Please wait to be called' : 'Por favor espera a ser llamado'}
+                  {t('userKiosk.waitMessageHeading')}
                 </span>
               </div>
               <p className="text-white text-lg">
-                {language === 'en' 
-                  ? 'A facilitator will call your number when it\'s your turn. Please have a seat and wait.'
-                  : 'Un facilitador llamará su número cuando sea su turno. Por favor tome asiento y espere.'
-                }
+                {t('userKiosk.waitMessageBody')}
               </p>
             </ModernCard>
 
@@ -223,7 +224,7 @@ const UserKiosk = () => {
                 icon={<ChevronRight className="w-5 h-5" />}
                 iconPosition="right"
               >
-                {language === 'en' ? 'Start Over' : 'Comenzar de Nuevo'}
+                {t('userKiosk.startOver')}
               </ModernButton>
             </div>
           </div>
@@ -236,13 +237,13 @@ const UserKiosk = () => {
   const Priority = ({ tone }) => {
     const tones = {
       A: "bg-red-600",
-      B: "bg-amber-600", 
+      B: "bg-amber-600",
       C: "bg-blue-700",
       D: "bg-emerald-700",
     };
     return (
       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-white ${tones[tone]}`}>
-        PRIORITY {tone}
+        {t('userKiosk.priorityLevel', { values: { value: tone } })}
       </span>
     );
   };
@@ -270,18 +271,18 @@ const UserKiosk = () => {
                 <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center">
                   <Icon className="w-6 h-6 text-white" aria-hidden />
                 </div>
-                <h3 className="text-xl font-bold text-white">{caseType.title[language]}</h3>
+                <h3 className="text-xl font-bold text-white">{caseType.title}</h3>
               </div>
               <Priority tone={caseType.priority} />
             </div>
           </div>
           <div className="px-6 py-6 flex-1 flex flex-col">
             <p className="text-gray-700 text-base leading-relaxed mb-6 flex-1">
-              {caseType.description[language]}
+              {caseType.description}
             </p>
             <div className="flex items-center justify-between">
               <span className="text-gray-500 text-sm font-medium">
-                {language === 'en' ? 'Click to select' : 'Haga clic para seleccionar'}
+                {t('userKiosk.tileCallToAction')}
               </span>
               <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
             </div>
@@ -293,12 +294,10 @@ const UserKiosk = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ModernHeader 
-        title={language === 'en' ? 'Family Law Self-Help Kiosk' : 'Quiosco de Autoayuda de Derecho de Familia'} 
-        subtitle={language === 'en' ? 'Select Your Case Type' : 'Seleccione su Tipo de Caso'} 
+      <ModernHeader
+        title={t('userKiosk.headerTitle')}
+        subtitle={t('userKiosk.headerSubtitle')}
         showLanguageToggle={true}
-        onLanguageToggle={toggleLanguage}
-        currentLanguage={language}
       />
 
       {/* Hero Section */}
@@ -306,13 +305,10 @@ const UserKiosk = () => {
         <div className="mx-auto max-w-7xl w-full px-4">
           <div className="py-12 text-center">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
-              {language === 'en' ? 'Select Your Case Type' : 'Seleccione su Tipo de Caso'}
+              {t('userKiosk.heroTitle')}
             </h2>
             <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-              {language === 'en' 
-                ? 'Choose the category that best describes your legal matter.'
-                : 'Elija la categoría que mejor describa su asunto legal.'
-              }
+              {t('userKiosk.heroDescription')}
             </p>
           </div>
         </div>
@@ -335,39 +331,33 @@ const UserKiosk = () => {
               <AlertTriangle className="w-6 h-6 text-white mt-1" />
               <div>
                 <h4 className="font-bold text-white text-lg mb-2">
-                  {language === 'en' ? 'Emergency Help' : 'Ayuda de Emergencia'}
+                  {t('userKiosk.emergencyTitle')}
                 </h4>
                 <p className="text-white text-base leading-relaxed">
-                  {language === 'en' 
-                    ? 'If you are in immediate danger, call 911. For same‑day DVRO assistance, visit the Self‑Help Center.'
-                    : 'Si está en peligro inmediato, llame al 911. Para asistencia de DVRO el mismo día, visite el Centro de Autoayuda.'
-                  }
+                  {t('userKiosk.emergencyMessage')}
                 </p>
               </div>
             </div>
           </ModernCard>
-          
+
           <ModernCard variant="outlined" className="text-left">
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-gray-700">
-                <MapPin className="w-5 h-5 text-gray-500" /> 
+                <MapPin className="w-5 h-5 text-gray-500" />
                 <span className="font-medium">
-                  {language === 'en' 
-                    ? 'Hall of Justice, 400 County Center, 6th Floor'
-                    : 'Salón de Justicia, 400 County Center, 6to Piso'
-                  }
+                  {t('userKiosk.locationLine1')}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
-                <Clock className="w-5 h-5 text-gray-500" /> 
+                <Clock className="w-5 h-5 text-gray-500" />
                 <span className="font-medium">
-                  {language === 'en' ? 'Mon–Fri · 8:00–12:00, 1:30–3:00' : 'Lun–Vie · 8:00–12:00, 1:30–3:00'}
+                  {t('userKiosk.locationLine2')}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
-                <Phone className="w-5 h-5 text-gray-500" /> 
+                <Phone className="w-5 h-5 text-gray-500" />
                 <span className="font-medium">
-                  {language === 'en' ? 'Self‑Help Center' : 'Centro de Autoayuda'}
+                  {t('userKiosk.locationLine3')}
                 </span>
               </div>
             </div>
@@ -379,10 +369,7 @@ const UserKiosk = () => {
       <footer className="bg-gray-100 border-t border-gray-200">
         <div className="mx-auto max-w-7xl w-full px-4">
           <div className="py-6 text-center text-sm text-gray-600">
-            {language === 'en' 
-              ? `San Mateo Superior Court © ${new Date().getFullYear()} · Family Law Self‑Help Center`
-              : `Tribunal Superior de San Mateo © ${new Date().getFullYear()} · Centro de Autoayuda de Derecho de Familia`
-            }
+            {t('userKiosk.footer', { values: { year: new Date().getFullYear() } })}
           </div>
         </div>
       </footer>
@@ -393,7 +380,7 @@ const UserKiosk = () => {
           <ModernCard variant="elevated" className="text-center max-w-sm mx-4">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600 mx-auto mb-6"></div>
             <p className="text-gray-800 text-lg font-semibold">
-              {language === 'en' ? 'Processing...' : 'Procesando...'}
+              {t('userKiosk.processing')}
             </p>
           </ModernCard>
         </div>
