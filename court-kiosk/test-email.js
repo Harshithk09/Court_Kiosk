@@ -2,7 +2,10 @@
 // Run this with: node test-email.js
 
 const testEmailFunction = async () => {
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const API_URL =
+    process.env.REACT_APP_API_URL ||
+    process.env.API_URL ||
+    'http://localhost:5001';
   
   const testData = {
     email: 'test@example.com', // Replace with your email for testing
