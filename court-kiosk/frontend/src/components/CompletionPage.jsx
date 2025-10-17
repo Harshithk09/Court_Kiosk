@@ -192,8 +192,9 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const handleEmailRequest = async () => {
     setIsSubmitting(true);
     try {
+      const summary = generateSummary();
+      
       console.log('Sending email request to:', buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL));
-      console.log('Email data:', { email, case_data: { queue_number: queueNumber, case_type: 'DVRO', summary: generateSummary() } });
       
       // Send case summary email using the centralized API configuration
       const response = await fetch(buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL), {
@@ -204,24 +205,25 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
         body: JSON.stringify({
           email: email,
           case_data: {
-            queue_number: queueNumber,
+            user_email: email,
+            user_name: 'Court Kiosk User',
             case_type: 'DVRO',
-            summary: generateSummary()
+            priority_level: 'A',
+            language: 'en',
+            queue_number: queueNumber || null,
+            documents_needed: [],
+            next_steps: [],
+            conversation_summary: summary,  // Send as object - backend should handle it
+            phone_number: phoneNumber || null
           }
         })
       });
       
-      // Check if response is ok
+      // Better error handling
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      // Check if response has content
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response:', text);
-        throw new Error('Server returned non-JSON response');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Server error:', errorData);
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
@@ -233,7 +235,7 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
       }
     } catch (error) {
       console.error('Error sending email:', error);
-      alert('Error sending email. Please try again.');
+      alert('Error sending email: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
