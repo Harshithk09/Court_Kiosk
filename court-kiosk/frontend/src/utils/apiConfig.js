@@ -2,7 +2,7 @@
 // This file centralizes API configuration for both development and production environments
 
 // Get the API base URL from environment variables
-// In production (Vercel), this should be set to the backend Vercel URL
+// In production (Vercel), this should point to the Render backend
 // In development, this can be localhost or any other backend URL
 const getApiBaseUrl = () => {
   // 1. Explicit override via environment variable (preferred)
@@ -13,10 +13,9 @@ const getApiBaseUrl = () => {
   // 2. If we're running in the browser, use window.location to
   //    determine the correct origin. This ensures that when the
   //    frontend is deployed (e.g. on Vercel) we automatically use
-  //    the same host for API routes, which maps to the serverless
-  //    functions.
+  //    the Render backend for API routes.
   if (typeof window !== 'undefined' && window.location) {
-    const { protocol, hostname, port } = window.location;
+    const { hostname } = window.location;
 
     // When developing locally, the frontend runs on port 3000 but the
     // Flask backend listens on 5001. Detect localhost and point to the
@@ -26,21 +25,18 @@ const getApiBaseUrl = () => {
       return `http://localhost:${process.env.REACT_APP_BACKEND_PORT || '5001'}`;
     }
 
-    // In production we can safely use the current origin so requests go
-    // to the deployed serverless functions (e.g. `/api/email/...`).
-    const portSegment = port ? `:${port}` : '';
-    return `${protocol}//${hostname}${portSegment}`;
+    // In production (Vercel), always use the Render backend
+    // This ensures API calls go to the correct backend server
+    return 'https://court-kiosk.onrender.com';
   }
 
-  // 3. During SSR or build time on Vercel the `VERCEL_URL` variable is
-  //    available. Use it as a final fallback when the browser globals are
-  //    not defined.
+  // 3. During SSR or build time on Vercel, use Render backend
   if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+    return 'https://court-kiosk.onrender.com';
   }
 
   // 4. Absolute fallback for other environments.
-  return 'http://localhost:5001';
+  return 'https://court-kiosk.onrender.com';
 };
 
 // API Configuration
