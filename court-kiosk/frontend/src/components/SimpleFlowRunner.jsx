@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CompletionPage from './CompletionPage';
 import ErrorBoundary from './ErrorBoundary';
+import { getFormUrl } from '../utils/formUtils';
+import { FileText, ExternalLink, Eye } from 'lucide-react';
 
 const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   const [currentNodeId, setCurrentNodeId] = useState(flow?.start || 'DVROStart');
@@ -95,6 +97,31 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
     setShowSummary(false);
   };
 
+  // Get forms for the sidebar based on user's progress
+  const getFormsForSidebar = () => {
+    const forms = new Set();
+    
+    // Extract forms from all nodes in the user's history
+    history.forEach(nodeId => {
+      const node = flow?.nodes?.[nodeId];
+      if (node?.text) {
+        // Look for form codes in the text using regex
+        const formMatches = node.text.match(/\b[A-Z]{2,3}-\d{3,4}\b/g);
+        if (formMatches) {
+          formMatches.forEach(form => forms.add(form));
+        }
+        
+        // Also look for specific form patterns
+        const specificForms = node.text.match(/\b(DV-\d+|CLETS-001|SER-001|POS-040|CH-\d+|FL-\d+|FW-\d+|CM-\d+|EPO-\d+|JV-\d+|MC-\d+)\b/g);
+        if (specificForms) {
+          specificForms.forEach(form => forms.add(form));
+        }
+      }
+    });
+    
+    return Array.from(forms).sort();
+  };
+
 
 
   if (showSummary) {
@@ -158,10 +185,10 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
           </div>
         </div>
 
-      <div className="max-w-6xl mx-auto py-8 px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
+      <div className="max-w-7xl mx-auto py-8 px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Progress Sidebar */}
+          <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Progress</h3>
               
@@ -224,7 +251,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-6">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
               {/* Node Content */}
               <div className="mb-8">
@@ -408,6 +435,64 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                              )}
              </div>
            </div>
+
+          {/* Forms Sidebar */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Required Forms</h3>
+              </div>
+              
+              <div className="space-y-3">
+                {getFormsForSidebar().map((formCode, index) => {
+                  const formUrl = getFormUrl(formCode);
+                  return (
+                    <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center space-x-3">
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-gray-900">{formCode}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <a
+                          href={formUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                          title="Open form"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                        <button
+                          className="text-gray-500 hover:text-gray-700 transition-colors"
+                          title="View example"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {getFormsForSidebar().length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No forms detected yet</p>
+                    <p className="text-xs text-gray-400">Forms will appear as you progress</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  <div className="flex justify-between">
+                    <span>Forms Found:</span>
+                    <span>{getFormsForSidebar().length}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
          </div>
        </div>
       </div>
