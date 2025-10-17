@@ -31,11 +31,12 @@ app = Flask(__name__)
 logging.basicConfig(level=getattr(logging, Config.LOG_LEVEL, 'INFO'))
 logger = logging.getLogger(__name__)
 
-# Configure CORS with environment-based origins
-cors_origins = Config.CORS_ORIGINS if hasattr(Config, 'CORS_ORIGINS') else ['http://localhost:3000', 'http://127.0.0.1:3000']
+# Configure CORS with environment-based origins - Allow all origins for global access
+cors_origins = Config.CORS_ORIGINS if hasattr(Config, 'CORS_ORIGINS') else ['*']
 CORS(app, origins=cors_origins, 
      allow_headers=['Content-Type', 'Authorization'], 
-     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     supports_credentials=True)
 
 # Configure rate limiting
 limiter = Limiter(
@@ -879,14 +880,35 @@ def send_case_summary_email_endpoint():
         if not email:
             return jsonify({'error': 'Email is required'}), 400
         
-        # Simple response for now
-        response_data = {
-            'success': True,
-            'message': 'Case summary email prepared successfully',
-            'case_number': 'DVRO1234',
-            'note': 'Email service working - simplified version'
+        # Generate case number
+        case_number = f"DVRO{random.randint(1000, 9999)}"
+        
+        # Prepare comprehensive case data for email
+        comprehensive_case_data = {
+            'user_email': email,
+            'user_name': case_data.get('user_name', 'Court Kiosk User'),
+            'case_type': case_data.get('case_type', 'Domestic Violence Restraining Order'),
+            'priority_level': 'A',
+            'language': 'en',
+            'queue_number': case_data.get('queue_number', 'N/A'),
+            'documents_needed': case_data.get('forms', []),
+            'next_steps': case_data.get('next_steps', []),
+            'conversation_summary': case_data.get('summary', ''),
+            'phone_number': case_data.get('phone_number')
         }
-        return jsonify(response_data)
+        
+        # Send comprehensive email using the email service
+        result = email_service.send_comprehensive_case_email(comprehensive_case_data, include_queue=False)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'message': 'Case summary email sent successfully',
+                'case_number': case_number,
+                'email_id': result.get('id')
+            })
+        else:
+            return jsonify({'error': result.get('error', 'Failed to send email')}), 500
             
     except Exception as e:
         app.logger.error(f"Error sending case summary email: {str(e)}")
