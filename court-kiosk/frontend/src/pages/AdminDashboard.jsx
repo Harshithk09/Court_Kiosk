@@ -21,12 +21,6 @@ const AdminDashboard = () => {
   const [showCaseSummaryModal, setShowCaseSummaryModal] = useState(false);
   const [caseSummaryData, setCaseSummaryData] = useState(null);
 
-  useEffect(() => {
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
-  }, [fetchQueue]);
-
   const fetchQueue = useCallback(async () => {
     try {
       setError(null);
@@ -70,6 +64,12 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   }, [sessionToken]);
+
+  useEffect(() => {
+    fetchQueue();
+    const interval = setInterval(fetchQueue, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, [fetchQueue]);
 
   const handleCallNext = async () => {
     try {

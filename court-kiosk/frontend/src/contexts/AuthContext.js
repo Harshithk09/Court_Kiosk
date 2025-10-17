@@ -16,14 +16,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState(localStorage.getItem('sessionToken'));
 
-  // Check if user is authenticated on app load
-  useEffect(() => {
-    if (sessionToken) {
-      checkAuthStatus();
-    } else {
-      setLoading(false);
+  const logout = useCallback(async () => {
+    try {
+      if (sessionToken) {
+        await fetch(buildApiUrl('/api/auth/logout'), {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${sessionToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setSessionToken(null);
+      localStorage.removeItem('sessionToken');
     }
-  }, [sessionToken, checkAuthStatus]);
+  }, [sessionToken]);
 
   const checkAuthStatus = useCallback(async () => {
     try {
@@ -47,7 +58,16 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [sessionToken]);
+  }, [sessionToken, logout]);
+
+  // Check if user is authenticated on app load
+  useEffect(() => {
+    if (sessionToken) {
+      checkAuthStatus();
+    } else {
+      setLoading(false);
+    }
+  }, [sessionToken, checkAuthStatus]);
 
   const login = async (username, password) => {
     try {
@@ -75,25 +95,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      if (sessionToken) {
-        await fetch(buildApiUrl('/api/auth/logout'), {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${sessionToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      setSessionToken(null);
-      localStorage.removeItem('sessionToken');
-    }
-  };
 
   const isAuthenticated = () => {
     return user !== null;

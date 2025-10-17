@@ -10,66 +10,149 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const [isInQueue, setIsInQueue] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Generate comprehensive summary
+  // Generate enhanced user-friendly summary
   const generateSummary = () => {
     const summary = {
+      header: {
+        case_type: 'DVRO',
+        date: new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        location: 'San Mateo County Superior Court Kiosk',
+        session_id: `K${Math.floor(Math.random() * 90000) + 10000}`
+      },
       forms: [],
-      steps: [],
-      timeline: [],
-      importantNotes: []
+      keyAnswers: [],
+      nextSteps: [],
+      resources: {
+        court_info: {
+          name: 'San Mateo County Superior Court',
+          address: '400 County Center, Redwood City, CA 94063',
+          phone: '(650) 261-5100',
+          hours: 'Monday-Friday, 8:00 AM - 4:00 PM'
+        },
+        self_help_center: {
+          phone: '(650) 261-5100 ext. 2',
+          hours: 'Monday-Friday, 8:30 AM - 12:00 PM',
+          location: 'Room 101, First Floor'
+        },
+        legal_aid: {
+          phone: '(650) 558-0915',
+          name: 'Legal Aid Society of San Mateo County'
+        },
+        emergency: {
+          phone: '911',
+          text: 'For immediate danger, call 911'
+        }
+      }
     };
 
-    // Extract forms from visited nodes
+    // Extract forms from visited nodes with descriptions
+    const formDescriptions = {
+      'DV-100': 'Request for Domestic Violence Restraining Order',
+      'DV-105': 'Request for Child Custody and Visitation',
+      'DV-109': 'Notice of Court Hearing',
+      'DV-110': 'Temporary Restraining Order',
+      'DV-200': 'Proof of Service',
+      'DV-140': 'Child Custody and Visitation Order',
+      'DV-108': 'Request for Child Abduction Prevention',
+      'DV-145': 'Child Abduction Prevention Order',
+      'DV-800': 'Firearms Restraining Order',
+      'FL-150': 'Income and Expense Declaration',
+      'CLETS-001': 'CLETS Information Form'
+    };
+
     history.forEach(nodeId => {
       const node = flow?.nodes?.[nodeId];
       if (node?.text) {
-        // Extract form numbers
         const formMatches = node.text.match(/\b[A-Z]{2,3}-\d{3,4}\b/g);
         if (formMatches) {
           formMatches.forEach(form => {
-            if (!summary.forms.includes(form)) {
-              summary.forms.push(form);
+            if (!summary.forms.find(f => f.form_code === form)) {
+              summary.forms.push({
+                form_code: form,
+                title: formDescriptions[form] || `${form} Form`,
+                description: 'Required for your case type'
+              });
             }
           });
         }
       }
     });
 
-    // Generate detailed steps
-    if (summary.forms.length > 0) {
-      summary.steps.push('Fill out all required forms completely');
-      summary.steps.push('Make 3 copies of each form (original + 2 copies)');
+    // Generate key answers based on user responses
+    if (answers.DVCheck1 === 'Yes') {
+      summary.keyAnswers.push('You requested a domestic violence restraining order');
+    }
+    if (answers.children === 'yes') {
+      summary.keyAnswers.push('You indicated you share a child with the respondent');
+    }
+    if (answers.support && answers.support !== 'none') {
+      const supportType = answers.support.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      summary.keyAnswers.push(`You requested ${supportType} support`);
+    }
+    if (answers.firearms === 'yes') {
+      summary.keyAnswers.push('You indicated firearms are involved in your case');
+    }
+    if (answers.abduction_check === 'yes') {
+      summary.keyAnswers.push('You requested child abduction prevention measures');
     }
 
-    // Add filing steps
-    if (history.some(nodeId => flow?.nodes?.[nodeId]?.text?.includes('File'))) {
-      summary.steps.push('File your forms with the court clerk');
-      summary.steps.push('Pay any required filing fees (DVRO filing is free)');
-      summary.timeline.push('File forms as soon as possible');
+    // Generate enhanced next steps
+    summary.nextSteps = [
+      {
+        action: "Take these forms to the Clerk's Office (Room 101)",
+        priority: "high",
+        timeline: "Today or as soon as possible",
+        details: "Bring your photo ID and this summary"
+      },
+      {
+        action: "The clerk will schedule a hearing within 3 days",
+        priority: "high",
+        timeline: "Within 3 business days",
+        details: "You'll receive notice of your court date"
+      },
+      {
+        action: "Serve the other party with your papers",
+        priority: "high",
+        timeline: "Before your court hearing",
+        details: "Use a process server, sheriff, or someone 18+ (not you)"
+      },
+      {
+        action: "File proof of service with the court",
+        priority: "high",
+        timeline: "After serving papers",
+        details: "Required for your case to proceed"
+      },
+      {
+        action: "Attend your court hearing",
+        priority: "critical",
+        timeline: "On the date listed in your papers",
+        details: "Bring all evidence (photos, texts, emails, witnesses)"
+      }
+    ];
+
+    // Add specific steps based on answers
+    if (answers.children === 'yes') {
+      summary.nextSteps.push({
+        action: "Prepare child custody and visitation information",
+        priority: "medium",
+        timeline: "Before your hearing",
+        details: "Gather school records, medical records, and any relevant documentation"
+      });
     }
 
-    // Add service steps
-    if (history.some(nodeId => flow?.nodes?.[nodeId]?.text?.includes('Serve'))) {
-      summary.steps.push('Serve the other party with your papers');
-      summary.steps.push('Use a process server, sheriff, or someone 18+ (not you)');
-      summary.steps.push('File proof of service with the court');
-      summary.timeline.push('Serve papers before your court date');
-      summary.importantNotes.push('The other party must be served for the order to be valid');
-    }
-
-    // Add hearing steps
-    if (history.some(nodeId => flow?.nodes?.[nodeId]?.text?.includes('hearing'))) {
-      summary.steps.push('Attend your court hearing on the scheduled date');
-      summary.steps.push('Bring all evidence (photos, texts, emails, witnesses)');
-      summary.steps.push('Dress appropriately for court');
-      summary.timeline.push('Attend hearing on the date listed in your papers');
-      summary.importantNotes.push('If you miss the hearing, your case may be dismissed');
-    }
-
-    // Add TRO specific notes
-    if (history.some(nodeId => flow?.nodes?.[nodeId]?.text?.includes('Temporary'))) {
-      summary.importantNotes.push('Keep a copy of your TRO with you at all times');
-      summary.importantNotes.push('Police can enforce a CLETS restraining order');
+    if (answers.support && answers.support !== 'none') {
+      summary.nextSteps.push({
+        action: "Gather income and expense documentation",
+        priority: "medium",
+        timeline: "Before your hearing",
+        details: "Pay stubs, tax returns, bank statements, bills"
+      });
     }
 
     return summary;
@@ -146,65 +229,140 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
     <div className="completion-page">
       <div className="max-w-4xl mx-auto p-6">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Your Case Summary</h1>
+          {/* Header Section */}
+          <div className="border-b border-gray-200 pb-6 mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Case Summary</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+              <div>
+                <span className="font-medium">Case Type:</span> {summary.header.case_type}
+              </div>
+              <div>
+                <span className="font-medium">Date:</span> {summary.header.date}
+              </div>
+              <div>
+                <span className="font-medium">Session ID:</span> {summary.header.session_id}
+              </div>
+              <div>
+                <span className="font-medium">Location:</span> {summary.header.location}
+              </div>
+            </div>
+          </div>
           
           {/* Summary Content */}
           <div className="space-y-6">
+            {/* Key Answers Section */}
+            {summary.keyAnswers.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="text-blue-500 mr-2">📝</span>
+                  Your Information
+                </h2>
+                <ul className="space-y-2">
+                  {summary.keyAnswers.map((answer, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="text-green-500 mr-2">✓</span>
+                      <span className="text-gray-700">{answer}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Forms Section */}
             {summary.forms.length > 0 && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">Required Forms</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="text-blue-500 mr-2">📋</span>
+                  Forms Completed
+                </h2>
+                <div className="space-y-2">
                   {summary.forms.map((form, index) => (
-                    <div key={index} className="bg-blue-50 border border-blue-200 rounded px-3 py-2">
-                      {form}
+                    <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="font-medium text-blue-900">{form.form_code}</div>
+                      <div className="text-sm text-blue-700">{form.title}</div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Steps Section */}
-            {summary.steps.length > 0 && (
+            {/* Next Steps Section */}
+            {summary.nextSteps.length > 0 && (
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">Next Steps</h2>
-                <ol className="list-decimal list-inside space-y-2">
-                  {summary.steps.map((step, index) => (
-                    <li key={index} className="text-gray-700">{step}</li>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="text-green-500 mr-2">✔</span>
+                  Next Steps
+                </h2>
+                <div className="space-y-4">
+                  {summary.nextSteps.map((step, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-medium text-gray-900">{step.action}</h3>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          step.priority === 'critical' ? 'bg-red-100 text-red-800' :
+                          step.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {step.priority}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 mb-1">
+                        <span className="font-medium">Timeline:</span> {step.timeline}
+                      </div>
+                      <div className="text-sm text-gray-700">{step.details}</div>
+                    </div>
                   ))}
-                </ol>
+                </div>
               </div>
             )}
 
-            {/* Timeline Section */}
-            {summary.timeline.length > 0 && (
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">Important Timeline</h2>
-                <ul className="space-y-2">
-                  {summary.timeline.map((item, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="text-yellow-500 mr-2">•</span>
-                      <span className="text-gray-700">{item}</span>
-                    </li>
-                  ))}
-                </ul>
+            {/* Resources Section */}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                <span className="text-purple-500 mr-2">📞</span>
+                Resources & Help
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Court Information</h3>
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <div>{summary.resources.court_info.name}</div>
+                    <div>{summary.resources.court_info.address}</div>
+                    <div>Phone: {summary.resources.court_info.phone}</div>
+                    <div>Hours: {summary.resources.court_info.hours}</div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Self-Help Center</h3>
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <div>Phone: {summary.resources.self_help_center.phone}</div>
+                    <div>Hours: {summary.resources.self_help_center.hours}</div>
+                    <div>Location: {summary.resources.self_help_center.location}</div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Legal Aid</h3>
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <div>{summary.resources.legal_aid.name}</div>
+                    <div>Phone: {summary.resources.legal_aid.phone}</div>
+                  </div>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h3 className="font-medium text-red-900 mb-2">Emergency</h3>
+                  <div className="text-sm text-red-700 space-y-1">
+                    <div>Phone: {summary.resources.emergency.phone}</div>
+                    <div>{summary.resources.emergency.text}</div>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
 
-            {/* Important Notes Section */}
-            {summary.importantNotes.length > 0 && (
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">Important Notes</h2>
-                <ul className="space-y-2">
-                  {summary.importantNotes.map((note, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="text-red-500 mr-2">•</span>
-                      <span className="text-gray-700">{note}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Disclaimer */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                <span className="font-medium">Disclaimer:</span> This summary is for informational purposes only and does not constitute legal advice. Please consult with an attorney for legal guidance.
+              </p>
+            </div>
           </div>
 
           {/* Options Section */}

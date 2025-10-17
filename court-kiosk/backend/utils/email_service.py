@@ -426,6 +426,111 @@ class EmailService:
             </div>
             """
         
+        return self._generate_enhanced_email_html(case_data, include_queue, queue_number, case_type, priority, language, user_name, priority_color, forms_html, steps_html, queue_html)
+    
+    def _generate_enhanced_email_html(self, case_data, include_queue, queue_number, case_type, priority, language, user_name, priority_color, forms_html, steps_html, queue_html):
+        """Generate enhanced HTML email content with user-friendly format"""
+        
+        # Get enhanced summary data
+        summary_json = case_data.get('summary_json', '{}')
+        if isinstance(summary_json, str):
+            try:
+                summary_data = json.loads(summary_json)
+            except:
+                summary_data = {}
+        else:
+            summary_data = summary_json
+        
+        # Extract enhanced summary components
+        header = summary_data.get('header', {})
+        forms_completed = summary_data.get('forms_completed', [])
+        key_answers = summary_data.get('key_answers', [])
+        next_steps = summary_data.get('next_steps', [])
+        resources = summary_data.get('resources', {})
+        
+        # Generate enhanced forms HTML
+        enhanced_forms_html = ""
+        if forms_completed:
+            enhanced_forms_html = "<h3>📋 Forms Completed:</h3><ul>"
+            for form in forms_completed:
+                form_code = form.get('form_code', '')
+                form_title = form.get('title', '')
+                enhanced_forms_html += f'<li><strong>{form_code}</strong> - {form_title}</li>'
+            enhanced_forms_html += "</ul>"
+        
+        # Generate key answers HTML
+        key_answers_html = ""
+        if key_answers:
+            key_answers_html = "<h3>📝 Your Information:</h3><ul>"
+            for answer in key_answers:
+                key_answers_html += f'<li>✓ {answer}</li>'
+            key_answers_html += "</ul>"
+        
+        # Generate enhanced next steps HTML
+        enhanced_steps_html = ""
+        if next_steps:
+            enhanced_steps_html = "<h3>✔ Next Steps:</h3>"
+            for step in next_steps:
+                action = step.get('action', '')
+                priority_level = step.get('priority', 'medium')
+                timeline = step.get('timeline', '')
+                details = step.get('details', '')
+                
+                priority_class = {
+                    'critical': 'background-color: #fef2f2; border-left: 4px solid #dc2626;',
+                    'high': 'background-color: #fffbeb; border-left: 4px solid #ea580c;',
+                    'medium': 'background-color: #f0f9ff; border-left: 4px solid #3b82f6;'
+                }.get(priority_level, 'background-color: #f9fafb; border-left: 4px solid #6b7280;')
+                
+                enhanced_steps_html += f"""
+                <div style="{priority_class} padding: 15px; margin: 10px 0; border-radius: 4px;">
+                    <div style="font-weight: bold; margin-bottom: 5px;">{action}</div>
+                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 5px;">
+                        <strong>Timeline:</strong> {timeline}
+                    </div>
+                    <div style="font-size: 14px; color: #374151;">{details}</div>
+                </div>
+                """
+        
+        # Generate resources HTML
+        resources_html = ""
+        if resources:
+            court_info = resources.get('court_info', {})
+            self_help = resources.get('self_help_center', {})
+            legal_aid = resources.get('legal_aid', {})
+            emergency = resources.get('emergency', {})
+            
+            resources_html = f"""
+            <div class="section">
+                <h3>📞 Resources & Help</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <h4 style="margin: 0 0 10px 0; color: #1f2937;">Court Information</h4>
+                        <p style="margin: 5px 0; font-size: 14px;">{court_info.get('name', 'San Mateo County Superior Court')}</p>
+                        <p style="margin: 5px 0; font-size: 14px;">{court_info.get('address', '400 County Center, Redwood City, CA 94063')}</p>
+                        <p style="margin: 5px 0; font-size: 14px;">Phone: {court_info.get('phone', '(650) 261-5100')}</p>
+                        <p style="margin: 5px 0; font-size: 14px;">Hours: {court_info.get('hours', 'Monday-Friday, 8:00 AM - 4:00 PM')}</p>
+                    </div>
+                    <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <h4 style="margin: 0 0 10px 0; color: #1f2937;">Self-Help Center</h4>
+                        <p style="margin: 5px 0; font-size: 14px;">Phone: {self_help.get('phone', '(650) 261-5100 ext. 2')}</p>
+                        <p style="margin: 5px 0; font-size: 14px;">Hours: {self_help.get('hours', 'Monday-Friday, 8:30 AM - 12:00 PM')}</p>
+                        <p style="margin: 5px 0; font-size: 14px;">Location: {self_help.get('location', 'Room 101, First Floor')}</p>
+                    </div>
+                    <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <h4 style="margin: 0 0 10px 0; color: #1f2937;">Legal Aid</h4>
+                        <p style="margin: 5px 0; font-size: 14px;">{legal_aid.get('name', 'Legal Aid Society of San Mateo County')}</p>
+                        <p style="margin: 5px 0; font-size: 14px;">Phone: {legal_aid.get('phone', '(650) 558-0915')}</p>
+                    </div>
+                    <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; border: 1px solid #fecaca;">
+                        <h4 style="margin: 0 0 10px 0; color: #dc2626;">Emergency</h4>
+                        <p style="margin: 5px 0; font-size: 14px; color: #dc2626;">Phone: {emergency.get('phone', '911')}</p>
+                        <p style="margin: 5px 0; font-size: 14px; color: #dc2626;">{emergency.get('text', 'For immediate danger, call 911')}</p>
+                    </div>
+                </div>
+            </div>
+            """
+        
         return f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -489,6 +594,7 @@ class EmailService:
                 h1 {{ color: white; margin: 0; }}
                 h2 {{ color: #1f2937; margin-top: 0; }}
                 h3 {{ color: #374151; }}
+                h4 {{ color: #1f2937; margin: 0 0 10px 0; }}
                 ul, ol {{ padding-left: 20px; }}
                 li {{ margin: 8px 0; }}
                 .important {{ 
@@ -503,6 +609,14 @@ class EmailService:
                     background-color: #ecfdf5;
                     border: 1px solid #bbf7d0;
                     color: #166534;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 20px 0;
+                }}
+                .disclaimer {{
+                    background-color: #fffbeb;
+                    border: 1px solid #fde68a;
+                    color: #92400e;
                     padding: 15px;
                     border-radius: 8px;
                     margin: 20px 0;
@@ -523,51 +637,31 @@ class EmailService:
                     <p><strong>Case Type:</strong> {case_type}</p>
                     <p><strong>Priority Level:</strong> <span class="priority-badge">{priority}</span></p>
                     <p><strong>Language:</strong> {language.upper()}</p>
-                    <p><strong>Date Generated:</strong> {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</p>
+                    <p><strong>Date Generated:</strong> {header.get('date', datetime.now().strftime('%B %d, %Y at %I:%M %p'))}</p>
+                    <p><strong>Session ID:</strong> {header.get('session_id', 'N/A')}</p>
+                    <p><strong>Location:</strong> {header.get('location', 'San Mateo County Superior Court Kiosk')}</p>
                     {f'<p><strong>Client Name:</strong> {user_name}</p>' if user_name else ''}
                 </div>
                 
-                {forms_html}
+                {key_answers_html}
+                {enhanced_forms_html}
                 
                 <div class="attachment-note">
                     <h3>📎 PDF Attachments</h3>
                     <p>This email includes the following PDF attachments:</p>
                     <ul>
                         <li><strong>Case Summary Report</strong> - Complete overview of your case</li>
-                        {''.join([f'<li><strong>{form} Form</strong> - Template and instructions</li>' for form in forms])}
+                        {''.join([f'<li><strong>{form.get("form_code", form)} Form</strong> - Template and instructions</li>' for form in forms_completed])}
                     </ul>
                 </div>
                 
-                {steps_html}
+                {enhanced_steps_html}
                 
-                <div class="section">
-                    <h3>⏰ Important Timeline</h3>
-                    <ul>
-                        <li><strong>Immediate:</strong> Complete all required forms</li>
-                        <li><strong>Within 24 hours:</strong> Make 3 copies of each form</li>
-                        <li><strong>Before hearing:</strong> Serve the other party (at least 5 days before)</li>
-                        <li><strong>Court hearing:</strong> Arrive 15 minutes early with all documents</li>
-                    </ul>
-                </div>
+                {resources_html}
                 
-                <div class="important">
-                    <h3>🚨 Important Reminders</h3>
-                    <ul>
-                        <li>If you are in immediate danger, call <strong>911</strong></li>
-                        <li>Keep copies of all forms with you at all times</li>
-                        <li>Service must be completed at least 5 days before hearing</li>
-                        <li>Bring all evidence and witnesses to court</li>
-                        <li>Dress appropriately for court (business attire)</li>
-                        <li>If you have questions, contact court staff</li>
-                    </ul>
-                </div>
-                
-                <div class="section">
-                    <h3>📞 Contact Information</h3>
-                    <p><strong>San Mateo Family Court Clinic</strong></p>
-                    <p>Phone: (650) 261-5100</p>
-                    <p>Hours: Monday - Friday, 8:00 AM - 5:00 PM</p>
-                    <p>Email: familycourt@sanmateocourt.org</p>
+                <div class="disclaimer">
+                    <h3>⚠️ Important Disclaimer</h3>
+                    <p>This summary is for informational purposes only and does not constitute legal advice. Please consult with an attorney for legal guidance.</p>
                 </div>
             </div>
             
