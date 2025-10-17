@@ -10,4 +10,4 @@ PyPDF2==3.0.1
 requests==2.31.0
 marshmallow==3.20.1
 flask-limiter==3.5.0
-gunicorn==21.2.0 
+gunicorn==21.2.0 # Force new deployment Fri Oct 17 14:08:33 PDT 2025
