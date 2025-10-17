@@ -873,11 +873,20 @@ def send_case_summary_email():
 def send_case_summary_email_endpoint():
     """Send case summary email - endpoint called by frontend"""
     try:
+        logger.info("Received email request")
         data = request.get_json()
+        
+        if not data:
+            logger.error("No JSON data received")
+            return jsonify({'error': 'No data received'}), 400
+            
         email = data.get('email')
         case_data = data.get('case_data', {})
         
+        logger.info(f"Processing email request for: {email}")
+        
         if not email:
+            logger.error("No email provided")
             return jsonify({'error': 'Email is required'}), 400
         
         # Generate case number
@@ -897,8 +906,12 @@ def send_case_summary_email_endpoint():
             'phone_number': case_data.get('phone_number')
         }
         
+        logger.info(f"Sending email with case data: {comprehensive_case_data}")
+        
         # Send comprehensive email using the email service
         result = email_service.send_comprehensive_case_email(comprehensive_case_data, include_queue=False)
+        
+        logger.info(f"Email service result: {result}")
         
         if result['success']:
             return jsonify({
@@ -908,11 +921,12 @@ def send_case_summary_email_endpoint():
                 'email_id': result.get('id')
             })
         else:
+            logger.error(f"Email service failed: {result}")
             return jsonify({'error': result.get('error', 'Failed to send email')}), 500
             
     except Exception as e:
-        app.logger.error(f"Error sending case summary email: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        logger.error(f"Error sending case summary email: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 @app.route('/api/send-summary', methods=['POST'])
 def send_summary_email():

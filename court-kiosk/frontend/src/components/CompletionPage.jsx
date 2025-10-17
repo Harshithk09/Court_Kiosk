@@ -192,6 +192,9 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const handleEmailRequest = async () => {
     setIsSubmitting(true);
     try {
+      console.log('Sending email request to:', buildApiUrl('/api/email/send-case-summary'));
+      console.log('Email data:', { email, case_data: { queue_number: queueNumber, case_type: 'DVRO', summary: generateSummary() } });
+      
       // Send case summary email using the centralized API configuration
       const response = await fetch(buildApiUrl('/api/email/send-case-summary'), {
         method: 'POST',
@@ -207,6 +210,19 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
           }
         })
       });
+      
+      // Check if response is ok
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Check if response has content
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Server returned non-JSON response');
+      }
       
       const result = await response.json();
       
