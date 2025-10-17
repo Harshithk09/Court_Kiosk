@@ -893,6 +893,18 @@ def send_case_summary_email_endpoint():
         case_number = f"DVRO{random.randint(1000, 9999)}"
         
         # Prepare comprehensive case data for email
+        summary_data = case_data.get('summary', '')
+        
+        # Handle both string and object summaries
+        if isinstance(summary_data, dict):
+            # If it's a complex object, convert to JSON string for processing
+            conversation_summary = json.dumps(summary_data)
+            summary_json = summary_data
+        else:
+            # If it's a string, use as is
+            conversation_summary = str(summary_data)
+            summary_json = {}
+        
         comprehensive_case_data = {
             'user_email': email,
             'user_name': case_data.get('user_name', 'Court Kiosk User'),
@@ -902,7 +914,8 @@ def send_case_summary_email_endpoint():
             'queue_number': case_data.get('queue_number', 'N/A'),
             'documents_needed': case_data.get('forms', []),
             'next_steps': case_data.get('next_steps', []),
-            'conversation_summary': case_data.get('summary', ''),
+            'conversation_summary': conversation_summary,
+            'summary_json': summary_json,
             'phone_number': case_data.get('phone_number')
         }
         
