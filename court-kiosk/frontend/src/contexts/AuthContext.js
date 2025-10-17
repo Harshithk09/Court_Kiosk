@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { buildApiUrl } from '../utils/apiConfig';
 
 const AuthContext = createContext();
@@ -23,9 +23,9 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, [sessionToken]);
+  }, [sessionToken, checkAuthStatus]);
 
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       const response = await fetch(buildApiUrl('/api/auth/me'), {
         headers: {
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionToken]);
 
   const login = async (username, password) => {
     try {

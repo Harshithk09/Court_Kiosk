@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon } from 'lucide-react';
@@ -25,9 +25,9 @@ const AdminDashboard = () => {
     fetchQueue();
     const interval = setInterval(fetchQueue, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchQueue]);
 
-  const fetchQueue = async () => {
+  const fetchQueue = useCallback(async () => {
     try {
       setError(null);
       console.log('AdminDashboard: Fetching queue data...');
@@ -69,7 +69,7 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionToken]);
 
   const handleCallNext = async () => {
     try {

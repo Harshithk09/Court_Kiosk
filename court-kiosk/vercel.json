@@ -1,16 +1,15 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "frontend/package.json", "use": "@vercel/static-build" },
-    { "src": "api/**/*.js", "use": "@vercel/node" }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/frontend/$1" }
-  ],
-  "buildCommand": "cd frontend && npm run build",
-  "outputDirectory": "frontend/build",
-  "installCommand": "cd frontend && npm install",
   "headers": [
     {
       "source": "/api/(.*)",

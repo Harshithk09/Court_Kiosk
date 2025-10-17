@@ -1,5 +1,5 @@
 // Authenticated API utility for admin operations
-import { API_ENDPOINTS, buildApiUrl, isProduction } from './apiConfig';
+import { buildApiUrl, isProduction } from './apiConfig';
 
 /**
  * Helper function to make authenticated HTTP requests
