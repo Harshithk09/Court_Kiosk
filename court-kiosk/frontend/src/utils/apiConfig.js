@@ -58,7 +58,7 @@ export const API_ENDPOINTS = {
   // Case Management
   CASE_SUMMARY: '/api/generate-case-summary',
   SEND_EMAIL: '/api/send-comprehensive-email',
-  SEND_CASE_SUMMARY_EMAIL: '/api/send-case-summary-email',
+  SEND_CASE_SUMMARY_EMAIL: '/api/email/send-case-summary',
   
   // SMS Service
   SEND_SMS: '/api/sms/send-queue-number',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { addToQueue } from '../utils/queueAPI';
-import { buildApiUrl } from '../utils/apiConfig';
+import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
 
 const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const [selectedOption, setSelectedOption] = useState('');
@@ -192,11 +192,11 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
   const handleEmailRequest = async () => {
     setIsSubmitting(true);
     try {
-      console.log('Sending email request to:', buildApiUrl('/api/email/send-case-summary'));
+      console.log('Sending email request to:', buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL));
       console.log('Email data:', { email, case_data: { queue_number: queueNumber, case_type: 'DVRO', summary: generateSummary() } });
       
       // Send case summary email using the centralized API configuration
-      const response = await fetch(buildApiUrl('/api/email/send-case-summary'), {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

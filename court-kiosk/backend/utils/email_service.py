@@ -13,8 +13,9 @@ if Config.RESEND_API_KEY:
 
 class EmailService:
     def __init__(self):
-        self.from_email = "Court Kiosk <noreply@courtkiosk.com>"
-        self.support_email = "support@courtkiosk.com"
+        # Use Resend's default verified domain for testing
+        self.from_email = "Court Kiosk <onboarding@resend.dev>"
+        self.support_email = "onboarding@resend.dev"
         self.pdf_service = PDFService()
     
     def get_form_url(self, form_code: str) -> str:
