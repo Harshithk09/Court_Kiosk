@@ -1297,10 +1297,16 @@ class EmailService:
         # Generate enhanced forms HTML with detailed guidance
         enhanced_forms_html = ""
         
+        # Debug logging
+        print(f"DEBUG: forms_completed = {forms_completed}")
+        print(f"DEBUG: documents_needed = {case_data.get('documents_needed', [])}")
+        print(f"DEBUG: summary_data = {summary_data}")
+        
         # Get forms from both the summary data and the case data
         all_forms = []
         if forms_completed:
             all_forms.extend(forms_completed)
+            print(f"DEBUG: Added {len(forms_completed)} forms from forms_completed")
         
         # Also check for forms in the case data
         documents_needed = case_data.get('documents_needed', [])
@@ -1312,6 +1318,9 @@ class EmailService:
                         'title': self._get_form_title(form_code),
                         'description': self._get_form_description(form_code)
                     })
+            print(f"DEBUG: Added {len(documents_needed)} forms from documents_needed")
+        
+        print(f"DEBUG: Total forms found: {len(all_forms)}")
         
         if all_forms:
             enhanced_forms_html = "<h3>📋 Required Forms & Instructions:</h3>"
@@ -1352,6 +1361,7 @@ class EmailService:
         
         # Generate enhanced next steps HTML
         enhanced_steps_html = ""
+        print(f"DEBUG: next_steps = {next_steps}")
         if next_steps:
             enhanced_steps_html = "<h3>✔ Next Steps:</h3>"
             for step in next_steps:
