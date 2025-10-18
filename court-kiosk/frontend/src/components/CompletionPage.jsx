@@ -83,7 +83,7 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
         }
       }
     });
-
+    
     // Generate key answers based on user responses
     if (answers.DVCheck1 === 'Yes') {
       summary.keyAnswers.push('You requested a domestic violence restraining order');
@@ -195,6 +195,7 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
       const summary = generateSummary();
       
       console.log('Sending email request to:', buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL));
+      console.log('Summary data being sent:', summary);
       
       // Send case summary email using the centralized API configuration
       const response = await fetch(buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL), {
@@ -211,8 +212,8 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
             priority_level: 'A',
             language: 'en',
             queue_number: queueNumber || null,
-            documents_needed: [],
-            next_steps: [],
+            documents_needed: summary.forms || [],  // Send actual forms from summary
+            next_steps: summary.nextSteps || [],  // Send actual next steps from summary
             conversation_summary: summary,  // Send as object - backend should handle it
             phone_number: phoneNumber || null
           }
@@ -253,10 +254,10 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
               <div>
                 <span className="font-medium">Case Type:</span> {summary.header.case_type}
-              </div>
+                        </div>
               <div>
                 <span className="font-medium">Date:</span> {summary.header.date}
-              </div>
+                        </div>
               <div>
                 <span className="font-medium">Session ID:</span> {summary.header.session_id}
               </div>

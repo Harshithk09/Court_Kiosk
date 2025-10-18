@@ -1269,8 +1269,14 @@ class EmailService:
         # Extract enhanced summary components
         header = summary_data.get('header', {})
         forms_completed = summary_data.get('forms_completed', [])
+        # Also check for 'forms' array from frontend
+        if not forms_completed:
+            forms_completed = summary_data.get('forms', [])
         key_answers = summary_data.get('key_answers', [])
         next_steps = summary_data.get('next_steps', [])
+        # Also check for 'nextSteps' array from frontend
+        if not next_steps:
+            next_steps = summary_data.get('nextSteps', [])
         resources = summary_data.get('resources', {})
         
         # Generate enhanced forms HTML with detailed guidance
