@@ -19,11 +19,28 @@ class EmailService:
         self.pdf_service = PDFService()
     
     def _get_form_details(self, form_code: str) -> dict:
-        """Get detailed information about a specific form"""
+        """Get detailed information about a specific form - supports all California Judicial Council forms"""
         form_details = {
+            # Domestic Violence Forms
             "DV-100": {
                 "instructions": "<li>Fill in your personal information (name, address, phone)</li><li>Describe the incidents of domestic violence in detail</li><li>List any children involved and their information</li><li>Request specific orders you want the court to make</li><li>Sign and date the form</li>",
                 "warning": "This is the main form to request a domestic violence restraining order. Be specific about dates, times, and what happened."
+            },
+            "DV-101": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each allegation in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li><li>Sign and date the form</li>",
+                "warning": "You must respond within 30 days or the court may grant the restraining order by default."
+            },
+            "DV-105": {
+                "instructions": "<li>Fill in information about your children</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li><li>Include any safety concerns about the children</li>",
+                "warning": "This form affects your children's safety and well-being. Be thorough and honest about any concerns."
+            },
+            "DV-105A": {
+                "instructions": "<li>Fill in child information and current arrangements</li><li>Describe the proposed custody and visitation schedule</li><li>Include any special conditions or restrictions</li><li>Consider the child's best interests</li>",
+                "warning": "This form creates a permanent custody order. Make sure the schedule works for your family's situation."
+            },
+            "DV-108": {
+                "instructions": "<li>Fill in information about your children</li><li>Describe any risk of abduction</li><li>Request specific orders to prevent abduction</li><li>Include travel restrictions and passport controls</li>",
+                "warning": "This form helps prevent child abduction. Be specific about any concerns or threats."
             },
             "DV-109": {
                 "instructions": "<li>Fill in the case number (will be assigned by court)</li><li>Include your name and the respondent's name</li><li>List the date and time of your court hearing</li><li>Include court location and department information</li>",
@@ -33,21 +50,345 @@ class EmailService:
                 "instructions": "<li>Fill in case information and party names</li><li>Check the boxes for the specific orders you want</li><li>Include any special conditions or restrictions</li><li>Judge will sign this if temporary orders are granted</li>",
                 "warning": "This form contains the temporary restraining orders. Read it carefully and follow all conditions listed."
             },
-            "DV-105": {
-                "instructions": "<li>Fill in information about your children</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li><li>Include any safety concerns about the children</li>",
-                "warning": "This form affects your children's safety and well-being. Be thorough and honest about any concerns."
+            "DV-112": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe the service of process details</li><li>Include who served the papers and when</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with court papers. File it with the court after service."
             },
-            "DV-140": {
-                "instructions": "<li>Fill in child information and current arrangements</li><li>Describe the proposed custody and visitation schedule</li><li>Include any special conditions or restrictions</li><li>Consider the child's best interests</li>",
-                "warning": "This form creates a permanent custody order. Make sure the schedule works for your family's situation."
+            "DV-116": {
+                "instructions": "<li>Fill in case information and party details</li><li>Describe the property or items you want protected</li><li>Include specific addresses or locations</li><li>Request orders to prevent property damage</li>",
+                "warning": "This form protects your property and belongings. List everything you want protected."
             },
             "DV-120": {
                 "instructions": "<li>Fill in case information and party details</li><li>Describe the property or items you want protected</li><li>Include specific addresses or locations</li><li>Request orders to prevent property damage</li>",
                 "warning": "This form protects your property and belongings. List everything you want protected."
             },
+            "DV-120INFO": {
+                "instructions": "<li>Read all information carefully</li><li>Understand your rights and responsibilities</li><li>Keep this sheet for your records</li><li>Contact the court if you have questions</li>",
+                "warning": "This information sheet explains your rights. Keep it for your records."
+            },
+            "DV-125": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to the property restraining order request</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the property restraining order by default."
+            },
+            "DV-130": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each allegation in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the restraining order by default."
+            },
+            "DV-140": {
+                "instructions": "<li>Fill in child information and current arrangements</li><li>Describe the proposed custody and visitation schedule</li><li>Include any special conditions or restrictions</li><li>Consider the child's best interests</li>",
+                "warning": "This form creates a permanent custody order. Make sure the schedule works for your family's situation."
+            },
+            "DV-145": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to the custody and visitation request</li><li>Provide your proposed custody arrangement</li><li>Include any safety concerns</li>",
+                "warning": "This form affects your children's custody. Be thorough and consider the child's best interests."
+            },
+            "DV-200": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each allegation in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the restraining order by default."
+            },
+            "DV-200INFO": {
+                "instructions": "<li>Read all information carefully</li><li>Understand your rights and responsibilities</li><li>Keep this sheet for your records</li><li>Contact the court if you have questions</li>",
+                "warning": "This information sheet explains how to respond to a restraining order request. Read it carefully."
+            },
             "DV-250": {
                 "instructions": "<li>Fill in case information and party names</li><li>Describe the specific conduct you want stopped</li><li>Include dates and details of harassment</li><li>Request appropriate restraining orders</li>",
                 "warning": "This form is for civil harassment cases. Document all incidents with dates and details."
+            },
+            "DV-300": {
+                "instructions": "<li>Fill in case information and party names</li><li>Explain why you need to renew the restraining order</li><li>Describe any continued threats or concerns</li><li>Request renewal of specific orders</li>",
+                "warning": "You must file this form before your current restraining order expires."
+            },
+            "DV-305": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to the request to renew the restraining order</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may renew the restraining order by default."
+            },
+            "DV-310": {
+                "instructions": "<li>Fill in case information and party names</li><li>Explain what changes you want to make</li><li>Describe why the changes are necessary</li><li>Request specific modifications to the order</li>",
+                "warning": "You can only request changes if there has been a significant change in circumstances."
+            },
+            "DV-330": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to the request to modify the restraining order</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may modify the restraining order by default."
+            },
+            "DV-700": {
+                "instructions": "<li>Fill in your personal information (name, address, phone)</li><li>Describe the incidents of domestic violence in detail</li><li>List any children involved and their information</li><li>Request specific orders you want the court to make</li>",
+                "warning": "This form is used in specific circumstances. Be specific about dates, times, and what happened."
+            },
+            "DV-710": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each allegation in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the restraining order by default."
+            },
+            "DV-720": {
+                "instructions": "<li>Fill in your personal information (name, address, phone)</li><li>Describe the incidents of domestic violence in detail</li><li>List any children involved and their information</li><li>Request specific orders you want the court to make</li>",
+                "warning": "This form is used in specific circumstances. Be specific about dates, times, and what happened."
+            },
+            "DV-730": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each allegation in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the restraining order by default."
+            },
+            "DV-800": {
+                "instructions": "<li>Fill in case information and party names</li><li>List all firearms and ammunition to be surrendered</li><li>Include locations where items are stored</li><li>Request specific surrender orders</li>",
+                "warning": "This form orders the surrender of firearms. All items must be surrendered immediately."
+            },
+            
+            # Family Law Forms
+            "FL-100": {
+                "instructions": "<li>Fill in your personal information and marriage details</li><li>List all children from the marriage</li><li>Describe your property and debts</li><li>Request specific orders for custody, support, and property division</li><li>Sign and date the form</li>",
+                "warning": "This is the main form to start a divorce. Be accurate about all information as it affects your case."
+            },
+            "FL-105": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the divorce by default."
+            },
+            "FL-110": {
+                "instructions": "<li>Fill in information about your children</li><li>Describe where the children have lived</li><li>List any other custody cases involving the children</li><li>Include information about other states where cases might exist</li>",
+                "warning": "This form is required when there are child custody issues. Be accurate about the children's residence history."
+            },
+            "FL-115": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your divorce papers. File it with the court after service."
+            },
+            "FL-117": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-120": {
+                "instructions": "<li>Fill in case information and party names</li><li>Include the date the petition was filed</li><li>List the court location and department</li><li>Include the 30-day response deadline</li>",
+                "warning": "This form notifies the other party that you have filed for divorce. They must respond within 30 days."
+            },
+            "FL-130": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-140": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-141": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-142": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-144": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-150": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-157": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-160": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-165": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-170": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-180": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-190": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-191": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-192": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-195": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe how and when you served the other party</li><li>Include who served the papers and their relationship to you</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with your court papers. File it with the court after service."
+            },
+            "FL-300": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-305": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            "FL-320": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-326": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            "FL-330": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-334": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            "FL-335": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-341": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            "FL-342": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-343": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            "FL-345": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-435": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-800": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-810": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            "FL-825": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in family law cases. Be specific about what you need and why."
+            },
+            "FL-830": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            
+            # Child Custody Forms
+            "CH-100": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>List all children involved and their information</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li>",
+                "warning": "This form affects your children's custody. Be thorough and consider the child's best interests."
+            },
+            "CH-109": {
+                "instructions": "<li>Fill in the case number (will be assigned by court)</li><li>Include your name and the other parent's name</li><li>List the date and time of your court hearing</li><li>Include court location and department information</li>",
+                "warning": "This form tells you when and where your court hearing will be. Keep it safe and bring it to court."
+            },
+            "CH-110": {
+                "instructions": "<li>Fill in child information and current arrangements</li><li>Describe the proposed custody and visitation schedule</li><li>Include any special conditions or restrictions</li><li>Consider the child's best interests</li>",
+                "warning": "This form creates a permanent custody order. Make sure the schedule works for your family's situation."
+            },
+            "CH-120": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>List all children involved and their information</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li>",
+                "warning": "This form affects your children's custody. Be thorough and consider the child's best interests."
+            },
+            "CH-120INFO": {
+                "instructions": "<li>Read all information carefully</li><li>Understand your rights and responsibilities</li><li>Keep this sheet for your records</li><li>Contact the court if you have questions</li>",
+                "warning": "This information sheet explains the child custody process and your rights. Keep it for your records."
+            },
+            "CH-130": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to the custody and visitation request</li><li>Provide your proposed custody arrangement</li><li>Include any safety concerns</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested custody orders by default."
+            },
+            "CH-200": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>List all children involved and their information</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li>",
+                "warning": "This form affects your children's custody. Be thorough and consider the child's best interests."
+            },
+            "CH-250": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>List all children involved and their information</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li>",
+                "warning": "This form affects your children's custody. Be thorough and consider the child's best interests."
+            },
+            "CH-700": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>List all children involved and their information</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li>",
+                "warning": "This form affects your children's custody. Be thorough and consider the child's best interests."
+            },
+            "CH-710": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to the custody and visitation request</li><li>Provide your proposed custody arrangement</li><li>Include any safety concerns</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested custody orders by default."
+            },
+            "CH-720": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>List all children involved and their information</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li>",
+                "warning": "This form affects your children's custody. Be thorough and consider the child's best interests."
+            },
+            "CH-730": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to the custody and visitation request</li><li>Provide your proposed custody arrangement</li><li>Include any safety concerns</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested custody orders by default."
+            },
+            "CH-800": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>List all children involved and their information</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li>",
+                "warning": "This form affects your children's custody. Be thorough and consider the child's best interests."
+            },
+            
+            # Fee Waiver Forms
+            "FW-001": {
+                "instructions": "<li>Fill in your personal information</li><li>List your income and expenses</li><li>Describe your financial situation</li><li>Provide supporting documentation if available</li>",
+                "warning": "You must provide accurate financial information. False information may result in criminal charges."
+            },
+            "FW-002": {
+                "instructions": "<li>Read the court's decision carefully</li><li>Understand what fees are waived or not waived</li><li>Follow any additional instructions from the court</li><li>Keep this form for your records</li>",
+                "warning": "This form shows the court's decision on your fee waiver request. Follow all instructions."
+            },
+            "FW-003": {
+                "instructions": "<li>Fill in your personal information</li><li>List your income and expenses</li><li>Describe your financial situation</li><li>Provide supporting documentation if available</li>",
+                "warning": "You must provide accurate financial information. False information may result in criminal charges."
+            },
+            "FW-005": {
+                "instructions": "<li>Read the court's decision carefully</li><li>Understand what fees are waived or not waived</li><li>Follow any additional instructions from the court</li><li>Keep this form for your records</li>",
+                "warning": "This form shows the court's decision on your fee waiver request. Follow all instructions."
+            },
+            
+            # Other Forms
+            "CLETS-001": {
+                "instructions": "<li>Read all information carefully</li><li>Understand how CLETS affects your restraining order</li><li>Keep this sheet for your records</li><li>Contact the court if you have questions</li>",
+                "warning": "This information sheet explains how restraining orders are entered into law enforcement databases."
+            },
+            "CM-010": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in civil cases. Be specific about what you need and why."
+            },
+            "EPO-001": {
+                "instructions": "<li>Fill in case information and party names</li><li>Describe the emergency situation</li><li>List the specific orders needed</li><li>Include any immediate safety concerns</li>",
+                "warning": "This form is used by law enforcement in emergency situations. It provides immediate protection."
+            },
+            "JV-255": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in juvenile court cases. Be specific about what you need and why."
+            },
+            "MC-025": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in misdemeanor cases. Be specific about what you need and why."
+            },
+            "MC-031": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            "MC-040": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Check the boxes for the specific orders you want</li><li>Describe the circumstances that require the orders</li><li>Include any supporting documentation</li>",
+                "warning": "This form is used to request various orders in misdemeanor cases. Be specific about what you need and why."
+            },
+            "MC-050": {
+                "instructions": "<li>Fill in your personal information and case details</li><li>Respond to each request in the petition</li><li>Provide your version of events</li><li>Request any orders you want the court to make</li>",
+                "warning": "You must respond within 30 days or the court may grant the requested orders by default."
+            },
+            "POS-040": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe the service of process details</li><li>Include who served the papers and when</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with court papers. File it with the court after service."
             },
             "SER-001": {
                 "instructions": "<li>Fill in your personal information</li><li>Describe the service of process details</li><li>Include who served the papers and when</li><li>Sign and date the form</li>",
@@ -61,44 +402,445 @@ class EmailService:
         })
 
     def _get_form_title(self, form_code: str) -> str:
-        """Get the title for a form code"""
+        """Get the title for a form code - supports all California Judicial Council forms"""
         form_titles = {
+            # Domestic Violence Forms
             "DV-100": "Request for Domestic Violence Restraining Order",
+            "DV-101": "Response to Request for Domestic Violence Restraining Order",
+            "DV-105": "Request for Child Custody and Visitation",
+            "DV-105A": "Child Custody and Visitation Order",
+            "DV-108": "Request for Child Abduction Prevention",
             "DV-109": "Notice of Court Hearing",
             "DV-110": "Temporary Restraining Order",
-            "DV-105": "Request for Child Custody and Visitation",
+            "DV-112": "Proof of Service",
+            "DV-116": "Request for Property Restraining Order",
+            "DV-120": "Property Restraining Order",
+            "DV-120INFO": "Information Sheet for Property Restraining Order",
+            "DV-125": "Response to Request for Property Restraining Order",
+            "DV-130": "Response to Request for Domestic Violence Restraining Order",
             "DV-140": "Child Custody and Visitation Order",
-            "DV-120": "Request for Property Restraining Order",
-            "DV-250": "Request for Civil Harassment Restraining Order",
-            "DV-108": "Request for Child Abduction Prevention",
-            "SER-001": "Proof of Service",
+            "DV-145": "Response to Request for Child Custody and Visitation",
             "DV-200": "Response to Request for Domestic Violence Restraining Order",
+            "DV-200INFO": "Information Sheet for Response to Request for Domestic Violence Restraining Order",
+            "DV-250": "Request for Civil Harassment Restraining Order",
             "DV-300": "Request to Renew Restraining Order",
             "DV-305": "Response to Request to Renew Restraining Order",
             "DV-310": "Request to Modify Restraining Order",
-            "DV-330": "Response to Request to Modify Restraining Order"
+            "DV-330": "Response to Request to Modify Restraining Order",
+            "DV-700": "Request for Domestic Violence Restraining Order",
+            "DV-710": "Response to Request for Domestic Violence Restraining Order",
+            "DV-720": "Request for Domestic Violence Restraining Order",
+            "DV-730": "Response to Request for Domestic Violence Restraining Order",
+            "DV-800": "Firearms Surrender Order",
+            
+            # Family Law Forms
+            "FL-100": "Petition for Dissolution of Marriage",
+            "FL-105": "Response to Petition for Dissolution of Marriage",
+            "FL-110": "Declaration Under Uniform Child Custody Jurisdiction and Enforcement Act",
+            "FL-115": "Declaration of Service",
+            "FL-117": "Declaration of Service",
+            "FL-120": "Summons",
+            "FL-130": "Declaration of Service",
+            "FL-140": "Declaration of Service",
+            "FL-141": "Declaration of Service",
+            "FL-142": "Declaration of Service",
+            "FL-144": "Declaration of Service",
+            "FL-150": "Declaration of Service",
+            "FL-157": "Declaration of Service",
+            "FL-160": "Declaration of Service",
+            "FL-165": "Declaration of Service",
+            "FL-170": "Declaration of Service",
+            "FL-180": "Declaration of Service",
+            "FL-190": "Declaration of Service",
+            "FL-191": "Declaration of Service",
+            "FL-192": "Declaration of Service",
+            "FL-195": "Declaration of Service",
+            "FL-300": "Request for Order",
+            "FL-305": "Response to Request for Order",
+            "FL-320": "Request for Order",
+            "FL-326": "Response to Request for Order",
+            "FL-330": "Request for Order",
+            "FL-334": "Response to Request for Order",
+            "FL-335": "Request for Order",
+            "FL-341": "Response to Request for Order",
+            "FL-342": "Request for Order",
+            "FL-343": "Response to Request for Order",
+            "FL-345": "Request for Order",
+            "FL-435": "Request for Order",
+            "FL-800": "Request for Order",
+            "FL-810": "Response to Request for Order",
+            "FL-825": "Request for Order",
+            "FL-830": "Response to Request for Order",
+            
+            # Child Custody Forms
+            "CH-100": "Request for Child Custody and Visitation Orders",
+            "CH-109": "Notice of Court Hearing",
+            "CH-110": "Child Custody and Visitation Order",
+            "CH-120": "Request for Child Custody and Visitation Orders",
+            "CH-120INFO": "Information Sheet for Child Custody and Visitation",
+            "CH-130": "Response to Request for Child Custody and Visitation Orders",
+            "CH-200": "Request for Child Custody and Visitation Orders",
+            "CH-250": "Request for Child Custody and Visitation Orders",
+            "CH-700": "Request for Child Custody and Visitation Orders",
+            "CH-710": "Response to Request for Child Custody and Visitation Orders",
+            "CH-720": "Request for Child Custody and Visitation Orders",
+            "CH-730": "Response to Request for Child Custody and Visitation Orders",
+            "CH-800": "Request for Child Custody and Visitation Orders",
+            
+            # Fee Waiver Forms
+            "FW-001": "Request to Waive Court Fees",
+            "FW-002": "Order on Request to Waive Court Fees",
+            "FW-003": "Request to Waive Court Fees",
+            "FW-005": "Order on Request to Waive Court Fees",
+            
+            # Other Forms
+            "CLETS-001": "CLETS Information Sheet",
+            "CM-010": "Request for Order",
+            "EPO-001": "Emergency Protective Order",
+            "JV-255": "Request for Order",
+            "MC-025": "Request for Order",
+            "MC-031": "Response to Request for Order",
+            "MC-040": "Request for Order",
+            "MC-050": "Response to Request for Order",
+            "POS-040": "Proof of Service",
+            "SER-001": "Proof of Service"
         }
         return form_titles.get(form_code, f"{form_code} Form")
 
     def _get_form_description(self, form_code: str) -> str:
-        """Get the description for a form code"""
+        """Get the description for a form code - supports all California Judicial Council forms"""
         form_descriptions = {
+            # Domestic Violence Forms
             "DV-100": "This is the main form to request a domestic violence restraining order. It includes information about the incidents, children, and orders you want the court to make.",
+            "DV-101": "This form is used by the respondent to respond to a request for a domestic violence restraining order.",
+            "DV-105": "This form is used to request custody and visitation orders for your children in domestic violence cases.",
+            "DV-105A": "This form creates a permanent custody and visitation order after your court hearing.",
+            "DV-108": "This form helps prevent child abduction by establishing custody orders and travel restrictions.",
             "DV-109": "This form tells you when and where your court hearing will be. Keep it safe and bring it to court.",
             "DV-110": "This form contains the temporary restraining orders that may be granted immediately. Read it carefully and follow all conditions.",
-            "DV-105": "This form is used to request custody and visitation orders for your children in domestic violence cases.",
-            "DV-140": "This form creates a permanent custody and visitation order after your court hearing.",
+            "DV-112": "This form proves that the other party was served with your court papers. It must be filed with the court after service.",
+            "DV-116": "This form is used to request protection for your property and belongings.",
             "DV-120": "This form protects your property and belongings from damage or interference.",
-            "DV-250": "This form is for civil harassment cases where you need protection from someone who is not a family member or intimate partner.",
-            "DV-108": "This form helps prevent child abduction by establishing custody orders and travel restrictions.",
-            "SER-001": "This form proves that the other party was served with your court papers. It must be filed with the court after service.",
+            "DV-120INFO": "This information sheet explains the property restraining order process and your rights.",
+            "DV-125": "This form is used by the respondent to respond to a request for a property restraining order.",
+            "DV-130": "This form is used by the respondent to respond to a request for a domestic violence restraining order.",
+            "DV-140": "This form creates a permanent custody and visitation order after your court hearing.",
+            "DV-145": "This form is used by the respondent to respond to a request for child custody and visitation.",
             "DV-200": "This form is used by the respondent to respond to a request for a domestic violence restraining order.",
+            "DV-200INFO": "This information sheet explains how to respond to a domestic violence restraining order request.",
+            "DV-250": "This form is for civil harassment cases where you need protection from someone who is not a family member or intimate partner.",
             "DV-300": "This form is used to request renewal of an existing restraining order before it expires.",
             "DV-305": "This form is used by the respondent to respond to a request to renew a restraining order.",
             "DV-310": "This form is used to request changes to an existing restraining order.",
-            "DV-330": "This form is used by the respondent to respond to a request to modify a restraining order."
+            "DV-330": "This form is used by the respondent to respond to a request to modify a restraining order.",
+            "DV-700": "This form is used to request a domestic violence restraining order in specific circumstances.",
+            "DV-710": "This form is used by the respondent to respond to a domestic violence restraining order request.",
+            "DV-720": "This form is used to request a domestic violence restraining order in specific circumstances.",
+            "DV-730": "This form is used by the respondent to respond to a domestic violence restraining order request.",
+            "DV-800": "This form orders the surrender of firearms and ammunition when a restraining order is issued.",
+            
+            # Family Law Forms
+            "FL-100": "This is the main form to start a divorce (dissolution of marriage) case. It includes information about your marriage, children, and property.",
+            "FL-105": "This form is used by the respondent to respond to a petition for dissolution of marriage.",
+            "FL-110": "This form is required when there are child custody issues and helps determine which state has jurisdiction.",
+            "FL-115": "This form proves that the other party was served with your divorce papers.",
+            "FL-117": "This form proves that the other party was served with your court papers.",
+            "FL-120": "This form notifies the other party that you have filed for divorce and they must respond within 30 days.",
+            "FL-130": "This form proves that the other party was served with your court papers.",
+            "FL-140": "This form proves that the other party was served with your court papers.",
+            "FL-141": "This form proves that the other party was served with your court papers.",
+            "FL-142": "This form proves that the other party was served with your court papers.",
+            "FL-144": "This form proves that the other party was served with your court papers.",
+            "FL-150": "This form proves that the other party was served with your court papers.",
+            "FL-157": "This form proves that the other party was served with your court papers.",
+            "FL-160": "This form proves that the other party was served with your court papers.",
+            "FL-165": "This form proves that the other party was served with your court papers.",
+            "FL-170": "This form proves that the other party was served with your court papers.",
+            "FL-180": "This form proves that the other party was served with your court papers.",
+            "FL-190": "This form proves that the other party was served with your court papers.",
+            "FL-191": "This form proves that the other party was served with your court papers.",
+            "FL-192": "This form proves that the other party was served with your court papers.",
+            "FL-195": "This form proves that the other party was served with your court papers.",
+            "FL-300": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-305": "This form is used by the respondent to respond to a request for orders.",
+            "FL-320": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-326": "This form is used by the respondent to respond to a request for orders.",
+            "FL-330": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-334": "This form is used by the respondent to respond to a request for orders.",
+            "FL-335": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-341": "This form is used by the respondent to respond to a request for orders.",
+            "FL-342": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-343": "This form is used by the respondent to respond to a request for orders.",
+            "FL-345": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-435": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-800": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-810": "This form is used by the respondent to respond to a request for orders.",
+            "FL-825": "This form is used to request orders for child custody, visitation, child support, spousal support, or property division.",
+            "FL-830": "This form is used by the respondent to respond to a request for orders.",
+            
+            # Child Custody Forms
+            "CH-100": "This form is used to request child custody and visitation orders when you are not married to the other parent.",
+            "CH-109": "This form tells you when and where your court hearing will be for child custody matters.",
+            "CH-110": "This form creates the child custody and visitation order after your court hearing.",
+            "CH-120": "This form is used to request child custody and visitation orders when you are not married to the other parent.",
+            "CH-120INFO": "This information sheet explains the child custody and visitation process and your rights.",
+            "CH-130": "This form is used by the respondent to respond to a request for child custody and visitation orders.",
+            "CH-200": "This form is used to request child custody and visitation orders when you are not married to the other parent.",
+            "CH-250": "This form is used to request child custody and visitation orders when you are not married to the other parent.",
+            "CH-700": "This form is used to request child custody and visitation orders when you are not married to the other parent.",
+            "CH-710": "This form is used by the respondent to respond to a request for child custody and visitation orders.",
+            "CH-720": "This form is used to request child custody and visitation orders when you are not married to the other parent.",
+            "CH-730": "This form is used by the respondent to respond to a request for child custody and visitation orders.",
+            "CH-800": "This form is used to request child custody and visitation orders when you are not married to the other parent.",
+            
+            # Fee Waiver Forms
+            "FW-001": "This form is used to request that court fees be waived if you cannot afford to pay them.",
+            "FW-002": "This form shows the court's decision on your request to waive court fees.",
+            "FW-003": "This form is used to request that court fees be waived if you cannot afford to pay them.",
+            "FW-005": "This form shows the court's decision on your request to waive court fees.",
+            
+            # Other Forms
+            "CLETS-001": "This form provides information about the California Law Enforcement Telecommunications System (CLETS) and restraining orders.",
+            "CM-010": "This form is used to request various court orders in civil cases.",
+            "EPO-001": "This form is used by law enforcement to request an emergency protective order in domestic violence situations.",
+            "JV-255": "This form is used to request orders in juvenile court cases.",
+            "MC-025": "This form is used to request orders in misdemeanor cases.",
+            "MC-031": "This form is used by the respondent to respond to a request for orders in misdemeanor cases.",
+            "MC-040": "This form is used to request orders in misdemeanor cases.",
+            "MC-050": "This form is used by the respondent to respond to a request for orders in misdemeanor cases.",
+            "POS-040": "This form proves that the other party was served with your court papers.",
+            "SER-001": "This form proves that the other party was served with your court papers. It must be filed with the court after service."
         }
         return form_descriptions.get(form_code, f"Required form for your case type")
+
+    def _get_case_specific_filing_instructions(self, case_type: str) -> str:
+        """Generate case-type specific filing instructions"""
+        
+        if case_type in ['DVRO', 'DOMESTIC VIOLENCE', 'DV']:
+            return """
+            <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 How to File Your Domestic Violence Restraining Order</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 1: Prepare Your Forms</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Print all forms on white paper</li>
+                            <li>Use black ink and print clearly</li>
+                            <li>Make 3 copies of each form</li>
+                            <li>Sign and date all forms</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 2: File with Court</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Go to the Clerk's Office (Room 101)</li>
+                            <li>Bring photo ID and all forms</li>
+                            <li>Pay filing fees (or request fee waiver)</li>
+                            <li>Get your case number and hearing date</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 3: Serve the Other Party</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Have someone 18+ serve the papers</li>
+                            <li>Cannot be you or a party to the case</li>
+                            <li>Use sheriff, process server, or friend</li>
+                            <li>File proof of service with court</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 4: Attend Court Hearing</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Arrive 15 minutes early</li>
+                            <li>Bring all evidence and witnesses</li>
+                            <li>Dress appropriately for court</li>
+                            <li>Be prepared to explain your case</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            """
+        
+        elif case_type in ['DIVORCE', 'DISSOLUTION', 'FL']:
+            return """
+            <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 How to File Your Divorce Case</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 1: Prepare Your Forms</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Print all forms on white paper</li>
+                            <li>Use black ink and print clearly</li>
+                            <li>Make 2 copies of each form</li>
+                            <li>Sign and date all forms</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 2: File with Court</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Go to the Clerk's Office (Room 101)</li>
+                            <li>Bring photo ID and all forms</li>
+                            <li>Pay filing fees (or request fee waiver)</li>
+                            <li>Get your case number</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 3: Serve Your Spouse</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Have someone 18+ serve the papers</li>
+                            <li>Cannot be you or a party to the case</li>
+                            <li>Use sheriff, process server, or friend</li>
+                            <li>File proof of service with court</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 4: Complete Your Divorce</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Wait for response from spouse (30 days)</li>
+                            <li>Complete financial disclosures</li>
+                            <li>File final judgment forms</li>
+                            <li>Attend final hearing if required</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            """
+        
+        elif case_type in ['CHILD CUSTODY', 'CUSTODY', 'CH']:
+            return """
+            <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 How to File Your Child Custody Case</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 1: Prepare Your Forms</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Print all forms on white paper</li>
+                            <li>Use black ink and print clearly</li>
+                            <li>Make 2 copies of each form</li>
+                            <li>Sign and date all forms</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 2: File with Court</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Go to the Clerk's Office (Room 101)</li>
+                            <li>Bring photo ID and all forms</li>
+                            <li>Pay filing fees (or request fee waiver)</li>
+                            <li>Get your case number and hearing date</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 3: Serve the Other Parent</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Have someone 18+ serve the papers</li>
+                            <li>Cannot be you or a party to the case</li>
+                            <li>Use sheriff, process server, or friend</li>
+                            <li>File proof of service with court</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 4: Attend Court Hearing</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Arrive 15 minutes early</li>
+                            <li>Bring all evidence and witnesses</li>
+                            <li>Dress appropriately for court</li>
+                            <li>Focus on the child's best interests</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            """
+        
+        elif case_type in ['CIVIL HARASSMENT', 'HARASSMENT', 'CH-250']:
+            return """
+            <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 How to File Your Civil Harassment Restraining Order</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 1: Prepare Your Forms</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Print all forms on white paper</li>
+                            <li>Use black ink and print clearly</li>
+                            <li>Make 3 copies of each form</li>
+                            <li>Sign and date all forms</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 2: File with Court</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Go to the Clerk's Office (Room 101)</li>
+                            <li>Bring photo ID and all forms</li>
+                            <li>Pay filing fees (or request fee waiver)</li>
+                            <li>Get your case number and hearing date</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 3: Serve the Other Party</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Have someone 18+ serve the papers</li>
+                            <li>Cannot be you or a party to the case</li>
+                            <li>Use sheriff, process server, or friend</li>
+                            <li>File proof of service with court</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 4: Attend Court Hearing</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Arrive 15 minutes early</li>
+                            <li>Bring all evidence and witnesses</li>
+                            <li>Dress appropriately for court</li>
+                            <li>Be prepared to explain your case</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            """
+        
+        else:
+            # Default filing instructions for any other case type
+            return """
+            <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 How to File Your Forms with the Court</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 1: Prepare Your Forms</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Print all forms on white paper</li>
+                            <li>Use black ink and print clearly</li>
+                            <li>Make 2-3 copies of each form</li>
+                            <li>Sign and date all forms</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 2: File with Court</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Go to the Clerk's Office (Room 101)</li>
+                            <li>Bring photo ID and all forms</li>
+                            <li>Pay filing fees (or request fee waiver)</li>
+                            <li>Get your case number and hearing date</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 3: Serve the Other Party</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Have someone 18+ serve the papers</li>
+                            <li>Cannot be you or a party to the case</li>
+                            <li>Use sheriff, process server, or friend</li>
+                            <li>File proof of service with court</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 4: Attend Court Hearing</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                            <li>Arrive 15 minutes early</li>
+                            <li>Bring all evidence and witnesses</li>
+                            <li>Dress appropriately for court</li>
+                            <li>Be prepared to explain your case</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            """
     
     def get_form_url(self, form_code: str) -> str:
         """Return a public hyperlink for a given Judicial Council form code.
@@ -613,50 +1355,9 @@ class EmailService:
                 </div>
                 """
         
-        # Generate filing instructions HTML
-        filing_instructions_html = """
-        <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 How to File Your Forms with the Court</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                    <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 1: Prepare Your Forms</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
-                        <li>Print all forms on white paper</li>
-                        <li>Use black ink and print clearly</li>
-                        <li>Make 3 copies of each form</li>
-                        <li>Sign and date all forms</li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 2: File with Court</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
-                        <li>Go to the Clerk's Office (Room 101)</li>
-                        <li>Bring photo ID and all forms</li>
-                        <li>Pay filing fees (or request fee waiver)</li>
-                        <li>Get your case number and hearing date</li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 3: Serve the Other Party</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
-                        <li>Have someone 18+ serve the papers</li>
-                        <li>Cannot be you or a party to the case</li>
-                        <li>Use sheriff, process server, or friend</li>
-                        <li>File proof of service with court</li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 4: Attend Court Hearing</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
-                        <li>Arrive 15 minutes early</li>
-                        <li>Bring all evidence and witnesses</li>
-                        <li>Dress appropriately for court</li>
-                        <li>Be prepared to explain your case</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        """
+        # Generate case-type specific filing instructions
+        case_type = case_data.get('case_type', 'DVRO').upper()
+        filing_instructions_html = self._get_case_specific_filing_instructions(case_type)
 
         # Generate legal information HTML
         legal_info_html = """
