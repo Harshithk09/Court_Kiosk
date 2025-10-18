@@ -18,6 +18,88 @@ class EmailService:
         self.support_email = "onboarding@resend.dev"
         self.pdf_service = PDFService()
     
+    def _get_form_details(self, form_code: str) -> dict:
+        """Get detailed information about a specific form"""
+        form_details = {
+            "DV-100": {
+                "instructions": "<li>Fill in your personal information (name, address, phone)</li><li>Describe the incidents of domestic violence in detail</li><li>List any children involved and their information</li><li>Request specific orders you want the court to make</li><li>Sign and date the form</li>",
+                "warning": "This is the main form to request a domestic violence restraining order. Be specific about dates, times, and what happened."
+            },
+            "DV-109": {
+                "instructions": "<li>Fill in the case number (will be assigned by court)</li><li>Include your name and the respondent's name</li><li>List the date and time of your court hearing</li><li>Include court location and department information</li>",
+                "warning": "This form tells you when and where your court hearing will be. Keep it safe and bring it to court."
+            },
+            "DV-110": {
+                "instructions": "<li>Fill in case information and party names</li><li>Check the boxes for the specific orders you want</li><li>Include any special conditions or restrictions</li><li>Judge will sign this if temporary orders are granted</li>",
+                "warning": "This form contains the temporary restraining orders. Read it carefully and follow all conditions listed."
+            },
+            "DV-105": {
+                "instructions": "<li>Fill in information about your children</li><li>Describe current custody arrangements</li><li>Request specific custody and visitation orders</li><li>Include any safety concerns about the children</li>",
+                "warning": "This form affects your children's safety and well-being. Be thorough and honest about any concerns."
+            },
+            "DV-140": {
+                "instructions": "<li>Fill in child information and current arrangements</li><li>Describe the proposed custody and visitation schedule</li><li>Include any special conditions or restrictions</li><li>Consider the child's best interests</li>",
+                "warning": "This form creates a permanent custody order. Make sure the schedule works for your family's situation."
+            },
+            "DV-120": {
+                "instructions": "<li>Fill in case information and party details</li><li>Describe the property or items you want protected</li><li>Include specific addresses or locations</li><li>Request orders to prevent property damage</li>",
+                "warning": "This form protects your property and belongings. List everything you want protected."
+            },
+            "DV-250": {
+                "instructions": "<li>Fill in case information and party names</li><li>Describe the specific conduct you want stopped</li><li>Include dates and details of harassment</li><li>Request appropriate restraining orders</li>",
+                "warning": "This form is for civil harassment cases. Document all incidents with dates and details."
+            },
+            "SER-001": {
+                "instructions": "<li>Fill in your personal information</li><li>Describe the service of process details</li><li>Include who served the papers and when</li><li>Sign and date the form</li>",
+                "warning": "This form proves the other party was served with court papers. File it with the court after service."
+            }
+        }
+        
+        return form_details.get(form_code, {
+            "instructions": "<li>Read all instructions carefully before filling out</li><li>Use black ink and print clearly</li><li>Complete all required fields (marked with *)</li><li>Sign and date the form</li>",
+            "warning": "Make sure to sign and date the form before filing with the court."
+        })
+
+    def _get_form_title(self, form_code: str) -> str:
+        """Get the title for a form code"""
+        form_titles = {
+            "DV-100": "Request for Domestic Violence Restraining Order",
+            "DV-109": "Notice of Court Hearing",
+            "DV-110": "Temporary Restraining Order",
+            "DV-105": "Request for Child Custody and Visitation",
+            "DV-140": "Child Custody and Visitation Order",
+            "DV-120": "Request for Property Restraining Order",
+            "DV-250": "Request for Civil Harassment Restraining Order",
+            "DV-108": "Request for Child Abduction Prevention",
+            "SER-001": "Proof of Service",
+            "DV-200": "Response to Request for Domestic Violence Restraining Order",
+            "DV-300": "Request to Renew Restraining Order",
+            "DV-305": "Response to Request to Renew Restraining Order",
+            "DV-310": "Request to Modify Restraining Order",
+            "DV-330": "Response to Request to Modify Restraining Order"
+        }
+        return form_titles.get(form_code, f"{form_code} Form")
+
+    def _get_form_description(self, form_code: str) -> str:
+        """Get the description for a form code"""
+        form_descriptions = {
+            "DV-100": "This is the main form to request a domestic violence restraining order. It includes information about the incidents, children, and orders you want the court to make.",
+            "DV-109": "This form tells you when and where your court hearing will be. Keep it safe and bring it to court.",
+            "DV-110": "This form contains the temporary restraining orders that may be granted immediately. Read it carefully and follow all conditions.",
+            "DV-105": "This form is used to request custody and visitation orders for your children in domestic violence cases.",
+            "DV-140": "This form creates a permanent custody and visitation order after your court hearing.",
+            "DV-120": "This form protects your property and belongings from damage or interference.",
+            "DV-250": "This form is for civil harassment cases where you need protection from someone who is not a family member or intimate partner.",
+            "DV-108": "This form helps prevent child abduction by establishing custody orders and travel restrictions.",
+            "SER-001": "This form proves that the other party was served with your court papers. It must be filed with the court after service.",
+            "DV-200": "This form is used by the respondent to respond to a request for a domestic violence restraining order.",
+            "DV-300": "This form is used to request renewal of an existing restraining order before it expires.",
+            "DV-305": "This form is used by the respondent to respond to a request to renew a restraining order.",
+            "DV-310": "This form is used to request changes to an existing restraining order.",
+            "DV-330": "This form is used by the respondent to respond to a request to modify a restraining order."
+        }
+        return form_descriptions.get(form_code, f"Required form for your case type")
+    
     def get_form_url(self, form_code: str) -> str:
         """Return a public hyperlink for a given Judicial Council form code.
 
@@ -449,15 +531,53 @@ class EmailService:
         next_steps = summary_data.get('next_steps', [])
         resources = summary_data.get('resources', {})
         
-        # Generate enhanced forms HTML
+        # Generate enhanced forms HTML with detailed guidance
         enhanced_forms_html = ""
+        
+        # Get forms from both the summary data and the case data
+        all_forms = []
         if forms_completed:
-            enhanced_forms_html = "<h3>📋 Forms Completed:</h3><ul>"
-            for form in forms_completed:
+            all_forms.extend(forms_completed)
+        
+        # Also check for forms in the case data
+        documents_needed = case_data.get('documents_needed', [])
+        if documents_needed:
+            for form_code in documents_needed:
+                if isinstance(form_code, str):
+                    all_forms.append({
+                        'form_code': form_code,
+                        'title': self._get_form_title(form_code),
+                        'description': self._get_form_description(form_code)
+                    })
+        
+        if all_forms:
+            enhanced_forms_html = "<h3>📋 Required Forms & Instructions:</h3>"
+            for form in all_forms:
                 form_code = form.get('form_code', '')
                 form_title = form.get('title', '')
-                enhanced_forms_html += f'<li><strong>{form_code}</strong> - {form_title}</li>'
-            enhanced_forms_html += "</ul>"
+                form_description = form.get('description', '')
+                
+                # Get detailed form information
+                form_details = self._get_form_details(form_code)
+                
+                enhanced_forms_html += f"""
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4 style="margin: 0; color: #1e293b; font-size: 18px;">{form_code} - {form_title}</h4>
+                        <a href="{self.get_form_url(form_code)}" target="_blank" style="background-color: #3b82f6; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px;">Download Form</a>
+                    </div>
+                    <p style="margin: 10px 0; color: #475569; font-size: 14px;">{form_description}</p>
+                    <div style="background-color: #f1f5f9; padding: 15px; border-radius: 6px; margin: 10px 0;">
+                        <h5 style="margin: 0 0 8px 0; color: #334155; font-size: 14px;">📝 How to Fill Out This Form:</h5>
+                        <ul style="margin: 0; padding-left: 20px; color: #475569; font-size: 13px;">
+                            {form_details.get('instructions', '<li>Read all instructions carefully before filling out</li><li>Use black ink and print clearly</li><li>Complete all required fields (marked with *)</li>')}
+                        </ul>
+                    </div>
+                    <div style="background-color: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0; color: #92400e; font-size: 13px; font-weight: 500;">⚠️ Important: {form_details.get('warning', 'Make sure to sign and date the form before filing with the court.')}</p>
+                    </div>
+                </div>
+                """
         
         # Generate key answers HTML
         key_answers_html = ""
@@ -493,6 +613,65 @@ class EmailService:
                 </div>
                 """
         
+        # Generate filing instructions HTML
+        filing_instructions_html = """
+        <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 How to File Your Forms with the Court</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 1: Prepare Your Forms</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                        <li>Print all forms on white paper</li>
+                        <li>Use black ink and print clearly</li>
+                        <li>Make 3 copies of each form</li>
+                        <li>Sign and date all forms</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 2: File with Court</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                        <li>Go to the Clerk's Office (Room 101)</li>
+                        <li>Bring photo ID and all forms</li>
+                        <li>Pay filing fees (or request fee waiver)</li>
+                        <li>Get your case number and hearing date</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 3: Serve the Other Party</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                        <li>Have someone 18+ serve the papers</li>
+                        <li>Cannot be you or a party to the case</li>
+                        <li>Use sheriff, process server, or friend</li>
+                        <li>File proof of service with court</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 16px;">Step 4: Attend Court Hearing</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 14px;">
+                        <li>Arrive 15 minutes early</li>
+                        <li>Bring all evidence and witnesses</li>
+                        <li>Dress appropriately for court</li>
+                        <li>Be prepared to explain your case</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        """
+
+        # Generate legal information HTML
+        legal_info_html = """
+        <div style="background-color: #fefce8; border: 1px solid #eab308; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h3 style="margin: 0 0 15px 0; color: #a16207;">⚖️ Important Legal Information</h3>
+            <div style="color: #a16207; font-size: 14px; line-height: 1.6;">
+                <p style="margin: 0 0 10px 0;"><strong>This is not legal advice.</strong> The information provided is for general guidance only. Every case is different, and you should consult with an attorney for specific legal advice.</p>
+                <p style="margin: 0 0 10px 0;"><strong>Court procedures can be complex.</strong> If you have questions about your case, contact the court's self-help center or consult with a qualified attorney.</p>
+                <p style="margin: 0 0 10px 0;"><strong>Keep copies of everything.</strong> Make copies of all forms, court orders, and correspondence. Keep them in a safe place.</p>
+                <p style="margin: 0 0 10px 0;"><strong>Follow all court orders.</strong> Violating a court order can result in serious consequences, including criminal charges.</p>
+                <p style="margin: 0;"><strong>If you are in immediate danger, call 911.</strong> Court orders are not a substitute for emergency protection.</p>
+            </div>
+        </div>
+        """
+
         # Generate resources HTML
         resources_html = ""
         if resources:
@@ -657,6 +836,10 @@ class EmailService:
                 </div>
                 
                 {enhanced_steps_html}
+                
+                {filing_instructions_html}
+                
+                {legal_info_html}
                 
                 {resources_html}
                 
