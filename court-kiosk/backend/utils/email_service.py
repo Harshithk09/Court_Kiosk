@@ -1119,7 +1119,12 @@ class EmailService:
                 return {"success": False, "error": "No email address provided"}
             
             # Generate case summary PDF
-            case_summary_path = self.pdf_service.generate_case_summary_pdf(case_data)
+            try:
+                case_summary_path = self.pdf_service.generate_case_summary_pdf(case_data)
+                print(f"Generated case summary PDF: {case_summary_path}")
+            except Exception as e:
+                print(f"Error generating case summary PDF: {e}")
+                case_summary_path = None
             
             # Generate form PDFs
             forms = case_data.get('documents_needed', [])
@@ -1129,7 +1134,12 @@ class EmailService:
                 except:
                     forms = []
             
-            form_attachments = self.pdf_service.generate_forms_package(forms, case_data)
+            try:
+                form_attachments = self.pdf_service.generate_forms_package(forms, case_data)
+                print(f"Generated form attachments: {len(form_attachments) if form_attachments else 0}")
+            except Exception as e:
+                print(f"Error generating form PDFs: {e}")
+                form_attachments = []
             
             # Prepare email content
             subject = f"Your Court Case Summary - {case_data.get('queue_number', 'N/A')}"
@@ -1139,23 +1149,28 @@ class EmailService:
             attachments = []
             
             # Add case summary PDF
-            if os.path.exists(case_summary_path):
-                with open(case_summary_path, 'rb') as f:
-                    attachments.append({
-                        'filename': f"Case_Summary_{case_data.get('queue_number', 'N/A')}.pdf",
-                        'content': base64.b64encode(f.read()).decode('utf-8'),
-                        'type': 'application/pdf'
-                    })
-            
-            # Add form PDFs
-            for form_attachment in form_attachments:
-                if os.path.exists(form_attachment['path']):
-                    with open(form_attachment['path'], 'rb') as f:
+            if case_summary_path and os.path.exists(case_summary_path):
+                try:
+                    with open(case_summary_path, 'rb') as f:
                         attachments.append({
-                            'filename': form_attachment['filename'],
+                            'filename': f"Case_Summary_{case_data.get('queue_number', 'N/A')}.pdf",
                             'content': base64.b64encode(f.read()).decode('utf-8'),
                             'type': 'application/pdf'
                         })
+                    print(f"Added case summary PDF attachment")
+                except Exception as e:
+                    print(f"Error adding case summary PDF: {e}")
+            
+            # Add form PDFs
+            if form_attachments:
+                for form_attachment in form_attachments:
+                    if os.path.exists(form_attachment['path']):
+                        with open(form_attachment['path'], 'rb') as f:
+                            attachments.append({
+                                'filename': form_attachment['filename'],
+                                'content': base64.b64encode(f.read()).decode('utf-8'),
+                                'type': 'application/pdf'
+                            })
             
             # Send email with attachments
             email_data = {
