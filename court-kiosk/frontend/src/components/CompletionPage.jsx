@@ -194,49 +194,57 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
     try {
       const summary = generateSummary();
       
-      console.log('Sending email request to:', buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL));
-      console.log('Summary data being sent:', summary);
+      console.log('📧 Sending email request...');
       
-      // Send case summary email using the centralized API configuration
+      // ===== FIXED: Send data in correct format =====
+      const emailPayload = {
+        email: email,
+        case_data: {
+          user_email: email,
+          user_name: 'Court Kiosk User',
+          case_type: 'DVRO',
+          priority_level: 'A',
+          language: 'en',
+          queue_number: queueNumber || 'N/A',
+          phone_number: phoneNumber || null,
+          location: 'San Mateo County Superior Court Kiosk',
+          session_id: summary.header.session_id,
+          
+          // CRITICAL: Send at root level, not nested
+          forms_completed: summary.forms || [],
+          documents_needed: summary.forms || [],
+          next_steps: summary.nextSteps || [],
+          nextSteps: summary.nextSteps || [],
+          
+          // Also send full summary
+          summary_json: JSON.stringify(summary),
+          conversation_summary: summary
+        }
+      };
+      
+      console.log('📧 Sending:', emailPayload);
+      
       const response = await fetch(buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email,
-          case_data: {
-            user_email: email,
-            user_name: 'Court Kiosk User',
-            case_type: 'DVRO',
-            priority_level: 'A',
-            language: 'en',
-            queue_number: queueNumber || null,
-            documents_needed: summary.forms || [],  // Send actual forms from summary
-            next_steps: summary.nextSteps || [],  // Send actual next steps from summary
-            conversation_summary: summary,  // Send as object - backend should handle it
-            phone_number: phoneNumber || null
-          }
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
       });
       
-      // Better error handling
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Server error:', errorData);
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
       
       if (result.success) {
-        alert('Case summary email sent successfully!');
+        alert('✅ Case summary email sent successfully! Check your inbox.');
       } else {
-        alert('Failed to send email: ' + (result.error || 'Unknown error'));
+        alert('❌ Failed to send email: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error sending email:', error);
-      alert('Error sending email: ' + error.message);
+      console.error('❌ Error:', error);
+      alert('❌ Error sending email: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }

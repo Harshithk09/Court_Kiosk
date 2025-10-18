@@ -1297,30 +1297,52 @@ class EmailService:
         # Generate enhanced forms HTML with detailed guidance
         enhanced_forms_html = ""
         
-        # Debug logging
-        print(f"DEBUG: forms_completed = {forms_completed}")
-        print(f"DEBUG: documents_needed = {case_data.get('documents_needed', [])}")
-        print(f"DEBUG: summary_data = {summary_data}")
-        
-        # Get forms from both the summary data and the case data
-        all_forms = []
-        if forms_completed:
-            all_forms.extend(forms_completed)
-            print(f"DEBUG: Added {len(forms_completed)} forms from forms_completed")
-        
-        # Also check for forms in the case data
-        documents_needed = case_data.get('documents_needed', [])
-        if documents_needed:
-            for form_code in documents_needed:
-                if isinstance(form_code, str):
+        # ===== EXTRACT FORMS DATA WITH MULTIPLE FALLBACKS =====
+        forms_data = []
+
+        # Try all possible sources
+        possible_form_keys = ['forms_completed', 'documents_needed', 'forms', 'required_forms']
+
+        # Check summary_data first
+        for key in possible_form_keys:
+            if key in summary_data and summary_data[key]:
+                forms_data = summary_data[key]
+                print(f"✅ Found forms in summary_data['{key}']: {len(forms_data)} forms")
+                break
+
+        # If not found, check case_data
+        if not forms_data:
+            for key in possible_form_keys:
+                if key in case_data and case_data[key]:
+                    forms_data = case_data[key]
+                    print(f"✅ Found forms in case_data['{key}']: {len(forms_data)} forms")
+                    break
+
+        if not forms_data:
+            print(f"⚠️ NO FORMS DATA FOUND!")
+            # Add fallback message
+            enhanced_forms_html = """
+            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 10px 0; color: #92400e;">📋 Required Forms</h3>
+                <p style="margin: 0; color: #92400e;">Forms will be determined based on your specific case. Please visit the court's self-help center or consult with a legal professional to identify the exact forms needed for your situation.</p>
+            </div>
+            """
+        else:
+            # Convert forms to proper format
+            all_forms = []
+            for form in forms_data:
+                if isinstance(form, str):
+                    # If it's just a form code string
                     all_forms.append({
-                        'form_code': form_code,
-                        'title': self._get_form_title(form_code),
-                        'description': self._get_form_description(form_code)
+                        'form_code': form,
+                        'title': self._get_form_title(form),
+                        'description': self._get_form_description(form)
                     })
-            print(f"DEBUG: Added {len(documents_needed)} forms from documents_needed")
-        
-        print(f"DEBUG: Total forms found: {len(all_forms)}")
+                elif isinstance(form, dict):
+                    # If it's already a form object
+                    all_forms.append(form)
+            
+            print(f"✅ Total forms processed: {len(all_forms)}")
         
         if all_forms:
             enhanced_forms_html = "<h3>📋 Required Forms & Instructions:</h3>"
@@ -1361,7 +1383,40 @@ class EmailService:
         
         # Generate enhanced next steps HTML
         enhanced_steps_html = ""
-        print(f"DEBUG: next_steps = {next_steps}")
+        
+        # ===== EXTRACT NEXT STEPS DATA WITH MULTIPLE FALLBACKS =====
+        next_steps = []
+
+        # Try all possible sources
+        possible_steps_keys = ['next_steps', 'nextSteps', 'recommended_actions', 'steps']
+
+        # Check summary_data first
+        for key in possible_steps_keys:
+            if key in summary_data and summary_data[key]:
+                next_steps = summary_data[key]
+                print(f"✅ Found steps in summary_data['{key}']: {len(next_steps)} steps")
+                break
+
+        # If not found, check case_data
+        if not next_steps:
+            for key in possible_steps_keys:
+                if key in case_data and case_data[key]:
+                    next_steps = case_data[key]
+                    print(f"✅ Found steps in case_data['{key}']: {len(next_steps)} steps")
+                    break
+
+        if not next_steps:
+            print(f"⚠️ NO NEXT STEPS DATA FOUND!")
+            # Add fallback message
+            enhanced_steps_html = """
+            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 10px 0; color: #92400e;">✔ Next Steps</h3>
+                <p style="margin: 0; color: #92400e;">Please visit the court's self-help center or consult with a legal professional to determine the specific next steps for your case.</p>
+            </div>
+            """
+        else:
+            print(f"✅ Total next steps processed: {len(next_steps)}")
+        
         if next_steps:
             enhanced_steps_html = "<h3>✔ Next Steps:</h3>"
             for step in next_steps:
