@@ -1345,8 +1345,13 @@ class EmailService:
             print(f"✅ Total forms processed: {len(all_forms)}")
         
         if all_forms:
-            enhanced_forms_html = "<h3>📋 Required Forms & Instructions:</h3>"
-            for form in all_forms:
+            enhanced_forms_html = """
+            <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 25px; margin: 25px 0;">
+                <h2 style="margin: 0 0 20px 0; color: #0c4a6e; font-size: 24px; text-align: center;">📋 Required Forms & Detailed Instructions</h2>
+                <p style="margin: 0 0 20px 0; color: #0c4a6e; font-size: 16px; text-align: center; font-weight: 500;">Each form below includes step-by-step instructions, important warnings, and direct download links</p>
+            """
+            
+            for i, form in enumerate(all_forms, 1):
                 form_code = form.get('form_code', '')
                 form_title = form.get('title', '')
                 form_description = form.get('description', '')
@@ -1355,23 +1360,35 @@ class EmailService:
                 form_details = self._get_form_details(form_code)
                 
                 enhanced_forms_html += f"""
-                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 15px 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h4 style="margin: 0; color: #1e293b; font-size: 18px;">{form_code} - {form_title}</h4>
-                        <a href="{self.get_form_url(form_code)}" target="_blank" style="background-color: #3b82f6; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px;">Download Form</a>
+                <div style="background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3 style="margin: 0; color: #1e293b; font-size: 20px; font-weight: bold;">{i}. {form_code} - {form_title}</h3>
+                            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px; font-style: italic;">{form_description}</p>
+                        </div>
+                        <a href="{self.get_form_url(form_code)}" target="_blank" style="background-color: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">📥 Download Form</a>
                     </div>
-                    <p style="margin: 10px 0; color: #475569; font-size: 14px;">{form_description}</p>
-                    <div style="background-color: #f1f5f9; padding: 15px; border-radius: 6px; margin: 10px 0;">
-                        <h5 style="margin: 0 0 8px 0; color: #334155; font-size: 14px;">📝 How to Fill Out This Form:</h5>
-                        <ul style="margin: 0; padding-left: 20px; color: #475569; font-size: 13px;">
-                            {form_details.get('instructions', '<li>Read all instructions carefully before filling out</li><li>Use black ink and print clearly</li><li>Complete all required fields (marked with *)</li>')}
+                    
+                    <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3b82f6;">
+                        <h4 style="margin: 0 0 12px 0; color: #1e293b; font-size: 16px; font-weight: bold;">📝 Step-by-Step Instructions:</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #475569; font-size: 14px; line-height: 1.6;">
+                            {form_details.get('instructions', '<li>Read all instructions carefully before filling out</li><li>Use black ink and print clearly</li><li>Complete all required fields (marked with *)</li><li>Sign and date the form</li>')}
                         </ul>
                     </div>
-                    <div style="background-color: #fef3c7; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b;">
-                        <p style="margin: 0; color: #92400e; font-size: 13px; font-weight: 500;">⚠️ Important: {form_details.get('warning', 'Make sure to sign and date the form before filing with the court.')}</p>
+                    
+                    <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 15px 0;">
+                        <h4 style="margin: 0 0 8px 0; color: #92400e; font-size: 14px; font-weight: bold;">⚠️ Critical Warning:</h4>
+                        <p style="margin: 0; color: #92400e; font-size: 14px; font-weight: 500;">{form_details.get('warning', 'Make sure to sign and date the form before filing with the court.')}</p>
+                    </div>
+                    
+                    <div style="background-color: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981; margin: 15px 0;">
+                        <h4 style="margin: 0 0 8px 0; color: #065f46; font-size: 14px; font-weight: bold;">💡 Pro Tip:</h4>
+                        <p style="margin: 0; color: #065f46; font-size: 14px;">Make 3 copies of this form: one for the court, one for the other party, and one for your records.</p>
                     </div>
                 </div>
                 """
+            
+            enhanced_forms_html += "</div>"
         
         # Generate key answers HTML
         key_answers_html = ""
@@ -1418,28 +1435,54 @@ class EmailService:
             print(f"✅ Total next steps processed: {len(next_steps)}")
         
         if next_steps:
-            enhanced_steps_html = "<h3>✔ Next Steps:</h3>"
-            for step in next_steps:
+            enhanced_steps_html = """
+            <div style="background-color: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 25px; margin: 25px 0;">
+                <h2 style="margin: 0 0 20px 0; color: #166534; font-size: 24px; text-align: center;">✔ Your Action Plan - Next Steps</h2>
+                <p style="margin: 0 0 20px 0; color: #166534; font-size: 16px; text-align: center; font-weight: 500;">Follow these steps in order to complete your case successfully</p>
+            """
+            
+            for i, step in enumerate(next_steps, 1):
                 action = step.get('action', '')
                 priority_level = step.get('priority', 'medium')
                 timeline = step.get('timeline', '')
                 details = step.get('details', '')
                 
-                priority_class = {
-                    'critical': 'background-color: #fef2f2; border-left: 4px solid #dc2626;',
-                    'high': 'background-color: #fffbeb; border-left: 4px solid #ea580c;',
-                    'medium': 'background-color: #f0f9ff; border-left: 4px solid #3b82f6;'
-                }.get(priority_level, 'background-color: #f9fafb; border-left: 4px solid #6b7280;')
+                priority_colors = {
+                    'critical': {'bg': '#fef2f2', 'border': '#dc2626', 'text': '#991b1b', 'icon': '🚨'},
+                    'high': {'bg': '#fffbeb', 'border': '#ea580c', 'text': '#9a3412', 'icon': '⚡'},
+                    'medium': {'bg': '#f0f9ff', 'border': '#3b82f6', 'text': '#1e40af', 'icon': '📋'},
+                    'low': {'bg': '#f0fdf4', 'border': '#22c55e', 'text': '#166534', 'icon': '✅'}
+                }
+                
+                colors = priority_colors.get(priority_level, priority_colors['medium'])
                 
                 enhanced_steps_html += f"""
-                <div style="{priority_class} padding: 15px; margin: 10px 0; border-radius: 4px;">
-                    <div style="font-weight: bold; margin-bottom: 5px;">{action}</div>
-                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 5px;">
-                        <strong>Timeline:</strong> {timeline}
+                <div style="background-color: {colors['bg']}; border: 2px solid {colors['border']}; border-radius: 12px; padding: 25px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                        <div style="background-color: {colors['border']}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin-right: 15px;">{i}</div>
+                        <div>
+                            <h3 style="margin: 0; color: {colors['text']}; font-size: 18px; font-weight: bold;">{colors['icon']} {action}</h3>
+                            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px; font-weight: 500;">Priority: {priority_level.upper()}</p>
+                        </div>
                     </div>
-                    <div style="font-size: 14px; color: #374151;">{details}</div>
+                    
+                    <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid {colors['border']};">
+                        <h4 style="margin: 0 0 8px 0; color: {colors['text']}; font-size: 14px; font-weight: bold;">⏰ Timeline:</h4>
+                        <p style="margin: 0; color: #374151; font-size: 14px; font-weight: 500;">{timeline}</p>
+                    </div>
+                    
+                    <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 14px; font-weight: bold;">📝 Detailed Instructions:</h4>
+                        <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.6;">{details}</p>
+                    </div>
+                    
+                    <div style="background-color: #ecfdf5; padding: 12px; border-radius: 6px; border-left: 4px solid #10b981; margin: 15px 0;">
+                        <p style="margin: 0; color: #065f46; font-size: 13px; font-weight: 500;">💡 Tip: Complete this step before moving to the next one to avoid delays.</p>
+                    </div>
                 </div>
                 """
+            
+            enhanced_steps_html += "</div>"
         
         # Generate case-type specific filing instructions
         case_type = case_data.get('case_type', 'DVRO').upper()
@@ -1459,8 +1502,49 @@ class EmailService:
         </div>
         """
 
-        # Generate resources HTML
-        resources_html = ""
+        # Generate comprehensive resources section
+        resources_html = """
+        <div style="background-color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 30px; margin: 25px 0;">
+            <h2 style="margin: 0 0 25px 0; color: #1e293b; font-size: 24px; text-align: center;">📞 Court Resources & Support</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+                    <h3 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px;">🏛️ Court Information</h3>
+                    <p style="margin: 5px 0; color: #374151; font-size: 14px;"><strong>San Mateo County Superior Court</strong></p>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">400 County Center, Redwood City, CA 94063</p>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Phone: (650) 261-5100</p>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Hours: Monday-Friday, 8:00 AM - 4:00 PM</p>
+                </div>
+                
+                <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+                    <h3 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px;">🆘 Self-Help Center</h3>
+                    <p style="margin: 5px 0; color: #374151; font-size: 14px;"><strong>Family Law Self-Help</strong></p>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Phone: (650) 261-5100 ext. 2</p>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Hours: Monday-Friday, 8:30 AM - 12:00 PM</p>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Location: Room 101, First Floor</p>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+                    <h3 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px;">⚖️ Legal Aid</h3>
+                    <p style="margin: 5px 0; color: #374151; font-size: 14px;"><strong>Legal Aid Society of San Mateo County</strong></p>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Phone: (650) 558-0915</p>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Free legal assistance for qualifying individuals</p>
+                </div>
+                
+                <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; border: 2px solid #fecaca; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+                    <h3 style="margin: 0 0 15px 0; color: #dc2626; font-size: 18px;">🚨 Emergency</h3>
+                    <p style="margin: 5px 0; color: #dc2626; font-size: 16px; font-weight: bold;">Call 911</p>
+                    <p style="margin: 5px 0; color: #991b1b; font-size: 14px;">For immediate danger or threats</p>
+                    <p style="margin: 5px 0; color: #991b1b; font-size: 14px;">Court orders are not emergency protection</p>
+                </div>
+            </div>
+        </div>
+        """
+        
+        # Generate resources HTML (fallback)
+        additional_resources_html = ""
         if resources:
             court_info = resources.get('court_info', {})
             self_help = resources.get('self_help_center', {})
