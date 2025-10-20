@@ -14,9 +14,17 @@ if Config.RESEND_API_KEY:
 class EmailService:
     def __init__(self):
         # Use Resend's default verified domain for testing
+        # For production, you should verify your own domain at resend.com/domains
+        # and update these email addresses to use your verified domain
         self.from_email = "Court Kiosk <onboarding@resend.dev>"
         self.support_email = "onboarding@resend.dev"
         self.pdf_service = PDFService()
+        
+        # Check if we have a custom domain configured
+        custom_domain = os.getenv('RESEND_FROM_DOMAIN')
+        if custom_domain:
+            self.from_email = f"Court Kiosk <noreply@{custom_domain}>"
+            self.support_email = f"support@{custom_domain}"
     
     def _get_form_details(self, form_code: str) -> dict:
         """Get detailed information about a specific form - supports all California Judicial Council forms"""
