@@ -1263,66 +1263,145 @@ class EmailService:
             return {"success": False, "error": str(e)}
     
     def _generate_comprehensive_email_html(self, case_data: dict, include_queue: bool = False) -> str:
-        """Generate comprehensive HTML email content"""
+        """Generate user-friendly HTML email content"""
+        
+        # Extract basic info
         queue_number = case_data.get('queue_number', 'N/A')
-        case_type = case_data.get('case_type', 'Unknown')
-        priority = case_data.get('priority_level', 'C')
-        language = case_data.get('language', 'en')
         user_name = case_data.get('user_name', '')
         
-        # Get forms and steps
-        forms = case_data.get('documents_needed', [])
-        if isinstance(forms, str):
+        # Get forms data
+        summary_json = case_data.get('summary_json', '{}')
+        if isinstance(summary_json, str):
             try:
-                forms = json.loads(forms)
+                summary_data = json.loads(summary_json)
             except:
-                forms = []
+                summary_data = {}
+        else:
+            summary_data = summary_json
         
-        next_steps = case_data.get('next_steps', [])
-        if isinstance(next_steps, str):
-            try:
-                next_steps = json.loads(next_steps)
-            except:
-                next_steps = []
+        # Extract forms with multiple fallbacks
+        forms_data = []
+        possible_form_keys = ['forms_completed', 'documents_needed', 'forms', 'required_forms']
         
-        # Priority color mapping
-        priority_colors = {
-            'A': '#dc2626',  # Red - DV cases
-            'B': '#ea580c',  # Orange - Civil harassment, elder abuse
-            'C': '#ca8a04',  # Yellow - Workplace violence
-            'D': '#16a34a'   # Green - General questions
-        }
-        priority_color = priority_colors.get(priority, '#6b7280')
+        for key in possible_form_keys:
+            if key in summary_data and summary_data[key]:
+                forms_data = summary_data[key]
+                break
         
-        # Generate forms HTML
+        if not forms_data:
+            for key in possible_form_keys:
+                if key in case_data and case_data[key]:
+                    forms_data = case_data[key]
+                    break
+        
+        # Convert forms to proper format
+        all_forms = []
+        for form in forms_data:
+            if isinstance(form, str):
+                all_forms.append({
+                    'form_code': form,
+                    'title': self._get_form_title(form),
+                    'description': self._get_form_description(form)
+                })
+            elif isinstance(form, dict):
+                all_forms.append(form)
+        
+        # Generate simple forms list with download links
         forms_html = ""
-        if forms:
-            forms_html = "<h3>📋 Required Forms (Attached as PDFs):</h3><ul>"
-            for form in forms:
-                form_url = self.get_form_url(form)
-                forms_html += f'<li><strong>{form}</strong> - <a href="{form_url}" target="_blank">Download Official Form</a></li>'
-            forms_html += "</ul>"
-        
-        # Generate next steps HTML
-        steps_html = ""
-        if next_steps:
-            steps_html = "<h3>📝 Next Steps:</h3><ol>"
-            for step in next_steps:
-                steps_html += f"<li>{step}</li>"
-            steps_html += "</ol>"
-        
-        # Queue information HTML
-        queue_html = ""
-        if include_queue and queue_number != 'N/A':
-            queue_html = f"""
-            <div style="background-color: {priority_color}; color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                <h2 style="margin: 0; font-size: 24px;">Your Queue Number</h2>
-                <div style="font-size: 48px; font-weight: bold; margin: 10px 0;">{queue_number}</div>
-                <p style="margin: 0;">Please keep this number visible while waiting for assistance</p>
-            </div>
+        if all_forms:
+            forms_html = """
+            <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 Your Recommended Forms</h3>
+                <p style="margin: 0 0 15px 0; color: #0c4a6e;">We've attached these forms as PDFs to this email. You can also download them from the links below:</p>
+                <ul style="margin: 0; padding-left: 20px;">
             """
+            
+            for form in all_forms:
+                form_code = form.get('form_code', '')
+                form_title = form.get('title', '')
+                form_url = self.get_form_url(form_code)
+                forms_html += f"""
+                    <li style="margin: 10px 0;">
+                        <strong>{form_code}</strong> - {form_title}
+                        <br>
+                        <a href="{form_url}" target="_blank" style="color: #0ea5e9; text-decoration: none;">📥 Download Official Form</a>
+                    </li>
+                """
+            
+            forms_html += "</ul></div>"
         
-        return self._generate_enhanced_email_html(case_data, include_queue, queue_number, case_type, priority, language, user_name, priority_color, forms_html, steps_html, queue_html)
+        # Generate simple, friendly email
+        greeting = f"Hello {user_name}," if user_name else "Hello,"
+        
+        return f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Family Court Resources</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+            
+            <div style="background-color: #1f2937; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                <h1 style="margin: 0;">🏛️ San Mateo Family Court</h1>
+                <p style="margin: 10px 0 0 0;">Family Facilitator's Office</p>
+            </div>
+            
+            <div style="background-color: white; padding: 30px; border: 1px solid #e5e7eb;">
+                
+                <p style="font-size: 16px; margin: 0 0 20px 0;">{greeting}</p>
+                
+                <p style="font-size: 16px; margin: 0 0 20px 0;">
+                    <strong>Thank you for visiting the Family Facilitator's Office.</strong>
+                </p>
+                
+                <p style="font-size: 16px; margin: 0 0 20px 0;">
+                    Based on your visit today, we've prepared the recommended court forms for your situation. 
+                    These forms are attached to this email in PDF format for your convenience.
+                </p>
+                
+                {forms_html}
+                
+                <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                    <h3 style="margin: 0 0 10px 0; color: #92400e;">⚠️ Important Reminders</h3>
+                    <ul style="margin: 0; padding-left: 20px; color: #92400e;">
+                        <li>Review each form carefully before filling it out</li>
+                        <li>Use black or blue ink only</li>
+                        <li>Make copies of everything before filing</li>
+                        <li>Bring valid photo ID when filing with the court</li>
+                    </ul>
+                </div>
+                
+                <div style="background-color: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                    <h3 style="margin: 0 0 10px 0; color: #166534;">📞 Need Help?</h3>
+                    <p style="margin: 5px 0; color: #166534;"><strong>Family Facilitator's Office</strong></p>
+                    <p style="margin: 5px 0; color: #166534;">Location: Room 101, First Floor</p>
+                    <p style="margin: 5px 0; color: #166534;">Phone: (650) 261-5100</p>
+                    <p style="margin: 5px 0; color: #166534;">Hours: Monday-Friday, 8:00 AM - 4:00 PM</p>
+                </div>
+                
+                <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                    <h3 style="margin: 0 0 10px 0; color: #92400e;">📖 Legal Disclaimer</h3>
+                    <p style="margin: 0; color: #92400e; font-size: 14px;">
+                        This information is for educational purposes only and does not constitute legal advice. 
+                        Please consult with an attorney for legal guidance specific to your situation.
+                    </p>
+                </div>
+                
+            </div>
+            
+            <div style="background-color: #1f2937; color: white; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; font-size: 14px;">
+                <p style="margin: 0;">San Mateo County Superior Court</p>
+                <p style="margin: 5px 0 0 0;">400 County Center, Redwood City, CA 94063</p>
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #9ca3af;">
+                    This is an automated message. Please do not reply to this email.
+                </p>
+            </div>
+            
+        </body>
+        </html>
+        """
     
     def _generate_enhanced_email_html(self, case_data, include_queue, queue_number, case_type, priority, language, user_name, priority_color, forms_html, steps_html, queue_html):
         """Generate enhanced HTML email content with user-friendly format"""
