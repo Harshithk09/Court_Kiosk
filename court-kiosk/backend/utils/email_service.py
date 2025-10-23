@@ -1175,41 +1175,51 @@ class EmailService:
             if not Config.RESEND_API_KEY:
                 print("Resend API key not configured, skipping email send")
                 return {"success": False, "error": "Email service not configured"}
-            
+
             user_email = case_data.get('user_email')
             if not user_email:
                 return {"success": False, "error": "No email address provided"}
-            
+
+            # Collect all forms that should be included with the email
+            form_entries = self._collect_form_entries(case_data)
+
+            # Normalise the form list for downstream services (PDF + attachments)
+            seen_form_codes = set()
+            normalized_forms = []
+            for form in form_entries:
+                form_code = form.get('form_code')
+                if form_code and form_code not in seen_form_codes:
+                    seen_form_codes.add(form_code)
+                    normalized_forms.append(form_code)
+
             # Generate case summary PDF
             try:
-                case_summary_path = self.pdf_service.generate_case_summary_pdf(case_data)
+                pdf_case_data = dict(case_data)
+                if normalized_forms:
+                    pdf_case_data['documents_needed'] = normalized_forms
+                case_summary_path = self.pdf_service.generate_case_summary_pdf(pdf_case_data)
                 print(f"Generated case summary PDF: {case_summary_path}")
             except Exception as e:
                 print(f"Error generating case summary PDF: {e}")
                 case_summary_path = None
-            
+
             # Generate form PDFs
-            forms = case_data.get('documents_needed', [])
-            if isinstance(forms, str):
+            form_attachments = []
+            if normalized_forms:
                 try:
-                    forms = json.loads(forms)
-                except:
-                    forms = []
-            
-            try:
-                form_attachments = self.pdf_service.generate_forms_package(forms, case_data)
-                print(f"Generated form attachments: {len(form_attachments) if form_attachments else 0}")
-            except Exception as e:
-                print(f"Error generating form PDFs: {e}")
-                form_attachments = []
-            
+                    form_attachments = self.pdf_service.generate_forms_package(normalized_forms, case_data)
+                    print(f"Generated form attachments: {len(form_attachments) if form_attachments else 0}")
+                except Exception as e:
+                    print(f"Error generating form PDFs: {e}")
+                    form_attachments = []
+
             # Prepare email content
-            subject = f"Your Court Case Summary - {case_data.get('queue_number', 'N/A')}"
-            html_content = self._generate_comprehensive_email_html(case_data, include_queue)
-            
+            subject = "Your Family Court Forms and Resources"
+            html_content = self._generate_comprehensive_email_html(case_data, include_queue, form_entries)
+
             # Prepare attachments
             attachments = []
-            
+
             # Add case summary PDF
             if case_summary_path and os.path.exists(case_summary_path):
                 try:
@@ -1244,12 +1254,14 @@ class EmailService:
             
             # Clean up temporary files
             try:
-                os.remove(case_summary_path)
+                if case_summary_path and os.path.exists(case_summary_path):
+                    os.remove(case_summary_path)
                 for form_attachment in form_attachments:
-                    if os.path.exists(form_attachment['path']):
-                        os.remove(form_attachment['path'])
-            except:
-                pass
+                    form_path = form_attachment.get('path')
+                    if form_path and os.path.exists(form_path):
+                        os.remove(form_path)
+            except Exception as cleanup_error:
+                print(f"Warning during cleanup: {cleanup_error}")
             
             print(f"Comprehensive case email sent successfully to {user_email}")
             response_id = response.get('id')
@@ -1262,61 +1274,32 @@ class EmailService:
             print(f"Error sending comprehensive case email: {e}")
             return {"success": False, "error": str(e)}
     
-    def _generate_comprehensive_email_html(self, case_data: dict, include_queue: bool = False) -> str:
+    def _generate_comprehensive_email_html(self, case_data: dict, include_queue: bool = False, forms: list = None) -> str:
         """Generate user-friendly HTML email content"""
-        
+
         # Extract basic info
         queue_number = case_data.get('queue_number', 'N/A')
         user_name = case_data.get('user_name', '')
-        
-        # Get forms data
-        summary_json = case_data.get('summary_json', '{}')
-        if isinstance(summary_json, str):
-            try:
-                summary_data = json.loads(summary_json)
-            except:
-                summary_data = {}
+        conversation_summary = case_data.get('conversation_summary', '')
+        if isinstance(conversation_summary, str):
+            safe_summary = conversation_summary.replace('\n', '<br>')
         else:
-            summary_data = summary_json
-        
-        # Extract forms with multiple fallbacks
-        forms_data = []
-        possible_form_keys = ['forms_completed', 'documents_needed', 'forms', 'required_forms']
-        
-        for key in possible_form_keys:
-            if key in summary_data and summary_data[key]:
-                forms_data = summary_data[key]
-                break
-        
-        if not forms_data:
-            for key in possible_form_keys:
-                if key in case_data and case_data[key]:
-                    forms_data = case_data[key]
-                    break
-        
-        # Convert forms to proper format
-        all_forms = []
-        for form in forms_data:
-            if isinstance(form, str):
-                all_forms.append({
-                    'form_code': form,
-                    'title': self._get_form_title(form),
-                    'description': self._get_form_description(form)
-                })
-            elif isinstance(form, dict):
-                all_forms.append(form)
-        
+            safe_summary = ''
+
+        # Normalised form list (if not provided, collect on-demand)
+        forms = forms if forms is not None else self._collect_form_entries(case_data)
+
         # Generate simple forms list with download links
         forms_html = ""
-        if all_forms:
+        if forms:
             forms_html = """
             <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
                 <h3 style="margin: 0 0 15px 0; color: #0c4a6e;">📋 Your Recommended Forms</h3>
                 <p style="margin: 0 0 15px 0; color: #0c4a6e;">We've attached these forms as PDFs to this email. You can also download them from the links below:</p>
                 <ul style="margin: 0; padding-left: 20px;">
             """
-            
-            for form in all_forms:
+
+            for form in forms:
                 form_code = form.get('form_code', '')
                 form_title = form.get('title', '')
                 form_url = self.get_form_url(form_code)
@@ -1327,12 +1310,37 @@ class EmailService:
                         <a href="{form_url}" target="_blank" style="color: #0ea5e9; text-decoration: none;">📥 Download Official Form</a>
                     </li>
                 """
-            
+
             forms_html += "</ul></div>"
-        
+        else:
+            forms_html = """
+            <div style="background-color: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 10px 0; color: #92400e;">📄 Forms Not Available</h3>
+                <p style="margin: 0; color: #92400e;">We were not able to determine specific forms during your visit. Please contact the Family Facilitator's Office if you need help identifying the correct paperwork.</p>
+            </div>
+            """
+
+        queue_html = ""
+        if include_queue and queue_number and queue_number != 'N/A':
+            queue_html = f"""
+            <div style=\"background-color: #eef2ff; border: 1px solid #6366f1; border-radius: 8px; padding: 20px; margin: 20px 0;\">
+                <h3 style=\"margin: 0 0 10px 0; color: #3730a3;\">🎟️ Your Queue Information</h3>
+                <p style=\"margin: 0; color: #3730a3;\"><strong>Queue Number:</strong> {queue_number}</p>
+            </div>
+            """
+
+        summary_html = ""
+        if safe_summary:
+            summary_html = f"""
+            <div style=\"background-color: #f8fafc; border: 1px solid #cbd5f5; border-radius: 8px; padding: 20px; margin: 20px 0;\">
+                <h3 style=\"margin: 0 0 10px 0; color: #1e293b;\">📝 Summary of Your Visit</h3>
+                <p style=\"margin: 0; color: #475569;\">{safe_summary}</p>
+            </div>
+            """
+
         # Generate simple, friendly email
         greeting = f"Hello {user_name}," if user_name else "Hello,"
-        
+
         return f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -1347,11 +1355,11 @@ class EmailService:
                 <h1 style="margin: 0;">🏛️ San Mateo Family Court</h1>
                 <p style="margin: 10px 0 0 0;">Family Facilitator's Office</p>
             </div>
-            
+
             <div style="background-color: white; padding: 30px; border: 1px solid #e5e7eb;">
-                
+
                 <p style="font-size: 16px; margin: 0 0 20px 0;">{greeting}</p>
-                
+
                 <p style="font-size: 16px; margin: 0 0 20px 0;">
                     <strong>Thank you for visiting the Family Facilitator's Office.</strong>
                 </p>
@@ -1360,9 +1368,11 @@ class EmailService:
                     Based on your visit today, we've prepared the recommended court forms for your situation. 
                     These forms are attached to this email in PDF format for your convenience.
                 </p>
-                
+
                 {forms_html}
-                
+                {summary_html}
+                {queue_html}
+
                 <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0;">
                     <h3 style="margin: 0 0 10px 0; color: #92400e;">⚠️ Important Reminders</h3>
                     <ul style="margin: 0; padding-left: 20px; color: #92400e;">
@@ -1398,10 +1408,65 @@ class EmailService:
                     This is an automated message. Please do not reply to this email.
                 </p>
             </div>
-            
+
         </body>
         </html>
         """
+
+    def _collect_form_entries(self, case_data: dict) -> list:
+        """Collect all known form entries associated with the case."""
+
+        summary_json = case_data.get('summary_json', '{}')
+        if isinstance(summary_json, str):
+            try:
+                summary_data = json.loads(summary_json)
+            except Exception:
+                summary_data = {}
+        else:
+            summary_data = summary_json or {}
+
+        forms_data = []
+        possible_form_keys = ['forms_completed', 'documents_needed', 'forms', 'required_forms']
+
+        # First look inside the summary payload
+        for key in possible_form_keys:
+            value = summary_data.get(key)
+            if value:
+                forms_data = value
+                break
+
+        # Fallback to raw case data if nothing in the summary
+        if not forms_data:
+            for key in possible_form_keys:
+                value = case_data.get(key)
+                if value:
+                    forms_data = value
+                    break
+
+        normalized_forms = []
+        for form in forms_data or []:
+            form_code = None
+            form_title = None
+            form_description = None
+
+            if isinstance(form, dict):
+                form_code = form.get('form_code') or form.get('code') or form.get('form')
+                form_title = form.get('title')
+                form_description = form.get('description')
+            else:
+                form_code = form
+
+            if not form_code:
+                continue
+
+            form_code = str(form_code).strip().upper()
+            normalized_forms.append({
+                'form_code': form_code,
+                'title': form_title or self._get_form_title(form_code),
+                'description': form_description or self._get_form_description(form_code)
+            })
+
+        return normalized_forms
     
     def _generate_enhanced_email_html(self, case_data, include_queue, queue_number, case_type, priority, language, user_name, priority_color, forms_html, steps_html, queue_html):
         """Generate enhanced HTML email content with user-friendly format"""
