@@ -745,48 +745,14 @@ def generate_enhanced_next_steps(case_type, current_step, existing_steps, langua
         print(f"Error generating enhanced next steps: {e}")
         return existing_steps_text
 
-@app.route('/api/send-comprehensive-email', methods=['POST'])
-def send_comprehensive_email():
-    """Send comprehensive email with case summary, PDF attachments, and queue info"""
-    try:
-        data = request.get_json()
-        
-        # Extract case data
-        case_data = {
-            'user_email': data.get('email'),
-            'user_name': data.get('user_name'),
-            'case_type': data.get('case_type', 'Domestic Violence Restraining Order'),
-            'priority_level': data.get('priority', 'A'),
-            'language': data.get('language', 'en'),
-            'queue_number': data.get('queue_number'),
-            'documents_needed': data.get('forms', []),
-            'next_steps': data.get('next_steps', []),
-            'conversation_summary': data.get('summary', ''),
-            'phone_number': data.get('phone_number')
-        }
-        
-        # Check if this is a kiosk mode request (include queue info)
-        include_queue = data.get('include_queue', False)
-        
-        if not case_data['user_email']:
-            return jsonify({'error': 'Email is required'}), 400
-        
-        # Send comprehensive email
-        result = email_service.send_comprehensive_case_email(case_data, include_queue)
-        
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'message': 'Comprehensive case summary and forms sent successfully',
-                'email_id': result.get('id'),
-                'queue_number': case_data.get('queue_number')
-            })
-        else:
-            return jsonify({'error': result.get('error', 'Failed to send email')}), 500
-            
-    except Exception as e:
-        app.logger.error(f"Error sending comprehensive email: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+# ===== EMAIL ENDPOINTS =====
+# All email functionality has been moved to email_api.py
+# The EmailService class handles all email operations
+# Available endpoints:
+# - /api/email/send-case-summary
+# - /api/email/send-queue-notification  
+# - /api/email/send-facilitator-notification
+# - /api/email/health
 
 @app.route('/api/generate-case-summary', methods=['POST'])
 def generate_case_summary():

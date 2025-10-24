@@ -1,193 +1,249 @@
-# Court Kiosk System - DVRO Flow
+# 🏛️ Court Kiosk - San Mateo Family Court
 
-A comprehensive court kiosk system for Domestic Violence Restraining Orders (DVRO) with improved error handling, configuration management, and testing.
+A comprehensive self-service kiosk system for the San Mateo Family Court that guides users through legal processes, provides automated case summaries, and delivers comprehensive next steps via email.
 
-## Recent Fixes Applied
+## 🎯 **Project Overview**
 
-### Backend Issues Fixed:
-1. **Tailwind Config Issue**: Removed embedded Tailwind configuration from `server.js` that was overriding Express module exports
-2. **Form Handling**: Added null checks for forms and nextSteps arrays to prevent runtime errors
-3. **Hard-coded Endpoints**: Created `config.py` with configurable service endpoints via environment variables
-4. **Unprotected File Reads**: Added proper error handling for `flowchart.json` file operations
-5. **Queue Numbering**: Fixed queue number extraction to handle case types with multiple characters
-6. **Testing**: Added comprehensive test suite for both backend and frontend
+The Court Kiosk is a full-stack web application designed to help court visitors navigate complex legal processes independently. It provides:
 
-### Frontend Issues Fixed:
-1. **Missing Components**: Recreated `SummaryPage.jsx` component that was accidentally deleted
-2. **Type Safety**: Added proper null checks and error handling
-3. **Testing**: Added basic frontend tests
+- **Interactive Legal Guidance**: Step-by-step assistance for domestic violence, divorce, and other family law matters
+- **Automated Case Summaries**: AI-powered analysis of user responses with personalized recommendations
+- **Form Management**: Integration with 100+ California Judicial Council forms
+- **Email Delivery**: Professional email summaries with PDF attachments
+- **Queue Management**: Digital queue system with SMS notifications
 
-## Quick Start
+## 🏗️ **Architecture**
 
-### Prerequisites
-- Node.js (v16 or higher)
-- Python 3.8 or higher
-- npm or yarn
+### **Frontend (React.js)**
+- **Framework**: React 18+ with modern hooks
+- **Styling**: Tailwind CSS for responsive design
+- **State Management**: Context API for global state
+- **Routing**: React Router for navigation
+- **Deployment**: Vercel (https://court-kiosk.vercel.app)
 
-### Installation
+### **Backend (Python Flask)**
+- **Framework**: Flask with SQLAlchemy ORM
+- **Email Service**: Resend API for email delivery
+- **PDF Generation**: ReportLab for document creation
+- **AI Integration**: OpenAI API for case analysis
+- **Deployment**: Render (https://court-kiosk.onrender.com)
 
-1. **Clone and navigate to the project:**
-```bash
-cd court-kiosk
-```
+### **Database**
+- **Type**: SQLite (development) / PostgreSQL (production)
+- **Models**: Users, Sessions, Queue Entries, Audit Logs
 
-2. **Install frontend dependencies:**
+## 🚀 **Quick Start**
+
+### **Prerequisites**
+- Node.js 18+
+- Python 3.11+
+- Git
+
+### **Frontend Setup**
 ```bash
 cd frontend
 npm install
-```
-
-3. **Install backend dependencies:**
-```bash
-cd ../backend
-npm install
-pip install -r requirements.txt
-```
-
-### Running the Application
-
-1. **Start the frontend (React):**
-```bash
-cd frontend
 npm start
 ```
-The frontend will be available at `http://localhost:3000`
 
-2. **Start the backend (Flask):**
+### **Backend Setup**
 ```bash
 cd backend
-python app.py
-```
-The backend will be available at `http://localhost:5000`
-
-3. **Access the DVRO Flow:**
-Navigate to `http://localhost:3000/dvro` to access the DVRO flow system.
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the backend directory:
-
-```env
-# Database
-DATABASE_URL=sqlite:///court_kiosk.db
-
-# Email Configuration
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
-FACILITATOR_EMAIL=facilitator@court.gov
-
-# Service Endpoints
-SEARCH_SERVICE_URL=http://localhost:8000
-QUEUE_SERVICE_URL=http://localhost:5001
-RAG_SERVICE_URL=http://localhost:8000
-
-# Base URL for semantic search service
-API_BASE_URL=http://localhost:8000
-
-# OpenAI
-OPENAI_API_KEY=your-openai-api-key
-
-# Security
-SECRET_KEY=your-secret-key-here
-
-# CORS
-CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python run.py
 ```
 
-Create a `.env` file in the frontend directory:
-
-```env
-# Base URL for API requests
-VITE_API_URL=http://localhost:5001
-```
-
-## Testing
-
-### Backend Tests
+### **Environment Variables**
 ```bash
-cd backend
-npm test
-# or
-python test_app.py
+# Backend (.env)
+OPENAI_API_KEY=your_openai_key
+RESEND_API_KEY=your_resend_key
+SECRET_KEY=your_secret_key
+SQLALCHEMY_DATABASE_URI=sqlite:///court_kiosk.db
+
+# Frontend (.env)
+REACT_APP_API_URL=https://court-kiosk.onrender.com
 ```
 
-### Frontend Tests
+## 📁 **Project Structure**
+
+```
+court-kiosk/
+├── backend/                    # Python Flask backend
+│   ├── utils/                  # Service modules
+│   │   ├── email_service.py    # Unified email service
+│   │   ├── llm_service.py      # AI/LLM integration
+│   │   ├── auth_service.py     # Authentication
+│   │   └── case_summary_service.py
+│   ├── email_api.py           # Email API endpoints
+│   ├── app.py                 # Main Flask application
+│   ├── models.py              # Database models
+│   └── run.py                 # Application runner
+├── frontend/                   # React.js frontend
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   ├── pages/             # Page components
+│   │   ├── contexts/          # React contexts
+│   │   └── utils/             # Utility functions
+│   └── public/                # Static assets
+├── court_documents/           # PDF forms library
+├── tests/                     # Test files
+└── docs/                      # Documentation
+```
+
+## 🔧 **Key Features**
+
+### **1. Interactive Legal Guidance**
+- **Multi-language Support**: English, Spanish, Chinese
+- **Dynamic Flow Engine**: Context-aware question routing
+- **Progress Tracking**: Visual progress indicators
+- **Accessibility**: Screen reader compatible
+
+### **2. AI-Powered Case Analysis**
+- **Smart Summarization**: OpenAI GPT analysis of user responses
+- **Form Recommendations**: Automatic form selection based on case details
+- **Next Steps Generation**: Personalized action plans
+- **Risk Assessment**: Priority level assignment
+
+### **3. Comprehensive Email System**
+- **Professional Templates**: Court-branded HTML emails
+- **PDF Attachments**: Case summaries and official forms
+- **Form Integration**: 100+ California court forms with official URLs
+- **Multi-language Support**: Localized email content
+
+### **4. Queue Management**
+- **Digital Queue**: Real-time queue tracking
+- **SMS Notifications**: Queue number delivery
+- **Facilitator Dashboard**: Staff management interface
+- **Priority Handling**: Emergency case prioritization
+
+## 📧 **Email System**
+
+The email system is built with a clean, modular architecture:
+
+### **Core Components**
+- **`EmailService`**: Unified email handling class
+- **`email_api.py`**: Clean API endpoints blueprint
+- **PDF Generation**: Dynamic case summary and form packages
+- **Template Engine**: Professional HTML email templates
+
+### **Available Endpoints**
+- `POST /api/email/send-case-summary` - Main email endpoint
+- `POST /api/email/send-queue-notification` - Queue notifications
+- `POST /api/email/send-facilitator-notification` - Staff notifications
+- `GET /api/email/health` - Service health check
+
+### **Email Features**
+- **Professional Design**: San Mateo Family Court branding
+- **PDF Attachments**: Case summary + official court forms
+- **Form Downloads**: Direct links to California Courts website
+- **Multi-language**: Localized content and instructions
+- **Mobile Responsive**: Optimized for all devices
+
+## 🗃️ **Form Management**
+
+### **Supported Forms**
+- **Domestic Violence**: DV-100, DV-109, DV-110, DV-105, etc.
+- **Family Law**: FL-100, FL-105, FL-110, FL-115, etc.
+- **Civil Harassment**: CH-100, CH-109, CH-110, etc.
+- **Fee Waivers**: FW-001, FW-002, FW-003, etc.
+- **Other Forms**: CLETS-001, POS-040, SER-001, etc.
+
+### **Form Features**
+- **Official URLs**: Direct links to California Courts website
+- **Step-by-step Instructions**: Detailed completion guides
+- **Critical Warnings**: Important legal notices
+- **Pro Tips**: Expert advice for form completion
+
+## 🚀 **Deployment**
+
+### **Frontend (Vercel)**
+1. Connect GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on git push
+
+### **Backend (Render)**
+1. Connect GitHub repository to Render
+2. Set environment variables in Render dashboard
+3. Configure build command: `pip install -r requirements.txt`
+4. Set start command: `python run.py`
+
+### **Domain Configuration**
+- **Frontend**: https://court-kiosk.vercel.app
+- **Backend**: https://court-kiosk.onrender.com
+- **Custom Domain**: Configure in Vercel/Render dashboards
+
+## 🔒 **Security Features**
+
+- **CORS Configuration**: Proper cross-origin resource sharing
+- **Rate Limiting**: API endpoint protection
+- **Input Validation**: Comprehensive data sanitization
+- **SQL Injection Protection**: SQLAlchemy ORM
+- **XSS Protection**: Content Security Policy headers
+
+## 📊 **Monitoring & Analytics**
+
+- **Health Checks**: API endpoint monitoring
+- **Error Logging**: Comprehensive error tracking
+- **Performance Metrics**: Response time monitoring
+- **Usage Analytics**: User interaction tracking
+
+## 🧪 **Testing**
+
+### **Frontend Tests**
 ```bash
 cd frontend
 npm test
 ```
 
-## Features
+### **Backend Tests**
+```bash
+cd backend
+python -m pytest tests/
+```
 
-### DVRO Flow System
-- **Guided Questions**: Step-by-step questionnaire with contextual information
-- **Bilingual Support**: English and Spanish language support
-- **Form Recommendations**: Automatic form suggestions based on user answers
-- **Priority Queue**: Automatic Priority A assignment for DVRO cases
-- **Comprehensive Summary**: Detailed end summary with action steps
+### **Integration Tests**
+```bash
+node tests/test-email.js
+node tests/test-deployment.js
+```
 
-### Key Components
-- `FlowRunner.jsx`: Main flow controller component
-- `SummaryPage.jsx`: End summary display
-- `dv_flow_combined.json`: Flow configuration
-- `app.py`: Backend API with improved error handling
-- `config.py`: Centralized configuration management
+## 📚 **Documentation**
 
-### Flow Structure
-1. **Menu**: Choose DVRO action (new, respond, change/end, renew)
-2. **Safety Check**: Immediate danger assessment
-3. **Relationship**: Domestic vs non-domestic relationship
-4. **Children**: Child custody considerations
-5. **Support**: Financial support requests
-6. **Forms Overview**: Required forms explanation
-7. **Process Steps**: Filing, service, hearing preparation
-8. **Summary**: Comprehensive case summary
+- **API Documentation**: Comprehensive endpoint documentation
+- **Email Architecture**: Detailed email system guide
+- **Deployment Guide**: Step-by-step deployment instructions
+- **Form Integration**: California court forms documentation
 
-## API Endpoints
+## 🤝 **Contributing**
 
-### Core Endpoints
-- `GET /api/health`: Health check
-- `POST /api/generate-queue`: Generate queue number (alphanumeric, multi-character `case_type` supported)
-- `GET /api/queue`: Get current queue
-- `POST /api/call-next`: Call next person
-- `POST /api/complete-case`: Complete case
-- `POST /api/dvro_rag`: DVRO RAG system
-- `GET /api/flowchart`: Get flowchart data
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-### Form Endpoints
-- `POST /api/send-email`: Send form recommendations
-- `POST /api/generate-pdf`: Generate PDF summary
+## 📄 **License**
 
-## Error Handling
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-The system now includes comprehensive error handling:
-- File read operations with proper error messages
-- Null checks for all array operations
-- Configurable service endpoints
-- Graceful degradation for missing services
-- Proper HTTP status codes and error responses
+## 🆘 **Support**
 
-## Queue System
+For technical support or questions:
+- **Email**: support@sanmateofamilycourtkiosk.org
+- **Phone**: (650) 261-5100
+- **Location**: Room 101, First Floor, San Mateo County Superior Court
 
-The queue system supports:
-- Multiple case types (DVRO, Civil Harassment, etc.)
-- Priority-based ordering (A, B, C)
-- Multi-language support
-- Robust queue number generation
-- Status tracking (waiting, called, completed)
+## 🎯 **Future Enhancements**
 
-## Contributing
+- **Mobile App**: Native iOS/Android applications
+- **Voice Interface**: Voice-guided assistance
+- **Video Tutorials**: Interactive form completion guides
+- **Multi-language Forms**: Translated form versions
+- **Integration**: Court case management system integration
 
-1. Follow the existing code structure
-2. Add tests for new features
-3. Update configuration as needed
-4. Ensure error handling is in place
-5. Test in both English and Spanish
+---
 
-## License
-
-This project is for court system use and should be deployed according to local court policies and security requirements.
+**Built with ❤️ for the San Mateo Family Court Community**
