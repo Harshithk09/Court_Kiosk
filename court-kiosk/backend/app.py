@@ -17,6 +17,7 @@ from utils.llm_service import LLMService
 from utils.email_service import EmailService
 from utils.case_summary_service import CaseSummaryService
 from utils.auth_service import AuthService
+from email_api import email_bp
 from config import Config
 from models import db, QueueEntry, User, UserSession, AuditLog
 from validation_schemas import (
@@ -79,6 +80,9 @@ else:
 llm_service = LLMService(Config.OPENAI_API_KEY)
 email_service = EmailService()
 case_summary_service = CaseSummaryService()
+
+# Register blueprints
+app.register_blueprint(email_bp)
 
 
 # Removed duplicate Config class - using the one from config.py instead
