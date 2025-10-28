@@ -295,7 +295,6 @@ const UserKiosk = () => {
     <div className="min-h-screen bg-gray-50">
       <ModernHeader 
         title={language === 'en' ? 'Family Law Self-Help Kiosk' : 'Quiosco de Autoayuda de Derecho de Familia'} 
-        subtitle={language === 'en' ? 'Select Your Case Type' : 'Seleccione su Tipo de Caso'} 
         showLanguageToggle={true}
         onLanguageToggle={toggleLanguage}
         currentLanguage={language}

@@ -6,6 +6,8 @@ import { getQueue, callNext, completeCase, addTestData, sendComprehensiveEmail }
 import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
 import FormsManagement from '../components/FormsManagement';
 import FormsSummary from '../components/FormsSummary';
+import CaseDetailsModal from '../components/CaseDetailsModal';
+import CaseProgressTracker from '../components/CaseProgressTracker';
 
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
@@ -20,6 +22,8 @@ const AdminDashboard = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [showCaseSummaryModal, setShowCaseSummaryModal] = useState(false);
   const [caseSummaryData, setCaseSummaryData] = useState(null);
+  const [showCaseDetailsModal, setShowCaseDetailsModal] = useState(false);
+  const [selectedCaseForDetails, setSelectedCaseForDetails] = useState(null);
 
   const fetchQueue = useCallback(async () => {
     try {
@@ -123,6 +127,16 @@ const AdminDashboard = () => {
   const handleShowCaseSummary = (caseItem) => {
     setCaseSummaryData(caseItem);
     setShowCaseSummaryModal(true);
+  };
+
+  const handleViewCaseDetails = (caseData) => {
+    setSelectedCaseForDetails(caseData);
+    setShowCaseDetailsModal(true);
+  };
+
+  const handleCloseCaseDetails = () => {
+    setShowCaseDetailsModal(false);
+    setSelectedCaseForDetails(null);
   };
 
   const handleSendEmail = async (caseItem) => {
@@ -630,6 +644,16 @@ const AdminDashboard = () => {
                               </div>
                               <div className="flex space-x-2">
                                 <div className={`w-3 h-3 ${getStatusColor(item.status)} rounded-full`}></div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewCaseDetails(item);
+                                  }}
+                                  className="flex items-center px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 transition-colors"
+                                  title={language === 'en' ? 'View Case Details' : 'Ver Detalles del Caso'}
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </button>
                                 {item.user_email && (
                                   <button
                                     onClick={(e) => {
@@ -1117,6 +1141,16 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Case Details Modal */}
+      <CaseDetailsModal
+        caseData={selectedCaseForDetails}
+        isOpen={showCaseDetailsModal}
+        onClose={handleCloseCaseDetails}
+        onCompleteCase={handleCompleteCase}
+        onSendEmail={handleSendEmail}
+        language={language}
+      />
     </div>
   );
 };

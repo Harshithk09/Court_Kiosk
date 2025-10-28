@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { addToQueue } from '../utils/queueAPI';
 import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
 
-const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
+const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) => {
   const [selectedOption, setSelectedOption] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -218,7 +218,10 @@ const CompletionPage = ({ answers, history, flow, onBack, onHome }) => {
           
           // Also send full summary
           summary_json: JSON.stringify(summary),
-          conversation_summary: summary
+          conversation_summary: summary,
+          
+          // Admin data for staff assistance
+          admin_data: adminData || null
         }
       };
       

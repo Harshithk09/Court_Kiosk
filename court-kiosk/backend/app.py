@@ -1385,5 +1385,75 @@ if __name__ == '__main__':
             db.session.add(admin_user)
             db.session.commit()
             print("Created default admin user: admin/admin123")
+
+@app.route('/api/case-summary/<int:summary_id>', methods=['GET'])
+def get_case_summary(summary_id):
+    """Get case summary by ID with enhanced details"""
+    try:
+        summary = CaseSummary.query.get(summary_id)
+        if not summary:
+            return jsonify({'error': 'Case summary not found'}), 404
+        
+        # Get enhanced summary data
+        summary_data = summary.to_dict()
+        
+        # Add additional case details if available
+        if summary.summary_json:
+            try:
+                enhanced_data = json.loads(summary.summary_json)
+                summary_data.update(enhanced_data)
+            except:
+                pass
+        
+        return jsonify(summary_data)
+    except Exception as e:
+        logger.error(f"Error fetching case summary: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/case-details/<int:queue_number>', methods=['GET'])
+def get_case_details(queue_number):
+    """Get comprehensive case details by queue number"""
+    try:
+        # Find case by queue number
+        queue_entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
+        if not queue_entry:
+            return jsonify({'error': 'Case not found'}), 404
+        
+        # Get case summary if available
+        case_summary = None
+        if hasattr(queue_entry, 'summary_id') and queue_entry.summary_id:
+            case_summary = CaseSummary.query.get(queue_entry.summary_id)
+        
+        # Build comprehensive case details
+        case_details = {
+            'queue_number': queue_entry.queue_number,
+            'case_type': queue_entry.case_type,
+            'priority': queue_entry.priority,
+            'status': queue_entry.status,
+            'language': queue_entry.language,
+            'user_name': queue_entry.user_name,
+            'user_email': queue_entry.user_email,
+            'phone_number': queue_entry.phone_number,
+            'arrived_at': queue_entry.arrived_at.isoformat() if queue_entry.arrived_at else None,
+            'created_at': queue_entry.created_at.isoformat() if queue_entry.created_at else None,
+            'updated_at': queue_entry.updated_at.isoformat() if queue_entry.updated_at else None,
+            'conversation_summary': queue_entry.conversation_summary,
+            'documents_needed': queue_entry.documents_needed,
+            'next_steps': queue_entry.next_steps,
+            'summary_id': queue_entry.summary_id
+        }
+        
+        # Add enhanced summary data if available
+        if case_summary and case_summary.summary_json:
+            try:
+                enhanced_data = json.loads(case_summary.summary_json)
+                case_details['enhanced_summary'] = enhanced_data
+            except:
+                pass
+        
+        return jsonify(case_details)
+    except Exception as e:
+        logger.error(f"Error fetching case details: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
     
     app.run(debug=False, port=5001)

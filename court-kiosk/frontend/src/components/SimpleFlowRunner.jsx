@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CompletionPage from './CompletionPage';
+import AdminQuestionsPage from './AdminQuestionsPage';
 import ErrorBoundary from './ErrorBoundary';
 import { getFormUrl } from '../utils/formUtils';
 import { FileText, ExternalLink, Eye } from 'lucide-react';
@@ -8,6 +9,8 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   const [currentNodeId, setCurrentNodeId] = useState(flow?.start || 'DVROStart');
   const [history, setHistory] = useState([flow?.start || 'DVROStart']);
   const [showSummary, setShowSummary] = useState(false);
+  const [showAdminQuestions, setShowAdminQuestions] = useState(false);
+  const [adminData, setAdminData] = useState(null);
   const progressScrollRef = useRef(null);
 
   const currentNode = flow?.nodes?.[currentNodeId];
@@ -90,11 +93,22 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
   };
 
   const handleComplete = () => {
+    setShowAdminQuestions(true);
+  };
+
+  const handleAdminQuestionsBack = () => {
+    setShowAdminQuestions(false);
+  };
+
+  const handleAdminQuestionsComplete = (data) => {
+    setAdminData(data);
+    setShowAdminQuestions(false);
     setShowSummary(true);
   };
 
   const handleSummaryBack = () => {
     setShowSummary(false);
+    setShowAdminQuestions(true);
   };
 
   // Get forms for the sidebar based on user's progress
@@ -124,12 +138,25 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
 
 
 
+  if (showAdminQuestions) {
+    return (
+      <AdminQuestionsPage
+        history={history}
+        flow={flow}
+        onBack={handleAdminQuestionsBack}
+        onComplete={handleAdminQuestionsComplete}
+        onHome={onHome}
+      />
+    );
+  }
+
   if (showSummary) {
     return (
       <CompletionPage
         answers={{}}
         history={history}
         flow={flow}
+        adminData={adminData}
         onBack={handleSummaryBack}
         onHome={onHome}
       />

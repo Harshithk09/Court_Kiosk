@@ -182,6 +182,9 @@ class EmailService:
         # Generate forms HTML
         forms_html = self._generate_forms_html(forms_data)
         
+        # Generate admin data HTML (for staff reference)
+        admin_html = self._generate_admin_data_html(case_data.get('admin_data'))
+        
         # Generate greeting
         greeting = f"Hello {user_name}," if user_name else "Hello,"
         
@@ -214,6 +217,8 @@ class EmailService:
                 </p>
                 
                 {forms_html}
+                
+                {admin_html}
                 
                 <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0;">
                     <h3 style="margin: 0 0 10px 0; color: #92400e;">⚠️ Important Reminders</h3>
@@ -323,6 +328,57 @@ class EmailService:
         
         forms_html += "</ul></div>"
         return forms_html
+    
+    def _generate_admin_data_html(self, admin_data: dict) -> str:
+        """Generate HTML for admin data (staff reference only)"""
+        if not admin_data:
+            return ""
+        
+        has_filled_forms = admin_data.get('hasFilledForms', False)
+        filled_forms = admin_data.get('filledForms', [])
+        available_forms = admin_data.get('availableForms', [])
+        
+        if not has_filled_forms:
+            return """
+            <div style="background-color: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin: 0 0 10px 0; color: #0c4a6e;">📋 Staff Note</h3>
+                <p style="margin: 0; color: #0c4a6e;"><strong>Client Status:</strong> Needs assistance with all forms</p>
+                <p style="margin: 5px 0 0 0; color: #0c4a6e;">This client requires help with all {total_forms} forms.</p>
+            </div>
+            """.replace('{total_forms}', str(len(available_forms)))
+        
+        remaining_forms = [form for form in available_forms if form not in filled_forms]
+        
+        filled_forms_html = ""
+        if filled_forms:
+            filled_forms_html = "<ul style='margin: 5px 0 0 0; padding-left: 20px;'>"
+            for form in filled_forms:
+                filled_forms_html += f"<li style='color: #0c4a6e;'>{form}</li>"
+            filled_forms_html += "</ul>"
+        
+        remaining_forms_html = ""
+        if remaining_forms:
+            remaining_forms_html = "<ul style='margin: 5px 0 0 0; padding-left: 20px;'>"
+            for form in remaining_forms:
+                remaining_forms_html += f"<li style='color: #0c4a6e;'>{form}</li>"
+            remaining_forms_html += "</ul>"
+        
+        return f"""
+        <div style="background-color: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h3 style="margin: 0 0 10px 0; color: #0c4a6e;">📋 Staff Note</h3>
+            <p style="margin: 0; color: #0c4a6e;"><strong>Client Status:</strong> Has completed {len(filled_forms)} of {len(available_forms)} forms</p>
+            
+            <div style="margin: 10px 0;">
+                <p style="margin: 0; color: #0c4a6e; font-weight: bold;">✅ Completed Forms:</p>
+                {filled_forms_html if filled_forms_html else "<p style='margin: 5px 0 0 0; color: #0c4a6e;'>None</p>"}
+            </div>
+            
+            <div style="margin: 10px 0;">
+                <p style="margin: 0; color: #0c4a6e; font-weight: bold;">❌ Still Need Help With:</p>
+                {remaining_forms_html if remaining_forms_html else "<p style='margin: 5px 0 0 0; color: #0c4a6e;'>All forms completed!</p>"}
+            </div>
+        </div>
+        """
     
     def _generate_case_summary_pdf(self, case_data: dict) -> str:
         """Generate case summary PDF"""
