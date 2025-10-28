@@ -19,7 +19,7 @@ from utils.case_summary_service import CaseSummaryService
 from utils.auth_service import AuthService
 from email_api import email_bp
 from config import Config
-from models import db, QueueEntry, User, UserSession, AuditLog
+from models import db, QueueEntry, User, UserSession, AuditLog, CaseSummary
 from validation_schemas import (
     validate_request_data, AskQuestionSchema, SubmitSessionSchema, 
     GenerateQueueSchema, DVRORAGSchema, CallNextSchema, CompleteCaseSchema,
