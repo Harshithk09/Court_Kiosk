@@ -4,11 +4,9 @@ import {
   Clock, 
   AlertCircle, 
   FileText, 
-  User, 
   Calendar,
   Timer,
-  Target,
-  ArrowRight
+  Target
 } from 'lucide-react';
 
 const CaseProgressTracker = ({ 

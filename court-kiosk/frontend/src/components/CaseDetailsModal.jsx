@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   X, 
   Clock, 
@@ -9,16 +9,10 @@ import {
   Phone, 
   Mail, 
   Calendar,
-  Timer,
   Target,
-  ArrowRight,
   Download,
   Send,
-  Eye,
   Brain,
-  Shield,
-  Heart,
-  Globe,
   RefreshCw
 } from 'lucide-react';
 import CaseProgressTracker from './CaseProgressTracker';
@@ -32,20 +26,9 @@ const CaseDetailsModal = ({
   language = 'en' 
 }) => {
   const [caseSummary, setCaseSummary] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (isOpen && caseData) {
-      fetchCaseSummary();
-    }
-  }, [isOpen, caseData]);
-
-  const fetchCaseSummary = async () => {
+  const fetchCaseSummary = useCallback(async () => {
     if (!caseData?.queue_number) return;
-    
-    setLoading(true);
-    setError(null);
     
     try {
       const response = await fetch(`/api/case-details/${caseData.queue_number}`);
@@ -57,11 +40,14 @@ const CaseDetailsModal = ({
       }
     } catch (err) {
       console.error('Error fetching case details:', err);
-      setError('Failed to load case details');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [caseData?.queue_number]);
+
+  useEffect(() => {
+    if (isOpen && caseData) {
+      fetchCaseSummary();
+    }
+  }, [isOpen, caseData, fetchCaseSummary]);
 
   const getPriorityColor = (priority) => {
     const colors = {

@@ -7,7 +7,6 @@ import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from 
 import FormsManagement from '../components/FormsManagement';
 import FormsSummary from '../components/FormsSummary';
 import CaseDetailsModal from '../components/CaseDetailsModal';
-import CaseProgressTracker from '../components/CaseProgressTracker';
 
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
