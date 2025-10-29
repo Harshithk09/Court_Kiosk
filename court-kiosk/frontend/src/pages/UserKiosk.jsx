@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Shield, 
-  HeartHandshake, 
-  FileText, 
-  Users, 
+import {
+  Shield,
+  HeartHandshake,
+  FileText,
+  Users,
   ChevronRight,
   Clock,
   CheckCircle,
@@ -232,48 +232,43 @@ const UserKiosk = () => {
     );
   }
 
-  // Priority Badge Component
-  const Priority = ({ tone }) => {
-    const tones = {
-      A: "bg-red-600",
-      B: "bg-amber-600", 
-      C: "bg-blue-700",
-      D: "bg-emerald-700",
-    };
-    return (
-      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-white ${tones[tone]}`}>
-        PRIORITY {tone}
-      </span>
-    );
-  };
-
   // Case Type Tile Component
   const Tile = ({ caseType, onClick }) => {
     const Icon = caseType.icon;
     const priorityColors = {
       A: 'from-red-500 to-red-600',
-      B: 'from-amber-500 to-amber-600', 
+      B: 'from-amber-500 to-amber-600',
       C: 'from-blue-500 to-blue-600',
       D: 'from-emerald-500 to-emerald-600'
     };
-    
+    const priorityBadgeColors = {
+      A: 'bg-red-600',
+      B: 'bg-amber-600',
+      C: 'bg-blue-700',
+      D: 'bg-emerald-700'
+    };
+
     return (
-      <ModernCard 
+      <ModernCard
         variant="elevated" 
         className="h-full cursor-pointer group hover:scale-105 transition-all duration-300"
         onClick={() => handleCaseSelection(caseType)}
       >
         <div className="h-full flex flex-col">
-          <div className={`rounded-t-lg px-6 py-5 bg-gradient-to-r ${priorityColors[caseType.priority]} text-white`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center">
-                  <Icon className="w-6 h-6 text-white" aria-hidden />
+            <div className={`rounded-t-lg px-6 py-5 bg-gradient-to-r ${priorityColors[caseType.priority]} text-white`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center">
+                    <Icon className="w-6 h-6 text-white" aria-hidden />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">{caseType.title[language]}</h3>
                 </div>
-                <h3 className="text-xl font-bold text-white">{caseType.title[language]}</h3>
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-white ${priorityBadgeColors[caseType.priority]}`}
+                >
+                  PRIORITY {caseType.priority}
+                </span>
               </div>
-              <Priority tone={caseType.priority} />
-            </div>
           </div>
           <div className="px-6 py-6 flex-1 flex flex-col">
             <p className="text-gray-700 text-base leading-relaxed mb-6 flex-1">

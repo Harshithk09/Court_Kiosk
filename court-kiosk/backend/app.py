@@ -28,6 +28,8 @@ from validation_schemas import (
 
 app = Flask(__name__)
 
+COURT_DOCUMENTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'court_documents'))
+
 # Configure logging
 logging.basicConfig(level=getattr(logging, Config.LOG_LEVEL, 'INFO'))
 logger = logging.getLogger(__name__)
@@ -491,6 +493,28 @@ def api_flowchart():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'OK'})
+
+
+@app.route('/api/documents/<path:filename>', methods=['GET'])
+def get_court_document(filename):
+    """Serve static court documents bundled with the deployment."""
+    if not filename:
+        return jsonify({'error': 'Document name is required'}), 400
+
+    safe_path = os.path.normpath(filename)
+    if safe_path.startswith('..') or os.path.isabs(safe_path):
+        return jsonify({'error': 'Invalid document path'}), 400
+
+    document_path = os.path.join(COURT_DOCUMENTS_DIR, safe_path)
+
+    if not os.path.isfile(document_path):
+        return jsonify({'error': 'Document not found'}), 404
+
+    try:
+        return send_file(document_path, mimetype='application/pdf')
+    except Exception as exc:
+        logger.error(f"Error serving document {filename}: {exc}")
+        return jsonify({'error': 'Unable to serve document'}), 500
 
 @app.route('/api/generate-queue', methods=['POST'])
 @limiter.limit("20 per minute")
