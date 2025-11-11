@@ -11,8 +11,7 @@ import {
   CheckCircle,
   FileText as FileTextIcon,
   AlertTriangle,
-  MapPin,
-  Phone
+  
 } from 'lucide-react';
 import ModernHeader from '../components/ModernHeader';
 import ModernCard from '../components/ModernCard';
@@ -50,6 +49,18 @@ const UserKiosk = () => {
     {
       id: 'B',
       priority: 'B',
+      case_type: 'CHRO',
+      title: { en: 'Civil Harassment', es: 'Acoso Civil' },
+      description: { 
+        en: 'Civil harassment restraining orders for neighbors, coworkers, strangers.', 
+        es: 'Órdenes de restricción por acoso civil para vecinos, compañeros de trabajo, extraños.' 
+      },
+      icon: AlertTriangle,
+      accent: 'bg-orange-50'
+    },
+    {
+      id: 'C',
+      priority: 'C',
       case_type: 'CUSTODY',
       title: { en: 'Child Custody & Support', es: 'Custodia y Manutención' },
       description: { 
@@ -60,8 +71,8 @@ const UserKiosk = () => {
       accent: 'bg-amber-50'
     },
     {
-      id: 'C',
-      priority: 'C',
+      id: 'D',
+      priority: 'D',
       case_type: 'DIVORCE',
       title: { en: 'Divorce & Separation', es: 'Divorcio y Separación' },
       description: { 
@@ -72,8 +83,8 @@ const UserKiosk = () => {
       accent: 'bg-blue-50'
     },
     {
-      id: 'D',
-      priority: 'D',
+      id: 'E',
+      priority: 'E',
       case_type: 'OTHER',
       title: { en: 'Other Family Law', es: 'Otro Derecho de Familia' },
       description: { 
@@ -96,8 +107,14 @@ const UserKiosk = () => {
         return;
       }
 
-      // For Divorce & Separation cases (Priority C), redirect to the divorce flow runner
-      if (caseType.id === 'C') {
+      // For Civil Harassment cases (Priority B), redirect to the CHRO page
+      if (caseType.id === 'B') {
+        navigate('/chro');
+        return;
+      }
+
+      // For Divorce & Separation cases (Priority D), redirect to the divorce flow runner
+      if (caseType.id === 'D') {
         navigate('/divorce');
         return;
       }
@@ -162,16 +179,13 @@ const UserKiosk = () => {
               
               <ModernCard variant="gradient" className="mb-8">
                 <div className="text-8xl font-black text-white mb-4">#{queueNumber}</div>
-                <p className="text-white text-xl font-medium">
-                  {language === 'en' ? 'Priority Level' : 'Nivel de Prioridad'} {selectedCase?.priority}
-                </p>
               </ModernCard>
 
               <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-3">
+                <h2 className="text-3xl sm:text-4xl font-black text-gray-800 mb-4">
                   {selectedCase?.title[language]}
                 </h2>
-                <p className="text-gray-600 text-lg">
+                <p className="text-gray-600 text-xl sm:text-2xl font-bold">
                   {selectedCase?.description[language]}
                 </p>
               </div>
@@ -232,20 +246,7 @@ const UserKiosk = () => {
     );
   }
 
-  // Priority Badge Component
-  const Priority = ({ tone }) => {
-    const tones = {
-      A: "bg-red-600",
-      B: "bg-amber-600", 
-      C: "bg-blue-700",
-      D: "bg-emerald-700",
-    };
-    return (
-      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-white ${tones[tone]}`}>
-        PRIORITY {tone}
-      </span>
-    );
-  };
+  // Priority badge removed per feedback
 
   // Case Type Tile Component
   const Tile = ({ caseType, onClick }) => {
@@ -264,23 +265,23 @@ const UserKiosk = () => {
         onClick={() => handleCaseSelection(caseType)}
       >
         <div className="h-full flex flex-col">
-          <div className={`rounded-t-lg px-6 py-5 bg-gradient-to-r ${priorityColors[caseType.priority]} text-white`}>
+          <div className={`rounded-t-lg px-6 py-6 bg-gradient-to-r ${priorityColors[caseType.priority]} text-white`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center">
-                  <Icon className="w-6 h-6 text-white" aria-hidden />
+                <div className="w-16 h-16 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center">
+                  <Icon className="w-8 h-8 text-white" aria-hidden />
                 </div>
-                <h3 className="text-xl font-bold text-white">{caseType.title[language]}</h3>
+                <h3 className="text-4xl sm:text-5xl font-black text-white">{caseType.title[language]}</h3>
               </div>
-              <Priority tone={caseType.priority} />
+              {/* Priority hidden per feedback */}
             </div>
           </div>
           <div className="px-6 py-6 flex-1 flex flex-col">
-            <p className="text-gray-700 text-base leading-relaxed mb-6 flex-1">
+            <p className="text-gray-800 text-xl sm:text-2xl font-bold leading-relaxed mb-8 flex-1">
               {caseType.description[language]}
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-gray-500 text-sm font-medium">
+              <span className="text-gray-600 text-lg font-bold">
                 {language === 'en' ? 'Click to select' : 'Haga clic para seleccionar'}
               </span>
               <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
@@ -300,74 +301,33 @@ const UserKiosk = () => {
         currentLanguage={language}
       />
 
-      {/* Hero Section */}
-      <div className="bg-gradient-to-b from-blue-50 to-white">
-        <div className="mx-auto max-w-7xl w-full px-4">
-          <div className="py-12 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
-              {language === 'en' ? 'Select Your Case Type' : 'Seleccione su Tipo de Caso'}
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-              {language === 'en' 
-                ? 'Choose the category that best describes your legal matter.'
-                : 'Elija la categoría que mejor describa su asunto legal.'
-              }
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Hero Section - Removed empty box per feedback */}
 
       {/* Case Type Selection */}
       <div className="mx-auto max-w-7xl w-full px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {caseTypes.map((caseType) => (
             <Tile key={caseType.id} caseType={caseType} />
           ))}
         </div>
       </div>
 
-      {/* Info Strip */}
+      {/* Info Strip (keep only emergency; remove location/hours per feedback) */}
       <div className="mx-auto max-w-7xl w-full px-4 py-8">
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <ModernCard variant="warning" className="text-left">
             <div className="flex items-start gap-4">
-              <AlertTriangle className="w-6 h-6 text-white mt-1" />
+              <AlertTriangle className="w-8 h-8 text-white mt-1" />
               <div>
-                <h4 className="font-bold text-white text-lg mb-2">
+                <h4 className="font-bold text-white text-xl sm:text-2xl mb-3">
                   {language === 'en' ? 'Emergency Help' : 'Ayuda de Emergencia'}
                 </h4>
-                <p className="text-white text-base leading-relaxed">
+                <p className="text-white text-lg sm:text-xl leading-relaxed font-medium">
                   {language === 'en' 
                     ? 'If you are in immediate danger, call 911. For same‑day DVRO assistance, visit the Self‑Help Center.'
                     : 'Si está en peligro inmediato, llame al 911. Para asistencia de DVRO el mismo día, visite el Centro de Autoayuda.'
                   }
                 </p>
-              </div>
-            </div>
-          </ModernCard>
-          
-          <ModernCard variant="outlined" className="text-left">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-gray-700">
-                <MapPin className="w-5 h-5 text-gray-500" /> 
-                <span className="font-medium">
-                  {language === 'en' 
-                    ? 'Hall of Justice, 400 County Center, 6th Floor'
-                    : 'Salón de Justicia, 400 County Center, 6to Piso'
-                  }
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-700">
-                <Clock className="w-5 h-5 text-gray-500" /> 
-                <span className="font-medium">
-                  {language === 'en' ? 'Mon–Fri · 8:00–12:00, 1:30–3:00' : 'Lun–Vie · 8:00–12:00, 1:30–3:00'}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-700">
-                <Phone className="w-5 h-5 text-gray-500" /> 
-                <span className="font-medium">
-                  {language === 'en' ? 'Self‑Help Center' : 'Centro de Autoayuda'}
-                </span>
               </div>
             </div>
           </ModernCard>

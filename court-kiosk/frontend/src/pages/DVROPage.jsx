@@ -310,38 +310,7 @@ export default function DVROPage() {
           </div>
         </div>
 
-        {/* Additional Information Section */}
-        <div className="mt-20 max-w-5xl mx-auto">
-          <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-              {language === 'es' ? '¿Por qué usar este sistema?' : 'Why use this system?'}
-            </h2>
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  {language === 'es' ? 'Información Completa' : 'Complete Information'}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {language === 'es'
-                    ? 'Cada pregunta incluye información contextual para que comprenda completamente antes de tomar decisiones.'
-                    : 'Every question includes contextual information so you understand completely before making decisions.'
-                  }
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  {language === 'es' ? 'Formularios Específicos' : 'Specific Forms'}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {language === 'es'
-                    ? 'Reciba solo los formularios que necesita para su situación específica, sin confusión.'
-                    : 'Receive only the forms you need for your specific situation, without confusion.'
-                  }
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Removed promotional section per feedback to keep page simple */}
       </div>
     </div>
   );

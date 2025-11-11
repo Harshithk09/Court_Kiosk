@@ -83,7 +83,7 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
         }
       }
     });
-    
+
     // Generate key answers based on user responses
     if (answers.DVCheck1 === 'Yes') {
       summary.keyAnswers.push('You requested a domestic violence restraining order');
@@ -198,11 +198,11 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
       
       // ===== FIXED: Send data in correct format =====
       const emailPayload = {
-        email: email,
-        case_data: {
+          email: email,
+          case_data: {
           user_email: email,
           user_name: 'Court Kiosk User',
-          case_type: 'DVRO',
+            case_type: 'DVRO',
           priority_level: 'A',
           language: 'en',
           queue_number: queueNumber || 'N/A',
@@ -347,7 +347,7 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
             )}
 
             {/* Resources Section */}
-            <div>
+              <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
                 <span className="text-purple-500 mr-2">📞</span>
                 Resources & Help
@@ -392,12 +392,49 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
               <p className="text-sm text-yellow-800">
                 <span className="font-medium">Disclaimer:</span> This summary is for informational purposes only and does not constitute legal advice. Please consult with an attorney for legal guidance.
               </p>
-            </div>
+              </div>
           </div>
 
           {/* Options Section */}
           <div className="border-t border-gray-200 pt-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">What would you like to do next?</h3>
+                {/* Packet downloads and official how-to links (conditional by case type) */}
+                {summary?.header?.case_type?.toLowerCase?.().includes('violence') && (
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <a
+                      href="/api/documents/dvro-packet-91624.pdf"
+                      className="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                      target="_blank" rel="noopener noreferrer"
+                    >
+                      Download DVRO Packet (PDF)
+                    </a>
+                    <a
+                      href="https://selfhelp.courts.ca.gov/DV-restraining-order/fill-forms?utm_source=chatgpt.com"
+                      className="inline-flex items-center justify-center px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900"
+                      target="_blank" rel="noopener noreferrer"
+                    >
+                      How to Fill DVRO Forms (Official Guide)
+                    </a>
+                  </div>
+                )}
+                {summary?.header?.case_type?.toLowerCase?.().includes('divorce') && (
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <a
+                      href="/api/documents/dissopacket.pdf"
+                      className="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                      target="_blank" rel="noopener noreferrer"
+                    >
+                      Download Divorce Packet (PDF)
+                    </a>
+                    <a
+                      href="https://selfhelp.courts.ca.gov/divorce?utm_source=chatgpt.com"
+                      className="inline-flex items-center justify-center px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900"
+                      target="_blank" rel="noopener noreferrer"
+                    >
+                      FL-107-INFO: Legal Steps for Divorce (Official Guide)
+                    </a>
+                  </div>
+                )}
             
             <div className="space-y-4">
               {/* Queue Option */}

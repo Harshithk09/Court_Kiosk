@@ -62,22 +62,20 @@ const ModernCaseTypeCard = ({
       
       {/* Content */}
       <div className="relative p-8">
-        {/* Header with icon and priority */}
+        {/* Header with icon (priority hidden per feedback) */}
         <div className="flex items-start justify-between mb-6">
           <div className={`w-16 h-16 rounded-xl ${scheme.iconBg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
             <Icon className={`w-8 h-8 ${scheme.iconColor}`} />
           </div>
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${scheme.bg} ${scheme.border} ${scheme.text}`}>
-            {priority}
-          </span>
+          {/* priority badge removed */}
         </div>
 
         {/* Title and description */}
         <div className="mb-6">
-          <h3 className="text-2xl font-display font-bold text-foreground mb-3 group-hover:text-foreground/90 transition-colors">
+          <h3 className="text-3xl font-display font-extrabold text-foreground mb-4 group-hover:text-foreground/90 transition-colors">
             {title}
           </h3>
-          <p className="text-muted-foreground leading-relaxed text-base">
+          <p className="text-muted-foreground leading-relaxed text-lg">
             {description}
           </p>
         </div>

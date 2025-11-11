@@ -6,6 +6,7 @@ import ExperimentIndex from './pages/ExperimentIndex';
 import AdminDashboard from './pages/AdminDashboard';
 import AttorneyDashboard from './components/AttorneyDashboard';
 import DVROPage from './pages/DVROPage';
+import CHROPage from './pages/CHROPage';
 import DivorcePage from './pages/DivorcePage';
 import DivorceFlowRunner from './components/DivorceFlowRunner';
 import KioskMode from './pages/KioskMode';
@@ -37,6 +38,7 @@ function App() {
                   />
                   <Route path="/attorney" element={<AttorneyDashboard />} />
                   <Route path="/dvro" element={<DVROPage />} />
+                  <Route path="/chro" element={<CHROPage />} />
                   <Route path="/divorce" element={<DivorcePage />} />
                   <Route path="/divorce-flow" element={<DivorceFlowRunner />} />
                   <Route path="/kiosk" element={<KioskMode />} />

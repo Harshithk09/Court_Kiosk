@@ -289,7 +289,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
 
               {/* Navigation Options */}
               {!isEndNode && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {hasMultipleChoices ? (
                     // Multiple choices - show all outgoing edges as buttons with clear dividers
                     <div className="border border-gray-300 rounded-lg overflow-hidden">
@@ -429,6 +429,16 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                       </button>
                     </div>
                   ) : null}
+
+                  {/* Prominent Back button placed directly under choices per feedback - larger size */}
+                  <div className="pt-6">
+                    <button
+                      onClick={handleBack}
+                      className="w-full px-8 py-6 border-2 border-gray-400 text-gray-900 rounded-xl hover:bg-gray-100 transition-colors font-bold text-xl shadow-md"
+                    >
+                      ← Back
+                    </button>
+                  </div>
                 </div>
               )}
 

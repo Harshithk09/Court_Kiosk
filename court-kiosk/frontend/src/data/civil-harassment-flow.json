@@ -1,0 +1,321 @@
+{
+  "id": "civil-harassment-flow",
+  "version": "2025-01-15",
+  "start": "CHROStart",
+  "metadata": {
+    "title": "Civil Harassment Restraining Order (CHRO)",
+    "jurisdiction": "CA",
+    "source": "San Mateo County Court",
+    "flow_family": "Civil Harassment"
+  },
+  "nodes": {
+    "CHROStart": { 
+      "type": "start", 
+      "text": "Civil Harassment Restraining Order",
+      "forms_add": []
+    },
+    "Note": { 
+      "type": "process", 
+      "text": "If you'd like specialized in-person help, San Mateo County offers in-person help for restraining orders Mondays from 8am to 12 noon and 1:30 to 3pm at the Self-Help office on the 6th floor" 
+    },
+    "CH0": { 
+      "type": "decision", 
+      "text": "What do you need help with?" 
+    },
+    "CH1": { 
+      "type": "process", 
+      "text": "Ask for a new civil harassment restraining order" 
+    },
+    "CHCheck1": { 
+      "type": "decision", 
+      "text": "Do you want protection from someone who has harassed you? (Harassment can be stalking, threats, or repeated unwanted contact)" 
+    },
+    "CHCheck2": { 
+      "type": "decision", 
+      "text": "Are they someone you: are NOT related to, have NOT dated, and are NOT married to? (Like neighbors, coworkers, or strangers)" 
+    },
+    "CHCheck3": { 
+      "type": "decision", 
+      "text": "Are you 12 or older?" 
+    },
+    "CHStart": { 
+      "type": "process", 
+      "text": "You may qualify for a Civil Harassment Restraining Order" 
+    },
+    "CHTiming": { 
+      "type": "process", 
+      "text": "Note: Civil Harassment Restraining Orders typically take 1-2 weeks to process. You may be able to get a temporary order the same day if there's immediate danger." 
+    },
+    "CHMinor": { 
+      "type": "process", 
+      "text": "If you're under 12, a trusted adult must help you file. Please contact the Self-Help Center in-person or online via LiveChat for assistance." 
+    },
+    "CHAlt": { 
+      "type": "process", 
+      "text": "You may qualify for a different restraining order: Domestic Violence, Elder Abuse, or Workplace Violence" 
+    },
+    "CHNotQual": { 
+      "type": "process", 
+      "text": "A restraining order is only available if there has been harassment. You may want to speak to a legal aid provider about other options." 
+    },
+    "CHForms": { 
+      "type": "process", 
+      "text": "To start a Civil Harassment Restraining Order (CHRO), fill out required forms",
+      "forms_add": ["CH-100", "CH-110", "CH-109", "CLETS-001", "CM-010"]
+    },
+    "CH100a": { 
+      "type": "process", 
+      "text": "Step 1: Fill out CH-100 (Request for Civil Harassment Restraining Order)" 
+    },
+    "CH100b": { 
+      "type": "process", 
+      "text": "In CH-100, describe the harassment in detail. Include dates, times, and what happened. Be specific about how it affected you." 
+    },
+    "CH100c": { 
+      "type": "process", 
+      "text": "Step 2: Fill out CLETS-001 (Confidential Law Enforcement Information). This helps police enforce the order." 
+    },
+    "CH109a": { 
+      "type": "process", 
+      "text": "Step 3: Fill out CH-109 (Notice of Court Hearing). This tells the other person about the hearing." 
+    },
+    "CH110a": { 
+      "type": "process", 
+      "text": "Step 4: Fill out CH-110 (Civil Harassment Restraining Order). This is the actual order if granted." 
+    },
+    "CM010a": { 
+      "type": "process", 
+      "text": "Step 5: Fill out CM-010 (Confidential Information Form). This contains sensitive information." 
+    },
+    "CHReview": { 
+      "type": "process", 
+      "text": "Review all forms for completeness and accuracy. Make sure all information is correct." 
+    },
+    "CHOptional": { 
+      "type": "process", 
+      "text": "Optional: If you have evidence (texts, emails, photos, videos), make copies to attach to your forms." 
+    },
+    "CHPickup": { 
+      "type": "process", 
+      "text": "Pick up your completed forms from the kiosk or print them if you're using the online system." 
+    },
+    "CHRead": { 
+      "type": "process", 
+      "text": "Read through all forms one more time. Make sure you understand what you're filing." 
+    },
+    "CHCheckOrders": { 
+      "type": "decision", 
+      "text": "Do you want to ask for a temporary restraining order (TRO) that takes effect immediately?" 
+    },
+    "CHTROYes": { 
+      "type": "process", 
+      "text": "You can ask for a TRO. The judge will decide if you get immediate protection." 
+    },
+    "CHTRONo": { 
+      "type": "process", 
+      "text": "You'll get a hearing date. The order won't take effect until after the hearing." 
+    },
+    "CHServePrep": { 
+      "type": "process", 
+      "text": "After filing, you must serve the other person with copies of all forms." 
+    },
+    "ServeWho": { 
+      "type": "decision", 
+      "text": "Do you know someone 18 or older who can serve the papers for you?" 
+    },
+    "SERStart": { 
+      "type": "process", 
+      "text": "Service of Process - How to serve the other person" 
+    },
+    "SER1": { 
+      "type": "process", 
+      "text": "The person serving must be 18 or older and NOT involved in your case." 
+    },
+    "SER2": { 
+      "type": "process", 
+      "text": "They can serve by: handing the papers directly to the person, or leaving them with someone 18+ at their home or work." 
+    },
+    "SER3": { 
+      "type": "process", 
+      "text": "After serving, they must fill out a Proof of Service form and give it to you." 
+    },
+    "SERSoon": { 
+      "type": "process", 
+      "text": "You must serve the other person at least 5 days before the hearing (or 15 days if they live out of state)." 
+    },
+    "SERGather": { 
+      "type": "process", 
+      "text": "Gather evidence for your hearing: photos, texts, emails, witness statements, police reports." 
+    },
+    "AltStart": { 
+      "type": "process", 
+      "text": "You can hire a process server or ask the sheriff to serve the papers for a fee." 
+    },
+    "CH2": { 
+      "type": "process", 
+      "text": "Respond to a civil harassment restraining order someone else filed" 
+    },
+    "CH3": { 
+      "type": "process", 
+      "text": "Change or end an existing civil harassment restraining order" 
+    },
+    "CH5": { 
+      "type": "process", 
+      "text": "Renew a civil harassment restraining order before it expires" 
+    },
+    "CHFAQ": { 
+      "type": "process", 
+      "text": "View Common Questions About CHROs" 
+    },
+    "CHCQ": { 
+      "type": "process", 
+      "text": "Have a question about filling out the CH-100? View common questions here:" 
+    },
+    "CHQ1": { 
+      "type": "process", 
+      "text": "What does a CHRO do?" 
+    },
+    "CHQ2": { 
+      "type": "process", 
+      "text": "How much does it cost to file a CHRO?" 
+    },
+    "CHQ3": { 
+      "type": "process", 
+      "text": "Can I get a CHRO against my neighbor?" 
+    },
+    "CHQ4": { 
+      "type": "process", 
+      "text": "How long does a CHRO last?" 
+    },
+    "CHQ5": { 
+      "type": "process", 
+      "text": "What counts as harassment?" 
+    },
+    "CHQ6": { 
+      "type": "process", 
+      "text": "Can I get a CHRO if I'm under 18?" 
+    },
+    "CHQA": { 
+      "type": "process", 
+      "text": "What if I don't remember the exact dates?" 
+    },
+    "CHQA2": { 
+      "type": "process", 
+      "text": "What if I need more space to describe the harassment?" 
+    },
+    "CHProof": { 
+      "type": "process", 
+      "text": "How do I include evidence?" 
+    },
+    "CH100f": { 
+      "type": "process", 
+      "text": "If you don't remember the exact date, estimate and explain (e.g., 'Around August 2020')" 
+    },
+    "CH100d": { 
+      "type": "process", 
+      "text": "If you need more space, attach MC-025 (Attachment Form) or use blank paper" 
+    },
+    "CHProof1": { 
+      "type": "process", 
+      "text": "If you have evidence (texts, emails, photos, videos), attach it to your request" 
+    },
+    "CHFiling": { 
+      "type": "process", 
+      "text": "File your forms with the court clerk. There is a filing fee unless you qualify for a fee waiver." 
+    },
+    "CHFeeWaiver": { 
+      "type": "decision", 
+      "text": "Do you need help paying the filing fee?" 
+    },
+    "CHFeeWaiverYes": { 
+      "type": "process", 
+      "text": "Ask the clerk for a fee waiver form (FW-001). You may qualify if you have low income." 
+    },
+    "CHFeeWaiverNo": { 
+      "type": "process", 
+      "text": "Pay the filing fee. The clerk will give you a receipt and hearing date." 
+    },
+    "CHHearing": { 
+      "type": "process", 
+      "text": "Attend your hearing. Bring all evidence and be prepared to explain why you need the restraining order." 
+    },
+    "CHOrder": { 
+      "type": "process", 
+      "text": "If granted, the judge will sign the restraining order. Get copies for yourself and law enforcement." 
+    },
+    "CHServeOrder": { 
+      "type": "process", 
+      "text": "Serve the signed order on the other person. File proof of service with the court." 
+    },
+    "CHViolation": { 
+      "type": "process", 
+      "text": "If the other person violates the order, call 911 immediately. Keep records of all violations." 
+    }
+  },
+  "edges": [
+    { "from": "CHROStart", "to": "Note" },
+    { "from": "Note", "to": "CH0" },
+    { "from": "CH0", "to": "CH1", "when": "Ask for a new civil harassment restraining order" },
+    { "from": "CH0", "to": "CH2", "when": "Respond to a civil harassment restraining order" },
+    { "from": "CH0", "to": "CH3", "when": "Change or end an existing order" },
+    { "from": "CH0", "to": "CH5", "when": "Renew a civil harassment restraining order" },
+    { "from": "CH0", "to": "CHFAQ", "when": "View common questions" },
+    { "from": "CH1", "to": "CHCheck1" },
+    { "from": "CHCheck1", "to": "CHCheck2", "when": "Yes" },
+    { "from": "CHCheck1", "to": "CHNotQual", "when": "No" },
+    { "from": "CHCheck2", "to": "CHCheck3", "when": "Yes" },
+    { "from": "CHCheck2", "to": "CHAlt", "when": "No" },
+    { "from": "CHCheck3", "to": "CHStart", "when": "Yes" },
+    { "from": "CHCheck3", "to": "CHMinor", "when": "No" },
+    { "from": "CHStart", "to": "CHTiming" },
+    { "from": "CHTiming", "to": "CHForms" },
+    { "from": "CHForms", "to": "CH100a" },
+    { "from": "CH100a", "to": "CH100b" },
+    { "from": "CH100b", "to": "CH100c" },
+    { "from": "CH100c", "to": "CH109a" },
+    { "from": "CH109a", "to": "CH110a" },
+    { "from": "CH110a", "to": "CM010a" },
+    { "from": "CM010a", "to": "CHReview" },
+    { "from": "CHReview", "to": "CHOptional" },
+    { "from": "CHOptional", "to": "CHPickup" },
+    { "from": "CHPickup", "to": "CHRead" },
+    { "from": "CHRead", "to": "CHCheckOrders" },
+    { "from": "CHCheckOrders", "to": "CHTROYes", "when": "Yes" },
+    { "from": "CHCheckOrders", "to": "CHTRONo", "when": "No" },
+    { "from": "CHTROYes", "to": "CHServePrep" },
+    { "from": "CHTRONo", "to": "CHServePrep" },
+    { "from": "CHServePrep", "to": "ServeWho" },
+    { "from": "ServeWho", "to": "SERStart", "when": "Yes" },
+    { "from": "ServeWho", "to": "AltStart", "when": "No" },
+    { "from": "SERStart", "to": "SER1" },
+    { "from": "SER1", "to": "SER2" },
+    { "from": "SER2", "to": "SER3" },
+    { "from": "SER3", "to": "SERSoon" },
+    { "from": "SERSoon", "to": "SERGather" },
+    { "from": "CHFAQ", "to": "CHCQ" },
+    { "from": "CHFAQ", "to": "CHQ1" },
+    { "from": "CHFAQ", "to": "CHQ2" },
+    { "from": "CHFAQ", "to": "CHQ3" },
+    { "from": "CHFAQ", "to": "CHQ4" },
+    { "from": "CHFAQ", "to": "CHQ5" },
+    { "from": "CHFAQ", "to": "CHQ6" },
+    { "from": "CHCQ", "to": "CHQA" },
+    { "from": "CHCQ", "to": "CHQA2" },
+    { "from": "CHCQ", "to": "CHProof" },
+    { "from": "CHQA", "to": "CH100f" },
+    { "from": "CHQA2", "to": "CH100d" },
+    { "from": "CHProof", "to": "CHProof1" },
+    { "from": "CH100f", "to": "CH100a" },
+    { "from": "CH100d", "to": "CH100a" },
+    { "from": "CHProof1", "to": "CH100a" },
+    { "from": "SERGather", "to": "CHFiling" },
+    { "from": "CHFiling", "to": "CHFeeWaiver" },
+    { "from": "CHFeeWaiver", "to": "CHFeeWaiverYes", "when": "Yes" },
+    { "from": "CHFeeWaiver", "to": "CHFeeWaiverNo", "when": "No" },
+    { "from": "CHFeeWaiverYes", "to": "CHHearing" },
+    { "from": "CHFeeWaiverNo", "to": "CHHearing" },
+    { "from": "CHHearing", "to": "CHOrder" },
+    { "from": "CHOrder", "to": "CHServeOrder" },
+    { "from": "CHServeOrder", "to": "CHViolation" }
+  ]
+}
