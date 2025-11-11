@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Shield, 
-  HeartHandshake, 
-  FileText, 
-  Users, 
+import {
+  Shield,
+  HeartHandshake,
+  FileText,
+  Users,
   ChevronRight,
   Clock,
   CheckCircle,
@@ -247,19 +247,18 @@ const UserKiosk = () => {
   }
 
   // Priority badge removed per feedback
-
   // Case Type Tile Component
   const Tile = ({ caseType, onClick }) => {
     const Icon = caseType.icon;
     const priorityColors = {
       A: 'from-red-500 to-red-600',
-      B: 'from-amber-500 to-amber-600', 
+      B: 'from-amber-500 to-amber-600',
       C: 'from-blue-500 to-blue-600',
       D: 'from-emerald-500 to-emerald-600'
     };
-    
+
     return (
-      <ModernCard 
+      <ModernCard
         variant="elevated" 
         className="h-full cursor-pointer group hover:scale-105 transition-all duration-300"
         onClick={() => handleCaseSelection(caseType)}

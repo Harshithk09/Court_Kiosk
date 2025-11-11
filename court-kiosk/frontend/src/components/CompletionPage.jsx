@@ -1,6 +1,151 @@
-import React, { useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { addToQueue } from '../utils/queueAPI';
 import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
+
+const CASE_TYPE_CONFIG = {
+  DVRO: {
+    label: 'Domestic Violence Restraining Order',
+    priority: 'A',
+    packetFile: 'dvro_packet.pdf',
+    packetLabel: 'Download DVRO Packet (PDF)',
+    instructionsUrl: 'https://selfhelp.courts.ca.gov/jcc-form/DV-505-INFO',
+    formsUrl: 'https://selfhelp.courts.ca.gov/domestic-violence/forms'
+  },
+  DIVORCE: {
+    label: 'Divorce & Legal Separation',
+    priority: 'C',
+    packetFile: 'divorce_packet.pdf',
+    packetLabel: 'Download Divorce Starter Packet (PDF)',
+    instructionsUrl: 'https://selfhelp.courts.ca.gov/divorce/overview',
+    formsUrl: 'https://selfhelp.courts.ca.gov/divorce/forms'
+  },
+  CHRO: {
+    label: 'Civil Harassment Restraining Order',
+    priority: 'A',
+    packetFile: 'chro_packet.pdf',
+    packetLabel: 'Download Civil Harassment Packet (PDF)',
+    instructionsUrl: 'https://selfhelp.courts.ca.gov/civil-harassment-restraining-order',
+    formsUrl: 'https://selfhelp.courts.ca.gov/civil-harassment/forms'
+  }
+};
+
+const CASE_TYPE_FORM_PRESETS = {
+  DVRO: [
+    { form_code: 'DV-100', title: 'Request for Domestic Violence Restraining Order' },
+    { form_code: 'CLETS-001', title: 'Confidential CLETS Information' },
+    { form_code: 'DV-109', title: 'Notice of Court Hearing' },
+    { form_code: 'DV-110', title: 'Temporary Restraining Order' },
+    { form_code: 'DV-105', title: 'Request for Child Custody and Visitation Orders' },
+    { form_code: 'DV-140', title: 'Child Custody and Visitation Order Attachment' },
+    { form_code: 'DV-108', title: 'Request for Order to Prevent Child Abduction' },
+    { form_code: 'DV-200', title: 'Proof of Personal Service' },
+    { form_code: 'DV-250', title: 'Proof of Service by Mail (Blank)' }
+  ],
+  DIVORCE: [
+    { form_code: 'FL-100', title: 'Petition — Marriage/Domestic Partnership' },
+    { form_code: 'FL-110', title: 'Summons' },
+    { form_code: 'FL-115', title: 'Proof of Service of Summons' },
+    { form_code: 'FL-117', title: 'Notice and Acknowledgment of Receipt' },
+    { form_code: 'FL-105', title: 'Declaration Under UCCJEA' },
+    { form_code: 'FL-140', title: 'Declaration of Disclosure' },
+    { form_code: 'FL-141', title: 'Declaration Regarding Service of Declaration of Disclosure' },
+    { form_code: 'FL-142', title: 'Schedule of Assets and Debts' },
+    { form_code: 'FL-144', title: 'Stipulation and Waiver of Final Declaration of Disclosure' },
+    { form_code: 'FL-150', title: 'Income and Expense Declaration' }
+  ],
+  CHRO: [
+    { form_code: 'CH-100', title: 'Request for Civil Harassment Restraining Orders' },
+    { form_code: 'CLETS-001', title: 'Confidential CLETS Information' },
+    { form_code: 'CH-109', title: 'Notice of Court Hearing' },
+    { form_code: 'CH-110', title: 'Temporary Restraining Order' },
+    { form_code: 'CH-120', title: 'Response to Request for Civil Harassment Restraining Orders' },
+    { form_code: 'CH-120-INFO', title: 'How to Respond to a Civil Harassment Restraining Order' },
+    { form_code: 'CH-130', title: 'Civil Harassment Restraining Order After Hearing' },
+    { form_code: 'CH-200', title: 'Proof of Personal Service' },
+    { form_code: 'CM-010', title: 'Civil Case Cover Sheet' }
+  ]
+};
+
+const CASE_TYPE_NEXT_STEPS = {
+  DVRO: [
+    {
+      action: 'Complete your DVRO forms packet',
+      priority: 'high',
+      timeline: 'Today',
+      details: 'Fill in the required DV-100, DV-109, DV-110, CLETS-001, and any child-related forms before leaving the kiosk.'
+    },
+    {
+      action: 'File your paperwork with the clerk or Self-Help Center',
+      priority: 'high',
+      timeline: 'As soon as your forms are filled out',
+      details: 'Bring photo ID, your completed packet, and at least two copies of each form to the clerk for review and filing.'
+    },
+    {
+      action: 'Serve the restrained person',
+      priority: 'high',
+      timeline: 'Before your court hearing',
+      details: 'Have an adult over 18 (not you) or the sheriff deliver the papers and complete a Proof of Service form.'
+    },
+    {
+      action: 'Attend your DVRO hearing',
+      priority: 'critical',
+      timeline: 'On the date listed in DV-109',
+      details: 'Bring evidence, witnesses, and extra copies of your forms. Arrive 30 minutes early for security screening.'
+    }
+  ],
+  DIVORCE: [
+    {
+      action: 'Prepare and file your divorce petition packet',
+      priority: 'high',
+      timeline: 'Within the next few days',
+      details: 'Complete the FL-100, FL-110, FL-115/FL-117, and child forms if needed. File the originals with the clerk.'
+    },
+    {
+      action: 'Serve your spouse',
+      priority: 'high',
+      timeline: 'Immediately after filing',
+      details: 'Arrange for an adult over 18 (not you) to deliver the filed forms and complete a proof of service.'
+    },
+    {
+      action: 'Exchange financial disclosures',
+      priority: 'medium',
+      timeline: 'Within 60 days of filing',
+      details: 'Share FL-140, FL-142, FL-144, and FL-150 with your spouse and keep copies for your records.'
+    },
+    {
+      action: 'Track next steps with the Self-Help Center',
+      priority: 'medium',
+      timeline: 'After serving your spouse',
+      details: 'Work with court staff on settlement, mediation, or requesting a hearing to finalize your divorce.'
+    }
+  ],
+  CHRO: [
+    {
+      action: 'Fill out the Civil Harassment packet',
+      priority: 'high',
+      timeline: 'Today',
+      details: 'Complete CH-100, CH-109, CH-110, CLETS-001, and any optional forms included in the packet.'
+    },
+    {
+      action: 'File your packet and ask about temporary orders',
+      priority: 'high',
+      timeline: 'After completing your forms',
+      details: 'Take your completed forms and copies to the clerk to request a temporary restraining order review.'
+    },
+    {
+      action: 'Serve the restrained person',
+      priority: 'high',
+      timeline: 'Before the hearing date on CH-109',
+      details: 'Use a server over 18 or the sheriff to deliver the papers and complete the proof of service.'
+    },
+    {
+      action: 'Attend the court hearing',
+      priority: 'critical',
+      timeline: 'On the date listed in your notice',
+      details: 'Bring copies of your packet, proof of service, and any evidence to support your request.'
+    }
+  ]
+};
 
 const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) => {
   const [selectedOption, setSelectedOption] = useState('');
@@ -10,22 +155,204 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
   const [isInQueue, setIsInQueue] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Generate enhanced user-friendly summary
-  const generateSummary = () => {
-    const summary = {
+  const sessionIdRef = useRef(null);
+  if (!sessionIdRef.current) {
+    sessionIdRef.current = `K${Math.floor(Math.random() * 90000) + 10000}`;
+  }
+
+  const timestampRef = useRef(null);
+  if (!timestampRef.current) {
+    timestampRef.current = new Date();
+  }
+
+  const caseTypeCode = useMemo(() => {
+    if (adminData?.case_type) {
+      return adminData.case_type.toString().toUpperCase();
+    }
+
+    const visitedNodes = Array.isArray(history) ? history : [];
+    if (visitedNodes.some(nodeId => nodeId?.toUpperCase?.().includes('CHRO'))) {
+      return 'CHRO';
+    }
+
+    if (flow?.nodes) {
+      for (const nodeId of visitedNodes) {
+        const nodeText = flow.nodes?.[nodeId]?.text || '';
+        if (/civil harassment/i.test(nodeText)) {
+          return 'CHRO';
+        }
+      }
+    }
+
+    const metadataCaseType = flow?.metadata?.case_type
+      || flow?.metadata?.flow_family
+      || flow?.metadata?.title
+      || '';
+
+    if (metadataCaseType) {
+      const normalized = metadataCaseType.toString().toUpperCase();
+      if (normalized.includes('DIVORCE')) {
+        return 'DIVORCE';
+      }
+      if (normalized.includes('HARASSMENT')) {
+        return 'CHRO';
+      }
+      if (normalized.includes('DVRO') || normalized.includes('DOMESTIC')) {
+        return 'DVRO';
+      }
+    }
+
+    if (flow?.id && flow.id.toLowerCase().includes('divorce')) {
+      return 'DIVORCE';
+    }
+
+    return 'DVRO';
+  }, [adminData, flow, history]);
+
+  const caseTypeConfig = CASE_TYPE_CONFIG[caseTypeCode] || CASE_TYPE_CONFIG.DVRO;
+  const caseTypeLabel = caseTypeConfig.label;
+  const packetUrl = caseTypeConfig.packetFile
+    ? buildApiUrl(`/api/documents/${caseTypeConfig.packetFile}`)
+    : null;
+  const formsLibraryUrl = caseTypeConfig.formsUrl || null;
+
+  const downloadLinks = useMemo(() => {
+    const links = [];
+    if (packetUrl) {
+      links.push({
+        type: 'packet',
+        label: caseTypeConfig.packetLabel,
+        url: packetUrl
+      });
+    }
+    if (caseTypeConfig.instructionsUrl) {
+      links.push({
+        type: 'instructions',
+        label: `${caseTypeLabel} instructions`,
+        url: caseTypeConfig.instructionsUrl
+      });
+    }
+    if (formsLibraryUrl) {
+      links.push({
+        type: 'forms',
+        label: `${caseTypeLabel} blank forms`,
+        url: formsLibraryUrl
+      });
+    }
+    return links;
+  }, [packetUrl, caseTypeConfig.packetLabel, caseTypeConfig.instructionsUrl, formsLibraryUrl, caseTypeLabel]);
+
+  const resourceButtons = useMemo(() => {
+    const buttons = [];
+    if (packetUrl) {
+      buttons.push({
+        key: 'packet',
+        label: caseTypeConfig.packetLabel,
+        description: 'Download a printable packet of required forms',
+        href: packetUrl,
+        external: true
+      });
+    }
+    if (caseTypeConfig.instructionsUrl) {
+      buttons.push({
+        key: 'instructions',
+        label: 'View step-by-step instructions',
+        description: 'Official California Courts guidance for this case type',
+        href: caseTypeConfig.instructionsUrl,
+        external: true
+      });
+    }
+    if (formsLibraryUrl) {
+      buttons.push({
+        key: 'forms',
+        label: 'Open blank fillable forms',
+        description: 'Fill forms online before printing or filing',
+        href: formsLibraryUrl,
+        external: true
+      });
+    }
+    return buttons;
+  }, [packetUrl, caseTypeConfig.packetLabel, caseTypeConfig.instructionsUrl, formsLibraryUrl]);
+
+  const summary = useMemo(() => {
+    const summaryTimestamp = timestampRef.current;
+    const formDescriptions = {
+      'DV-100': 'Request for Domestic Violence Restraining Order',
+      'DV-105': 'Request for Child Custody and Visitation',
+      'DV-108': 'Request for Order to Prevent Child Abduction',
+      'DV-109': 'Notice of Court Hearing',
+      'DV-110': 'Temporary Restraining Order',
+      'DV-140': 'Child Custody and Visitation Order Attachment',
+      'DV-145': 'Child Abduction Prevention Order',
+      'DV-200': 'Proof of Personal Service',
+      'DV-250': 'Proof of Service by Mail (Blank)',
+      'DV-800': 'Firearms Restraining Order',
+      'CLETS-001': 'Confidential CLETS Information',
+      'FL-100': 'Petition — Marriage/Domestic Partnership',
+      'FL-105': 'Declaration Under UCCJEA',
+      'FL-110': 'Summons',
+      'FL-115': 'Proof of Service of Summons',
+      'FL-117': 'Notice and Acknowledgment of Receipt',
+      'FL-140': 'Declaration of Disclosure',
+      'FL-141': 'Declaration Regarding Service of Declaration of Disclosure',
+      'FL-142': 'Schedule of Assets and Debts',
+      'FL-144': 'Stipulation and Waiver of Final Declaration of Disclosure',
+      'FL-150': 'Income and Expense Declaration',
+      'CH-100': 'Request for Civil Harassment Restraining Orders',
+      'CH-109': 'Notice of Court Hearing',
+      'CH-110': 'Temporary Restraining Order',
+      'CH-120': 'Response to Request for Civil Harassment Restraining Orders',
+      'CH-120-INFO': 'How to Respond to a Civil Harassment Restraining Order',
+      'CH-130': 'Civil Harassment Restraining Order After Hearing',
+      'CH-200': 'Proof of Personal Service',
+      'CM-010': 'Civil Case Cover Sheet'
+    };
+
+    const formsMap = new Map();
+    const addForm = (code, title, description = 'Required for your case type') => {
+      if (!code) return;
+      const normalized = code.trim().toUpperCase();
+      if (!formsMap.has(normalized)) {
+        formsMap.set(normalized, {
+          form_code: normalized,
+          title: title || formDescriptions[normalized] || `${normalized} Form`,
+          description
+        });
+      }
+    };
+
+    (Array.isArray(history) ? history : []).forEach(nodeId => {
+      const node = flow?.nodes?.[nodeId];
+      if (!node?.text) return;
+      const formMatches = node.text.match(/\b[A-Z]{2,3}-\d{3,4}\b/g);
+      if (formMatches) {
+        formMatches.forEach(code => addForm(code, formDescriptions[code]));
+      }
+      const specificForms = node.text.match(/\b(DV-\d+|CLETS-001|SER-001|POS-040|CH-\d+|FL-\d+|FW-\d+|CM-\d+|EPO-\d+|JV-\d+|MC-\d+)\b/g);
+      if (specificForms) {
+        specificForms.forEach(code => addForm(code, formDescriptions[code]));
+      }
+    });
+
+    CASE_TYPE_FORM_PRESETS[caseTypeCode]?.forEach(({ form_code, title, description }) => {
+      addForm(form_code, title, description || 'Required for your case type');
+    });
+
+    const summaryData = {
       header: {
-        case_type: 'DVRO',
-        date: new Date().toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
+        case_type: caseTypeLabel,
+        case_type_code: caseTypeCode,
+        date: summaryTimestamp.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit'
         }),
         location: 'San Mateo County Superior Court Kiosk',
-        session_id: `K${Math.floor(Math.random() * 90000) + 10000}`
+        session_id: sessionIdRef.current
       },
-      forms: [],
+      forms: Array.from(formsMap.values()).sort((a, b) => a.form_code.localeCompare(b.form_code)),
       keyAnswers: [],
       nextSteps: [],
       resources: {
@@ -47,130 +374,88 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
         emergency: {
           phone: '911',
           text: 'For immediate danger, call 911'
-        }
-      }
+        },
+        packet: packetUrl ? {
+          label: caseTypeConfig.packetLabel,
+          url: packetUrl
+        } : null,
+        instructions: caseTypeConfig.instructionsUrl ? {
+          label: `${caseTypeLabel} instructions`,
+          url: caseTypeConfig.instructionsUrl
+        } : null,
+        forms_library: formsLibraryUrl ? {
+          label: `${caseTypeLabel} blank forms`,
+          url: formsLibraryUrl
+        } : null,
+        downloads: downloadLinks
+      },
+      case_type_code: caseTypeCode
     };
 
-    // Extract forms from visited nodes with descriptions
-    const formDescriptions = {
-      'DV-100': 'Request for Domestic Violence Restraining Order',
-      'DV-105': 'Request for Child Custody and Visitation',
-      'DV-109': 'Notice of Court Hearing',
-      'DV-110': 'Temporary Restraining Order',
-      'DV-200': 'Proof of Service',
-      'DV-140': 'Child Custody and Visitation Order',
-      'DV-108': 'Request for Child Abduction Prevention',
-      'DV-145': 'Child Abduction Prevention Order',
-      'DV-800': 'Firearms Restraining Order',
-      'FL-150': 'Income and Expense Declaration',
-      'CLETS-001': 'CLETS Information Form'
-    };
+    summaryData.keyAnswers.push(`You are working on a ${caseTypeLabel} matter.`);
 
-    history.forEach(nodeId => {
-      const node = flow?.nodes?.[nodeId];
-      if (node?.text) {
-        const formMatches = node.text.match(/\b[A-Z]{2,3}-\d{3,4}\b/g);
-        if (formMatches) {
-          formMatches.forEach(form => {
-            if (!summary.forms.find(f => f.form_code === form)) {
-              summary.forms.push({
-                form_code: form,
-                title: formDescriptions[form] || `${form} Form`,
-                description: 'Required for your case type'
-              });
-            }
-          });
-        }
+    if (caseTypeCode === 'DVRO') {
+      if (answers.DVCheck1 === 'Yes') {
+        summaryData.keyAnswers.push('You requested protection from abuse through a DVRO');
       }
-    });
 
-    // Generate key answers based on user responses
-    if (answers.DVCheck1 === 'Yes') {
-      summary.keyAnswers.push('You requested a domestic violence restraining order');
-    }
-    if (answers.children === 'yes') {
-      summary.keyAnswers.push('You indicated you share a child with the respondent');
-    }
-    if (answers.support && answers.support !== 'none') {
-      const supportType = answers.support.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-      summary.keyAnswers.push(`You requested ${supportType} support`);
-    }
-    if (answers.firearms === 'yes') {
-      summary.keyAnswers.push('You indicated firearms are involved in your case');
-    }
-    if (answers.abduction_check === 'yes') {
-      summary.keyAnswers.push('You requested child abduction prevention measures');
-    }
-
-    // Generate enhanced next steps
-    summary.nextSteps = [
-      {
-        action: "Take these forms to the Clerk's Office (Room 101)",
-        priority: "high",
-        timeline: "Today or as soon as possible",
-        details: "Bring your photo ID and this summary"
-      },
-      {
-        action: "The clerk will schedule a hearing within 3 days",
-        priority: "high",
-        timeline: "Within 3 business days",
-        details: "You'll receive notice of your court date"
-      },
-      {
-        action: "Serve the other party with your papers",
-        priority: "high",
-        timeline: "Before your court hearing",
-        details: "Use a process server, sheriff, or someone 18+ (not you)"
-      },
-      {
-        action: "File proof of service with the court",
-        priority: "high",
-        timeline: "After serving papers",
-        details: "Required for your case to proceed"
-      },
-      {
-        action: "Attend your court hearing",
-        priority: "critical",
-        timeline: "On the date listed in your papers",
-        details: "Bring all evidence (photos, texts, emails, witnesses)"
+      if (answers.children === 'yes') {
+        summaryData.keyAnswers.push('You indicated you share a child with the restrained person');
       }
-    ];
+      if (answers.support && answers.support !== 'none') {
+        const supportType = answers.support.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        summaryData.keyAnswers.push(`You plan to request ${supportType} support`);
+      }
+      if (answers.firearms === 'yes') {
+        summaryData.keyAnswers.push('You reported firearms are involved in your case');
+      }
+      if (answers.abduction_check === 'yes') {
+        summaryData.keyAnswers.push('You plan to request child abduction prevention orders');
+      }
+    } else if (caseTypeCode === 'DIVORCE') {
+      summaryData.keyAnswers.push('You reviewed filing, service, and financial disclosure steps for divorce.');
+    } else if (caseTypeCode === 'CHRO') {
+      summaryData.keyAnswers.push('You are preparing a Civil Harassment Restraining Order packet.');
+    }
 
-    // Add specific steps based on answers
-    if (answers.children === 'yes') {
-      summary.nextSteps.push({
-        action: "Prepare child custody and visitation information",
-        priority: "medium",
-        timeline: "Before your hearing",
-        details: "Gather school records, medical records, and any relevant documentation"
+    const presetSteps = CASE_TYPE_NEXT_STEPS[caseTypeCode] || CASE_TYPE_NEXT_STEPS.DVRO;
+    summaryData.nextSteps = presetSteps.map(step => ({ ...step }));
+
+    if (caseTypeCode === 'DVRO' && answers.children === 'yes') {
+      summaryData.nextSteps.push({
+        action: 'Prepare child custody and visitation details',
+        priority: 'medium',
+        timeline: 'Before your hearing',
+        details: 'Gather school records, medical information, and any parenting agreements to support your request.'
       });
     }
 
-    if (answers.support && answers.support !== 'none') {
-      summary.nextSteps.push({
-        action: "Gather income and expense documentation",
-        priority: "medium",
-        timeline: "Before your hearing",
-        details: "Pay stubs, tax returns, bank statements, bills"
+    if (caseTypeCode === 'DVRO' && answers.support && answers.support !== 'none') {
+      summaryData.nextSteps.push({
+        action: 'Collect financial records for support requests',
+        priority: 'medium',
+        timeline: 'Before your hearing',
+        details: 'Bring recent pay stubs, tax returns, bank statements, and proof of expenses.'
       });
     }
 
-    return summary;
-  };
+    return summaryData;
+  }, [answers, caseTypeCode, caseTypeConfig.instructionsUrl, caseTypeConfig.packetLabel, caseTypeLabel, downloadLinks, flow, formsLibraryUrl, history, packetUrl]);
 
   const handleAddToQueue = async () => {
     setIsSubmitting(true);
     try {
       // Use the queueAPI utility for better integration
       const data = await addToQueue({
-        case_type: 'DVRO',
+        case_type: caseTypeCode,
+        priority: caseTypeConfig.priority || 'A',
         user_name: 'Anonymous', // Could be passed from props
         user_email: email || null,
         phone_number: phoneNumber || null,
         language: 'en', // Could be passed from props
-        answers: answers,
-        history: history,
-        summary: generateSummary()
+        answers,
+        history,
+        summary
       });
       
       if (data.success) {
@@ -192,34 +477,38 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
   const handleEmailRequest = async () => {
     setIsSubmitting(true);
     try {
-      const summary = generateSummary();
-      
       console.log('📧 Sending email request...');
-      
+
       // ===== FIXED: Send data in correct format =====
       const emailPayload = {
           email: email,
           case_data: {
           user_email: email,
           user_name: 'Court Kiosk User',
-            case_type: 'DVRO',
-          priority_level: 'A',
+
+          case_type: caseTypeCode,
+          case_type_label: caseTypeLabel,
+          priority_level: caseTypeConfig.priority || 'A',
           language: 'en',
           queue_number: queueNumber || 'N/A',
           phone_number: phoneNumber || null,
           location: 'San Mateo County Superior Court Kiosk',
           session_id: summary.header.session_id,
-          
+
           // CRITICAL: Send at root level, not nested
           forms_completed: summary.forms || [],
           documents_needed: summary.forms || [],
           next_steps: summary.nextSteps || [],
           nextSteps: summary.nextSteps || [],
-          
+          download_links: downloadLinks,
+          packet_url: packetUrl,
+          forms_library_url: formsLibraryUrl,
+
           // Also send full summary
           summary_json: JSON.stringify(summary),
           conversation_summary: summary,
-          
+          resources: summary.resources,
+
           // Admin data for staff assistance
           admin_data: adminData || null
         }
@@ -253,8 +542,6 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
     }
   };
 
-  const summary = generateSummary();
-
   return (
     <div className="completion-page">
       <div className="max-w-4xl mx-auto p-6">
@@ -280,6 +567,29 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
           
           {/* Summary Content */}
           <div className="space-y-6">
+            {resourceButtons.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="text-indigo-500 mr-2">📄</span>
+                  Packets & Instructions
+                </h2>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {resourceButtons.map(button => (
+                    <a
+                      key={button.key}
+                      href={button.href}
+                      target={button.external ? '_blank' : undefined}
+                      rel={button.external ? 'noopener noreferrer' : undefined}
+                      className="flex flex-col justify-between rounded-lg border border-blue-200 bg-blue-50 p-4 hover:bg-blue-100 transition"
+                    >
+                      <span className="text-blue-900 font-semibold">{button.label}</span>
+                      <span className="text-sm text-blue-700 mt-2">{button.description}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Key Answers Section */}
             {summary.keyAnswers.length > 0 && (
               <div>
