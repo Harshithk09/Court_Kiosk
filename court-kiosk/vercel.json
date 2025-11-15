@@ -5,8 +5,22 @@
   "installCommand": "cd frontend && npm install",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "backend/app.py": {
+      "runtime": "python3.9",
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "CORS_ORIGINS": "*",
+    "LOG_LEVEL": "INFO"
+  }
 }
