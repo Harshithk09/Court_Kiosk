@@ -171,6 +171,17 @@ class EmailService:
                 print(f"❌ Fallback also failed: {fallback_error}")
                 return False
     
+    def _generate_queue_number_html(self, queue_number: str) -> str:
+        """Generate HTML for queue number display"""
+        if queue_number and queue_number != 'N/A':
+            return f"""
+            <div style="background-color: #dbeafe; border: 2px solid #3b82f6; border-radius: 8px; padding: 15px; margin: 0 0 20px 0; text-align: center;">
+                <p style="margin: 0; font-size: 14px; color: #1e40af;"><strong>Your Queue Number:</strong></p>
+                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #1e40af;">{queue_number}</p>
+            </div>
+            """
+        return ""
+    
     def _generate_email_html(self, case_data: dict) -> str:
         """Generate user-friendly HTML email content"""
         queue_number = case_data.get('queue_number', 'N/A')
@@ -206,6 +217,8 @@ class EmailService:
             <div style="background-color: white; padding: 30px; border: 1px solid #e5e7eb;">
                 
                 <p style="font-size: 16px; margin: 0 0 20px 0;">{greeting}</p>
+                
+                {self._generate_queue_number_html(queue_number)}
                 
                 <p style="font-size: 16px; margin: 0 0 20px 0;">
                     <strong>Thank you for visiting the Family Facilitator's Office.</strong>
@@ -364,8 +377,8 @@ class EmailService:
             remaining_forms_html += "</ul>"
         
         return f"""
-        <div style="background-color: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h3 style="margin: 0 0 10px 0; color: #0c4a6e;">📋 Staff Note</h3>
+        <div style="background-color: #e0f2fe; border: 2px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 5px solid #0ea5e9;">
+            <h3 style="margin: 0 0 10px 0; color: #0c4a6e; font-size: 18px;">👨‍💼 Staff Note (For Court Staff Only)</h3>
             <p style="margin: 0; color: #0c4a6e;"><strong>Client Status:</strong> Has completed {len(filled_forms)} of {len(available_forms)} forms</p>
             
             <div style="margin: 10px 0;">

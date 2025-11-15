@@ -42,9 +42,28 @@ CORS(app, origins=cors_origins,
      supports_credentials=True)
 
 # Configure rate limiting
+# For production: Use Redis or PostgreSQL storage
+# For development: Use in-memory storage (SQLite)
+import warnings
+
+# Determine storage backend
+storage_uri = os.getenv('RATELIMIT_STORAGE_URL')  # Can be Redis: redis://localhost:6379
+if not storage_uri:
+    # Auto-detect: Use PostgreSQL if available, otherwise memory for SQLite/development
+    db_uri = Config.SQLALCHEMY_DATABASE_URI
+    if db_uri and 'postgresql' in db_uri.lower():
+        storage_uri = db_uri
+        logger.info("Using PostgreSQL for rate limiting storage")
+    else:
+        # SQLite/development - use memory storage
+        storage_uri = None
+        # Suppress warning in development
+        warnings.filterwarnings('ignore', message='.*in-memory storage.*', category=UserWarning)
+
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["1000 per hour", "100 per minute"]
+    default_limits=["1000 per hour", "100 per minute"],
+    storage_uri=storage_uri  # None = memory (dev), URI = database/Redis (prod)
 )
 limiter.init_app(app)
 
@@ -863,60 +882,60 @@ def send_case_summary_email():
         app.logger.error(f"Error sending case summary email: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/email/send-case-summary', methods=['POST'])
-def send_case_summary_email_endpoint():
-    """Send case summary email - endpoint called by frontend"""
+@app.route('/api/send-comprehensive-email', methods=['POST'])
+def send_comprehensive_email():
+    """Send comprehensive email with case summary and PDF attachments - main endpoint"""
     try:
-        logger.info("Received email request")
+        logger.info("Received comprehensive email request")
         data = request.get_json()
         
         if not data:
             logger.error("No JSON data received")
-            return jsonify({'error': 'No data received'}), 400
-            
-        email = data.get('email')
+            return jsonify({'success': False, 'error': 'No data received'}), 400
+        
+        # Extract email from data (can be in email field or case_data)
+        email = data.get('email') or data.get('user_email')
         case_data = data.get('case_data', {})
         
-        logger.info(f"Processing email request for: {email}")
+        # If case_data is provided, merge it with top-level data
+        if case_data:
+            email = email or case_data.get('email') or case_data.get('user_email')
+            # Merge case_data into main data
+            for key, value in case_data.items():
+                if key not in data:
+                    data[key] = value
+        
+        logger.info(f"Processing comprehensive email request for: {email}")
         
         if not email:
             logger.error("No email provided")
-            return jsonify({'error': 'Email is required'}), 400
-        
-        # Generate case number
-        case_number = f"DVRO{random.randint(1000, 9999)}"
+            return jsonify({'success': False, 'error': 'Email is required'}), 400
         
         # Prepare comprehensive case data for email
-        summary_data = case_data.get('summary', '')
-        
-        # Handle both string and object summaries
-        if isinstance(summary_data, dict):
-            # If it's a complex object, convert to JSON string for processing
-            conversation_summary = json.dumps(summary_data)
-            summary_json = summary_data
-        else:
-            # If it's a string, use as is
-            conversation_summary = str(summary_data)
-            summary_json = {}
-        
         comprehensive_case_data = {
             'user_email': email,
-            'user_name': case_data.get('user_name', 'Court Kiosk User'),
-            'case_type': case_data.get('case_type', 'Domestic Violence Restraining Order'),
-            'priority_level': 'A',
-            'language': 'en',
-            'queue_number': case_data.get('queue_number', 'N/A'),
-            'documents_needed': case_data.get('forms', []),
-            'next_steps': case_data.get('next_steps', []),
-            'conversation_summary': conversation_summary,
-            'summary_json': summary_json,
-            'phone_number': case_data.get('phone_number')
+            'user_name': data.get('user_name', case_data.get('user_name', 'Court Kiosk User')),
+            'case_type': data.get('case_type', case_data.get('case_type', 'Domestic Violence Restraining Order')),
+            'priority_level': data.get('priority') or data.get('priority_level', case_data.get('priority') or case_data.get('priority_level', 'A')),
+            'language': data.get('language', case_data.get('language', 'en')),
+            'queue_number': data.get('queue_number', case_data.get('queue_number', 'N/A')),
+            'documents_needed': data.get('forms', []) or data.get('documents_needed', []) or case_data.get('forms', []) or case_data.get('documents_needed', []),
+            'next_steps': data.get('next_steps', []) or case_data.get('next_steps', []),
+            'conversation_summary': data.get('summary', '') or case_data.get('summary', '') or case_data.get('conversation_summary', ''),
+            'phone_number': data.get('phone_number', case_data.get('phone_number'))
         }
         
-        logger.info(f"Sending email with case data: {comprehensive_case_data}")
+        # Handle summary_json if provided
+        if data.get('summary_json') or case_data.get('summary_json'):
+            comprehensive_case_data['summary_json'] = data.get('summary_json') or case_data.get('summary_json')
+        
+        # Check if queue information should be included
+        include_queue = data.get('include_queue', False)
+        
+        logger.info(f"Sending comprehensive email with case data: {comprehensive_case_data}")
         
         # Send comprehensive email using the email service
-        result = email_service.send_comprehensive_case_email(comprehensive_case_data, include_queue=False)
+        result = email_service.send_case_email(comprehensive_case_data, include_queue)
         
         logger.info(f"Email service result: {result}")
         
@@ -924,16 +943,16 @@ def send_case_summary_email_endpoint():
             return jsonify({
                 'success': True,
                 'message': 'Case summary email sent successfully',
-                'case_number': case_number,
+                'queue_number': comprehensive_case_data.get('queue_number', 'N/A'),
                 'email_id': result.get('id')
             })
         else:
             logger.error(f"Email service failed: {result}")
-            return jsonify({'error': result.get('error', 'Failed to send email')}), 500
+            return jsonify({'success': False, 'error': result.get('error', 'Failed to send email')}), 500
             
     except Exception as e:
-        logger.error(f"Error sending case summary email: {str(e)}", exc_info=True)
-        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+        logger.error(f"Error sending comprehensive email: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': f'Internal server error: {str(e)}'}), 500
 
 @app.route('/api/send-summary', methods=['POST'])
 def send_summary_email():
@@ -1273,8 +1292,9 @@ def get_audit_logs():
 
 @app.route('/api/admin/queue', methods=['GET'])
 @AuthService.require_auth
+@AuthService.require_admin_whitelist()  # Restrict to whitelisted admins only
 def get_admin_queue():
-    """Get queue data for admin dashboard (protected)"""
+    """Get queue data for admin dashboard (protected, whitelist only)"""
     try:
         # Log the action
         AuthService.log_action(
@@ -1289,30 +1309,64 @@ def get_admin_queue():
         
         queue_data = []
         for entry in queue_entries:
+            # Parse documents_needed if it's a JSON string
+            documents_needed = []
+            if entry.documents_needed:
+                try:
+                    if isinstance(entry.documents_needed, str):
+                        documents_needed = json.loads(entry.documents_needed)
+                    else:
+                        documents_needed = entry.documents_needed
+                except:
+                    documents_needed = []
+            
             queue_data.append({
                 'queue_number': entry.queue_number,
                 'priority': entry.priority_level,
+                'priority_level': entry.priority_level,  # Alias for compatibility
                 'case_type': entry.case_type,
                 'user_name': entry.user_name,
                 'user_email': entry.user_email,
                 'phone_number': entry.phone_number,
                 'language': entry.language,
                 'status': entry.status,
-                'created_at': entry.created_at.isoformat(),
-                'arrived_at': entry.created_at.isoformat(),
+                'created_at': entry.created_at.isoformat() if entry.created_at else None,
+                'arrived_at': entry.created_at.isoformat() if entry.created_at else None,
+                'timestamp': entry.created_at.isoformat() if entry.created_at else None,
                 'conversation_summary': entry.conversation_summary,
-                'documents_needed': entry.documents_needed,
-                'next_steps': entry.next_steps
+                'documents_needed': documents_needed,
+                'current_node': entry.current_node,
+                'estimated_wait_time': entry.estimated_wait_time
             })
         
         current_number = None
         if current_entry:
+            # Parse documents_needed for current entry
+            documents_needed = []
+            if current_entry.documents_needed:
+                try:
+                    if isinstance(current_entry.documents_needed, str):
+                        documents_needed = json.loads(current_entry.documents_needed)
+                    else:
+                        documents_needed = current_entry.documents_needed
+                except:
+                    documents_needed = []
+            
             current_number = {
                 'queue_number': current_entry.queue_number,
                 'priority': current_entry.priority_level,
+                'priority_level': current_entry.priority_level,
                 'case_type': current_entry.case_type,
                 'user_name': current_entry.user_name,
-                'created_at': current_entry.created_at.isoformat()
+                'user_email': current_entry.user_email,
+                'phone_number': current_entry.phone_number,
+                'language': current_entry.language,
+                'conversation_summary': current_entry.conversation_summary,
+                'documents_needed': documents_needed,
+                'current_node': current_entry.current_node,
+                'created_at': current_entry.created_at.isoformat() if current_entry.created_at else None,
+                'arrived_at': current_entry.created_at.isoformat() if current_entry.created_at else None,
+                'timestamp': current_entry.created_at.isoformat() if current_entry.created_at else None
             }
         
         return jsonify({
@@ -1327,8 +1381,9 @@ def get_admin_queue():
 
 @app.route('/api/admin/call-next', methods=['POST'])
 @AuthService.require_auth
+@AuthService.require_admin_whitelist()  # Restrict to whitelisted admins only
 def admin_call_next():
-    """Call next case (protected)"""
+    """Call next case (protected) - returns comprehensive case information"""
     try:
         # Log the action
         AuthService.log_action(
@@ -1347,13 +1402,59 @@ def admin_call_next():
         next_entry.status = 'in_progress'
         db.session.commit()
         
+        # Parse documents_needed if it's a JSON string
+        documents_needed = []
+        if next_entry.documents_needed:
+            try:
+                if isinstance(next_entry.documents_needed, str):
+                    documents_needed = json.loads(next_entry.documents_needed)
+                else:
+                    documents_needed = next_entry.documents_needed
+            except:
+                documents_needed = []
+        
+        # Get case type information
+        case_type_info = None
+        if next_entry.case_type:
+            case_type_obj = CaseType.query.filter_by(code=next_entry.case_type, is_active=True).first()
+            if case_type_obj:
+                case_type_info = {
+                    'name': case_type_obj.name,
+                    'code': case_type_obj.code,
+                    'description': case_type_obj.description,
+                    'estimated_duration': case_type_obj.estimated_duration,
+                    'required_forms': json.loads(case_type_obj.required_forms) if case_type_obj.required_forms else []
+                }
+        
+        # Calculate wait time
+        wait_time_minutes = 0
+        if next_entry.created_at:
+            from datetime import datetime
+            wait_time = datetime.utcnow() - next_entry.created_at
+            wait_time_minutes = int(wait_time.total_seconds() / 60)
+        
+        # Return comprehensive case information
         return jsonify({
             'success': True,
             'queue_entry': {
                 'queue_number': next_entry.queue_number,
                 'priority': next_entry.priority_level,
+                'priority_level': next_entry.priority_level,  # Alias for compatibility
                 'case_type': next_entry.case_type,
-                'user_name': next_entry.user_name
+                'case_type_info': case_type_info,
+                'user_name': next_entry.user_name,
+                'user_email': next_entry.user_email,
+                'phone_number': next_entry.phone_number,
+                'language': next_entry.language,
+                'status': next_entry.status,
+                'conversation_summary': next_entry.conversation_summary,
+                'documents_needed': documents_needed,
+                'current_node': next_entry.current_node,
+                'estimated_wait_time': next_entry.estimated_wait_time,
+                'wait_time_minutes': wait_time_minutes,
+                'created_at': next_entry.created_at.isoformat() if next_entry.created_at else None,
+                'arrived_at': next_entry.created_at.isoformat() if next_entry.created_at else None,
+                'timestamp': next_entry.created_at.isoformat() if next_entry.created_at else None
             }
         }), 200
         
@@ -1363,6 +1464,7 @@ def admin_call_next():
 
 @app.route('/api/admin/complete-case', methods=['POST'])
 @AuthService.require_auth
+@AuthService.require_admin_whitelist()  # Restrict to whitelisted admins only
 def admin_complete_case():
     """Complete case (protected)"""
     try:

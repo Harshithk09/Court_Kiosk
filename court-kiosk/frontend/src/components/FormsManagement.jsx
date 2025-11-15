@@ -12,13 +12,6 @@ import {
 import formsDatabase, { 
   getFormsSummary 
 } from '../data/formsDatabase';
-// import FormsUpload from './FormsUpload';
-// import FormsBulkUpdate from './FormsBulkUpdate';
-// import { exportFormsToCSV, exportFormsToJSON } from '../utils/formsExport';
-// import { 
-//   exportFormsListToCSV, 
-//   exportSetupInstructions 
-// } from '../utils/generateFormsFolder';
 
 const FormsManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');

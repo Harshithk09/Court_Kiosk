@@ -5,6 +5,7 @@ Handles user authentication, session management, and authorization
 
 import secrets
 import hashlib
+import json
 from datetime import datetime, timedelta
 from flask import request
 from models import db, User, UserSession, AuditLog
@@ -243,6 +244,46 @@ class AuthService:
                 return f(*args, **kwargs)
             return decorated_function
         return decorator
-
-# Import json for audit logging
-import json
+    
+    @staticmethod
+    def require_admin_whitelist(allowed_usernames=None, allowed_emails=None):
+        """Decorator to restrict access to specific admin users only"""
+        from functools import wraps
+        import os
+        
+        def decorator(f):
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                if not hasattr(request, 'current_user'):
+                    return {'error': 'Authentication required'}, 401
+                
+                user = request.current_user
+                
+                # Get whitelist from environment or use defaults
+                env_whitelist = os.getenv('ADMIN_WHITELIST', '')
+                env_whitelist_emails = os.getenv('ADMIN_WHITELIST_EMAILS', '')
+                
+                # Combine provided lists with environment variables
+                username_list = (allowed_usernames or []) + ([u.strip() for u in env_whitelist.split(',') if u.strip()] if env_whitelist else [])
+                email_list = (allowed_emails or []) + ([e.strip() for e in env_whitelist_emails.split(',') if e.strip()] if env_whitelist_emails else [])
+                
+                # If whitelist is configured, check against it
+                if username_list or email_list:
+                    username_allowed = user.username in username_list if username_list else False
+                    email_allowed = user.email in email_list if email_list else False
+                    
+                    if not (username_allowed or email_allowed):
+                        AuthService.log_action(
+                            user_id=user.id,
+                            action='access_denied',
+                            details={'username': user.username, 'email': user.email, 'reason': 'not_in_whitelist'}
+                        )
+                        return {'error': 'Access denied. This account is not authorized to access the admin dashboard.'}, 403
+                
+                # Also require admin role
+                if user.role != 'admin':
+                    return {'error': 'Insufficient permissions'}, 403
+                
+                return f(*args, **kwargs)
+            return decorated_function
+        return decorator
