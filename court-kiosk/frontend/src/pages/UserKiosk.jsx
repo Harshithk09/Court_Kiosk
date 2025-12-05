@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useKioskMode } from '../contexts/KioskModeContext';
 import { useNavigate } from 'react-router-dom';
 import {
   Shield,
@@ -19,6 +20,7 @@ import ModernButton from '../components/ModernButton';
 import '../components/ModernHeader.css';
 import '../components/ModernCard.css';
 import '../components/ModernButton.css';
+import '../styles/kiosk-mode.css';
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -26,6 +28,7 @@ const API_BASE_URL =
 
 const UserKiosk = () => {
   const { language, toggleLanguage } = useLanguage();
+  const { isKioskMode } = useKioskMode();
   const navigate = useNavigate();
   const [selectedCase, setSelectedCase] = useState(null);
   const [queueNumber, setQueueNumber] = useState(null);
@@ -173,19 +176,19 @@ const UserKiosk = () => {
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
               
-              <h1 className="text-4xl font-bold text-gray-900 mb-8">
+              <h1 className={`${isKioskMode ? 'text-5xl' : 'text-4xl'} font-bold text-gray-900 mb-8`}>
                 {language === 'en' ? 'YOUR QUEUE NUMBER' : 'TU NÚMERO DE COLA'}
               </h1>
               
               <ModernCard variant="gradient" className="mb-8">
-                <div className="text-8xl font-black text-white mb-4">#{queueNumber}</div>
+                <div className={`${isKioskMode ? 'text-9xl' : 'text-7xl'} font-black text-white mb-4`}>#{queueNumber}</div>
               </ModernCard>
 
               <div className="mb-8">
-                <h2 className="text-3xl sm:text-4xl font-black text-gray-800 mb-4">
+                <h2 className={`${isKioskMode ? 'text-4xl sm:text-5xl' : 'text-3xl sm:text-4xl'} font-black text-gray-800 mb-4`}>
                   {selectedCase?.title[language]}
                 </h2>
-                <p className="text-gray-600 text-xl sm:text-2xl font-bold">
+                <p className={`text-gray-600 ${isKioskMode ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl'} font-bold`}>
                   {selectedCase?.description[language]}
                 </p>
               </div>
@@ -260,30 +263,36 @@ const UserKiosk = () => {
     return (
       <ModernCard
         variant="elevated" 
-        className="h-full cursor-pointer group hover:scale-105 transition-all duration-300"
+        className={`h-full cursor-pointer group transition-all duration-300 ${
+          isKioskMode 
+            ? 'hover:scale-105' 
+            : 'hover:scale-[1.02] hover:shadow-xl'
+        }`}
         onClick={() => handleCaseSelection(caseType)}
       >
         <div className="h-full flex flex-col">
-          <div className={`rounded-t-lg px-6 py-6 bg-gradient-to-r ${priorityColors[caseType.priority]} text-white`}>
-            <div className="flex items-center justify-between mb-4">
+          <div className={`rounded-t-lg ${isKioskMode ? 'px-8 py-8' : 'px-6 py-6'} bg-gradient-to-r ${priorityColors[caseType.priority]} text-white`}>
+            <div className={`flex items-center justify-between ${isKioskMode ? 'mb-6' : 'mb-4'}`}>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center">
-                  <Icon className="w-8 h-8 text-white" aria-hidden />
+                <div className={`${isKioskMode ? 'w-20 h-20' : 'w-16 h-16'} rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center`}>
+                  <Icon className={`${isKioskMode ? 'w-10 h-10' : 'w-8 h-8'} text-white`} aria-hidden />
                 </div>
-                <h3 className="text-4xl sm:text-5xl font-black text-white">{caseType.title[language]}</h3>
+                <h3 className={`${isKioskMode ? 'text-5xl sm:text-6xl' : 'text-3xl sm:text-4xl'} font-black text-white`}>
+                  {caseType.title[language]}
+                </h3>
               </div>
               {/* Priority hidden per feedback */}
             </div>
           </div>
-          <div className="px-6 py-6 flex-1 flex flex-col">
-            <p className="text-gray-800 text-xl sm:text-2xl font-bold leading-relaxed mb-8 flex-1">
+          <div className={`${isKioskMode ? 'px-8 py-8' : 'px-6 py-6'} flex-1 flex flex-col`}>
+            <p className={`text-gray-800 ${isKioskMode ? 'text-2xl sm:text-3xl' : 'text-lg sm:text-xl'} font-bold leading-relaxed ${isKioskMode ? 'mb-10' : 'mb-6'} flex-1`}>
               {caseType.description[language]}
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-gray-600 text-lg font-bold">
+              <span className={`text-gray-600 ${isKioskMode ? 'text-xl' : 'text-base'} font-bold`}>
                 {language === 'en' ? 'Click to select' : 'Haga clic para seleccionar'}
               </span>
-              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+              <ChevronRight className={`${isKioskMode ? 'w-6 h-6' : 'w-5 h-5'} text-gray-400 group-hover:text-gray-600 transition-colors`} />
             </div>
           </div>
         </div>
@@ -291,8 +300,10 @@ const UserKiosk = () => {
     );
   };
 
+  const modeClass = isKioskMode ? 'kiosk-mode' : 'website-mode';
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-gray-50 ${modeClass}`}>
       <ModernHeader 
         title={language === 'en' ? 'Family Law Self-Help Kiosk' : 'Quiosco de Autoayuda de Derecho de Familia'} 
         showLanguageToggle={true}
@@ -303,8 +314,8 @@ const UserKiosk = () => {
       {/* Hero Section - Removed empty box per feedback */}
 
       {/* Case Type Selection */}
-      <div className="mx-auto max-w-7xl w-full px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className={`mx-auto ${isKioskMode ? 'max-w-[1400px]' : 'max-w-7xl'} w-full px-4 ${isKioskMode ? 'py-16' : 'py-12'}`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${isKioskMode ? 'gap-12' : 'gap-8'}`}>
           {caseTypes.map((caseType) => (
             <Tile key={caseType.id} caseType={caseType} />
           ))}

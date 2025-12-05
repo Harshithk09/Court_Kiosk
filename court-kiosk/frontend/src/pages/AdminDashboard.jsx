@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon } from 'lucide-react';
+import { useKioskMode } from '../contexts/KioskModeContext';
+import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon, Monitor, MonitorOff } from 'lucide-react';
 import { getQueue, callNext, completeCase, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
 import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
 import FormsManagement from '../components/FormsManagement';
@@ -11,6 +12,7 @@ import CaseDetailsModal from '../components/CaseDetailsModal';
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
   const { user, logout, sessionToken } = useAuth();
+  const { isKioskMode, toggleKioskMode } = useKioskMode();
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'forms'
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
@@ -268,6 +270,53 @@ const AdminDashboard = () => {
     return null;
   };
 
+  const getFacilitatorActionText = (item, lang) => {
+    const languageCode = lang || 'en';
+    const priority = item.priority || item.priority_level || 'C';
+    const status = item.status || 'waiting';
+    const longWait = (item.waitTimeMinutes || 0) >= 30;
+
+    if (status === 'completed') {
+      return languageCode === 'en'
+        ? 'This case is completed. No further action needed unless the client returns.'
+        : 'Este caso está completado. No se necesita más acción a menos que el cliente regrese.';
+    }
+
+    if (status === 'in_progress') {
+      return languageCode === 'en'
+        ? 'Continue working with this client. Make sure required forms are explained and completed, then mark the case as completed.'
+        : 'Siga trabajando con este cliente. Asegúrese de explicar y completar los formularios requeridos y luego marque el caso como completado.';
+    }
+
+    if (priority === 'A') {
+      return languageCode === 'en'
+        ? 'High-priority safety case. Call this person as soon as possible. Start by confirming safety, reviewing their story, and identifying immediate protection options.'
+        : 'Caso de seguridad de alta prioridad. Llame a esta persona lo antes posible. Empiece confirmando la seguridad, revisando su situación e identificando opciones de protección inmediata.';
+    }
+
+    if (priority === 'B') {
+      return languageCode === 'en'
+        ? 'Custody / support case. Focus on parenting schedule, income information, and any upcoming court dates. Gather documents like prior orders or pay stubs.'
+        : 'Caso de custodia / manutención. Enfoque en el horario de crianza, información de ingresos y próximas fechas de corte. Reúna documentos como órdenes previas o talones de pago.';
+    }
+
+    if (priority === 'D') {
+      return languageCode === 'en'
+        ? 'Other family law issue. Start by asking the client to briefly explain what they need. Then identify which forms apply and what their next deadline is.'
+        : 'Otro asunto de ley familiar. Empiece pidiendo al cliente que explique brevemente qué necesita. Luego identifique qué formularios aplican y cuál es su próximo plazo.';
+    }
+
+    if (longWait) {
+      return languageCode === 'en'
+        ? 'This client has been waiting a long time. Consider prioritizing them next or updating them about the delay.'
+        : 'Este cliente ha estado esperando mucho tiempo. Considere darle prioridad o informarle sobre el retraso.';
+    }
+
+    return languageCode === 'en'
+      ? 'Review this case, then call the client when you are ready. Start by confirming contact information and why they came today.'
+      : 'Revise este caso y luego llame al cliente cuando esté listo. Empiece confirmando la información de contacto y por qué vino hoy.';
+  };
+
   // Ensure queue is an array before using reduce
   // const groupedQueue = (queue || []).reduce((acc, item) => {
   //   // Handle both 'priority' and 'priority_level' field names
@@ -374,6 +423,27 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="flex space-x-4">
+              <button
+                onClick={() => toggleKioskMode()}
+                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                  isKioskMode 
+                    ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
+                title={isKioskMode ? 'Switch to Website Mode' : 'Switch to Kiosk Mode'}
+              >
+                {isKioskMode ? (
+                  <>
+                    <MonitorOff className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Website Mode' : 'Modo Sitio Web'}
+                  </>
+                ) : (
+                  <>
+                    <Monitor className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Kiosk Mode' : 'Modo Quiosco'}
+                  </>
+                )}
+              </button>
               <button
                 onClick={fetchQueue}
                 className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -697,84 +767,103 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Main Content Grid */}
+      {/* Queue list & Case Details */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Queue by Priority - Left Column */}
+          {/* Queue list */}
           <div className="lg:col-span-2">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              {language === 'en' ? 'Queue by Priority' : 'Cola por Prioridad'}
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {language === 'en' ? 'Queue' : 'Cola'}
             </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {priorityOrder.map((priority) => {
-                const priorityItems = sortedQueue.filter(item => (item.priority || item.priority_level) === priority);
-                const PriorityIcon = getPriorityIcon(priority);
-                
-                return (
-                  <div key={priority} className="bg-white rounded-lg shadow-md p-6">
-                    <div className="flex items-center mb-4">
-                      <div className={`w-10 h-10 ${getPriorityColor(priority)} rounded-lg flex items-center justify-center mr-3`}>
-                        <PriorityIcon className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {getPriorityLabel(priority)[language]}
-                        </h3>
-                        <p className="text-gray-600">
-                          {priorityItems.filter(item => item.status === 'waiting').length} {language === 'en' ? 'waiting' : 'esperando'}
-                        </p>
-                      </div>
-                    </div>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {language === 'en' ? 'Number' : 'Número'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {language === 'en' ? 'Case Type' : 'Tipo de Caso'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {language === 'en' ? 'Priority' : 'Prioridad'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {language === 'en' ? 'Wait Time' : 'Espera'}
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {language === 'en' ? 'Status' : 'Estado'}
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {language === 'en' ? 'Actions' : 'Acciones'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sortedQueue
+                      .filter(item => item.status !== 'completed')
+                      .map((item) => {
+                        const isSelected = selectedCase?.queue_number === item.queue_number;
+                        const priority = item.priority || item.priority_level || 'C';
+                        const waitTimeClass = getWaitTimeColor(item.waitTimeMinutes || 0);
+                        const waitTimeAlert = getWaitTimeAlert(item.waitTimeMinutes || 0);
+                        const statusColor = getStatusColor(item.status);
 
-                    {priorityItems.filter(item => item.status === 'waiting').length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">
-                        {language === 'en' ? 'No cases waiting' : 'No hay casos esperando'}
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {priorityItems.filter(item => item.status === 'waiting').map((item, index) => {
-                          const waitTimeAlert = getWaitTimeAlert(item.waitTimeMinutes);
-                          return (
-                            <div
-                              key={item.queue_number}
-                              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                                selectedCase?.queue_number === item.queue_number 
-                                  ? 'bg-blue-50 border-2 border-blue-200' 
-                                  : 'bg-gray-50 hover:bg-gray-100'
-                              } ${waitTimeAlert ? waitTimeAlert : ''}`}
-                              onClick={() => handleCaseSelect(item)}
-                            >
-                              <div className="flex items-center">
-                                <span className="text-2xl font-bold text-gray-900 mr-3">
-                                  {item.queue_number}
-                                </span>
-                                <div>
-                                  <p className="font-medium text-gray-900">
-                                    {getPriorityLabel(item.priority || item.priority_level)[language]}
-                                  </p>
-                                  <div className="flex items-center space-x-2 text-sm">
-                                    <Clock className="w-3 h-3 text-gray-400" />
-                                    <span className={getWaitTimeColor(item.waitTimeMinutes)}>
-                                      {item.waitTimeFormatted}
-                                    </span>
-                                  </div>
-                                  {item.user_name && (
-                                    <p className="text-sm text-gray-600">
-                                      {item.user_name}
-                                    </p>
-                                  )}
+                        return (
+                          <tr
+                            key={item.queue_number}
+                            className={`cursor-pointer hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}
+                            onClick={() => handleCaseSelect(item)}
+                          >
+                            <td className="px-4 py-3 text-sm font-mono text-gray-900">
+                              {item.queue_number}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900">
+                              {item.case_type || getPriorityLabel(priority)[language]}
+                              {item.user_name && (
+                                <div className="text-xs text-gray-500">
+                                  {item.user_name}
                                 </div>
-                              </div>
-                              <div className="flex space-x-2">
-                                <div className={`w-3 h-3 ${getStatusColor(item.status)} rounded-full`}></div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
+                                {priority} · {getPriorityLabel(priority)[language]}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${waitTimeAlert || ''} ${waitTimeClass}`}
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                {item.waitTimeFormatted}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold text-white ${statusColor}`}
+                              >
+                                {language === 'en'
+                                  ? item.status.replace('_', ' ')
+                                  : item.status === 'waiting'
+                                  ? 'esperando'
+                                  : item.status === 'in_progress'
+                                  ? 'en progreso'
+                                  : item.status === 'completed'
+                                  ? 'completado'
+                                  : item.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-right">
+                              <div className="flex items-center justify-end space-x-2">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleViewCaseDetails(item);
                                   }}
-                                  className="flex items-center px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 transition-colors"
-                                  title={language === 'en' ? 'View Case Details' : 'Ver Detalles del Caso'}
+                                  className="inline-flex items-center px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 transition-colors"
+                                  title={language === 'en' ? 'View Case Details' : 'Ver Detalles'}
                                 >
                                   <Eye className="w-3 h-3" />
                                 </button>
@@ -785,74 +874,89 @@ const AdminDashboard = () => {
                                       handleSendEmail(item);
                                     }}
                                     disabled={sendingEmail}
-                                    className="flex items-center px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                                    title={language === 'en' ? 'Send Email Summary' : 'Enviar Resumen por Correo'}
+                                    className="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                    title={language === 'en' ? 'Email Summary' : 'Enviar Resumen'}
                                   >
                                     <Send className="w-3 h-3" />
                                   </button>
                                 )}
-                                {item.status === 'waiting' && (
+                                {item.status !== 'completed' && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleCompleteCase(item.queue_number);
                                     }}
-                                    className="flex items-center px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
+                                    className="inline-flex items-center px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
                                   >
                                     <CheckCircle className="w-3 h-3 mr-1" />
                                     {language === 'en' ? 'Complete' : 'Completar'}
                                   </button>
                                 )}
-                                {item.status === 'in_progress' && (
-                                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                                    {language === 'en' ? 'In Progress' : 'En Progreso'}
-                                  </span>
-                                )}
-                                {item.status === 'completed' && (
-                                  <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm">
-                                    {language === 'en' ? 'Completed' : 'Completado'}
-                                  </span>
-                                )}
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    {sortedQueue.filter(item => item.status !== 'completed').length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-4 py-6 text-center text-sm text-gray-500"
+                        >
+                          {language === 'en'
+                            ? 'No cases in the queue.'
+                            : 'No hay casos en la cola.'}
+                        </td>
+                      </tr>
                     )}
-                  </div>
-                );
-              })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          {/* Case Details - Right Column */}
+          {/* Case Details Pane */}
           <div className="lg:col-span-1">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
               {language === 'en' ? 'Case Details' : 'Detalles del Caso'}
             </h2>
-            
+
             {selectedCase ? (
               <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-                {/* Basic Case Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 mb-2">
+                    {language === 'en'
+                      ? 'How you can help now'
+                      : 'Cómo puede ayudar ahora'}
+                  </h3>
+                  <p className="text-sm text-blue-800">
+                    {getFacilitatorActionText(selectedCase, language)}
+                  </p>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Case Information</h3>
-                    <div className={`px-3 py-1 ${getPriorityColor(selectedCase.priority)} text-white rounded-full text-sm font-medium`}>
-                      {selectedCase.priority}
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {language === 'en' ? 'Case Information' : 'Información del Caso'}
+                    </h3>
+                    <div className={`px-3 py-1 ${getPriorityColor(selectedCase.priority || selectedCase.priority_level)} text-white rounded-full text-sm font-medium`}>
+                      {selectedCase.priority || selectedCase.priority_level}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center">
                       <span className="text-3xl font-bold text-gray-900 mr-3">
                         {selectedCase.queue_number}
                       </span>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-gray-500">{language === 'en' ? 'Case Type' : 'Tipo de Caso'}</p>
-                        <p className="font-medium">{selectedCase.case_type || getPriorityLabel(selectedCase.priority || selectedCase.priority_level)[language]}</p>
+                        <p className="font-medium">
+                          {selectedCase.case_type || getPriorityLabel(selectedCase.priority || selectedCase.priority_level)[language]}
+                        </p>
                       </div>
                       <div>
                         <p className="text-gray-500">{language === 'en' ? 'Status' : 'Estado'}</p>
@@ -872,10 +976,11 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* User Information */}
                 {(selectedCase.user_name || selectedCase.user_email || selectedCase.phone_number) && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'User Information' : 'Información del Usuario'}</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      {language === 'en' ? 'User Information' : 'Información del Usuario'}
+                    </h4>
                     <div className="space-y-2">
                       {selectedCase.user_name && (
                         <div className="flex items-center text-sm">
@@ -899,51 +1004,49 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
-                {/* Case Summary */}
-                {caseSummary && (
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Case Summary' : 'Resumen del Caso'}</h4>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{caseSummary}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Conversation Summary */}
                 {selectedCase.conversation_summary && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Conversation Summary' : 'Resumen de Conversación'}</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      {language === 'en' ? 'Conversation Summary' : 'Resumen de Conversación'}
+                    </h4>
                     <div className="bg-blue-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedCase.conversation_summary}</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {selectedCase.conversation_summary}
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* Current Node */}
                 {selectedCase.current_node && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Current Step' : 'Paso Actual'}</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      {language === 'en' ? 'Current Step' : 'Paso Actual'}
+                    </h4>
                     <div className="bg-yellow-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-700">{selectedCase.current_node}</p>
+                      <p className="text-sm text-gray-700">
+                        {selectedCase.current_node}
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* Documents Needed */}
                 {selectedCase.documents_needed && selectedCase.documents_needed.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">{language === 'en' ? 'Documents Needed' : 'Documentos Necesarios'}</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      {language === 'en' ? 'Documents Needed' : 'Documentos Necesarios'}
+                    </h4>
                     <div className="space-y-2">
                       {selectedCase.documents_needed.map((doc, index) => (
                         <div key={index} className="bg-green-50 border border-green-200 rounded px-3 py-2">
-                          <p className="text-sm text-gray-700">{doc}</p>
+                          <p className="text-sm text-gray-700">
+                            {typeof doc === 'string' ? doc : doc.form_code || doc.title || doc}
+                          </p>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="space-y-3">
                   <button
                     onClick={() => handleShowCaseSummary(selectedCase)}
@@ -960,13 +1063,12 @@ const AdminDashboard = () => {
                       className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <Send className="w-4 h-4 mr-2" />
-                      {sendingEmail 
+                      {sendingEmail
                         ? (language === 'en' ? 'Sending...' : 'Enviando...')
-                        : (language === 'en' ? 'Send Email Summary' : 'Enviar Resumen por Correo')
-                      }
+                        : (language === 'en' ? 'Send Email Summary' : 'Enviar Resumen por Correo')}
                     </button>
                   )}
-                  
+
                   <button
                     onClick={() => handleCompleteCase(selectedCase.queue_number)}
                     className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -974,7 +1076,7 @@ const AdminDashboard = () => {
                     <CheckCircle className="w-4 h-4 mr-2" />
                     {language === 'en' ? 'Complete Case' : 'Completar Caso'}
                   </button>
-                  
+
                   <button
                     onClick={() => {
                       setSelectedCase(null);
@@ -990,7 +1092,11 @@ const AdminDashboard = () => {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="text-center text-gray-500">
                   <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>{language === 'en' ? 'Select a case to view details' : 'Selecciona un caso para ver detalles'}</p>
+                  <p>
+                    {language === 'en'
+                      ? 'Select a case from the queue to see details'
+                      : 'Selecciona un caso de la cola para ver detalles'}
+                  </p>
                 </div>
               </div>
             )}

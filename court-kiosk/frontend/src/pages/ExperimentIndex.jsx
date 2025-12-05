@@ -2,9 +2,11 @@ import React from 'react';
 import { Shield, Heart, FileText, Users, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useKioskMode } from '../contexts/KioskModeContext';
 import ModernCourtHeader from '../components/ModernCourtHeader';
 import ModernCaseTypeCard from '../components/ModernCaseTypeCard';
 import '../components/ExperimentUI.css';
+import '../styles/kiosk-mode.css';
 
 const caseTypes = [
   {
@@ -56,13 +58,16 @@ const caseTypes = [
 const ExperimentIndex = () => {
   const navigate = useNavigate();
   const { language, toggleLanguage } = useLanguage();
+  const { isKioskMode } = useKioskMode();
 
   const handleCaseTypeClick = (path) => {
     navigate(path);
   };
 
+  const modeClass = isKioskMode ? 'kiosk-mode' : 'website-mode';
+
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className={`min-h-screen bg-background relative overflow-hidden ${modeClass}`}>
       {/* Animated background patterns */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float"></div>
