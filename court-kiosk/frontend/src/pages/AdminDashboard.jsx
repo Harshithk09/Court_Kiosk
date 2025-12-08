@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useKioskMode } from '../contexts/KioskModeContext';
-import { Users, CheckCircle, RefreshCw, Shield, Heart, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon, Monitor, MonitorOff } from 'lucide-react';
+import { Users, CheckCircle, RefreshCw, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon, Monitor, MonitorOff } from 'lucide-react';
 import { getQueue, callNext, completeCase, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
 import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
 import FormsManagement from '../components/FormsManagement';
