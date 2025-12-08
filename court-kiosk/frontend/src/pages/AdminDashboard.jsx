@@ -18,7 +18,6 @@ const AdminDashboard = () => {
   const [currentNumber, setCurrentNumber] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedCase, setSelectedCase] = useState(null);
-  const [caseSummary, setCaseSummary] = useState(null);
   const [error, setError] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [showCaseSummaryModal, setShowCaseSummaryModal] = useState(false);
@@ -117,7 +116,6 @@ const AdminDashboard = () => {
       fetchQueue();
       if (selectedCase?.queue_number === queueNumber) {
         setSelectedCase(null);
-        setCaseSummary(null);
       }
     } catch (error) {
       console.error('Error completing case:', error);
@@ -138,8 +136,6 @@ const AdminDashboard = () => {
 
   const handleCaseSelect = async (caseItem) => {
     setSelectedCase(caseItem);
-    // Flask backend does not expose a separate summary endpoint; use conversation_summary if present
-    setCaseSummary(caseItem.conversation_summary || null);
   };
 
   const handleShowCaseSummary = (caseItem) => {
@@ -202,16 +198,6 @@ const AdminDashboard = () => {
       case 'C': return 'bg-yellow-500';
       case 'D': return 'bg-blue-500';
       default: return 'bg-gray-500';
-    }
-  };
-
-  const getPriorityIcon = (priority) => {
-    switch (priority) {
-      case 'A': return Shield;
-      case 'B': return Heart;
-      case 'C': return FileText;
-      case 'D': return Users;
-      default: return Users;
     }
   };
 
@@ -327,8 +313,6 @@ const AdminDashboard = () => {
   //   acc[priority].push(item);
   //   return acc;
   // }, {});
-
-  const priorityOrder = ['A', 'B', 'C', 'D'];
 
   // Calculate wait times for all cases
   const queueWithWaitTimes = queue.map(item => {
@@ -1080,7 +1064,6 @@ const AdminDashboard = () => {
                   <button
                     onClick={() => {
                       setSelectedCase(null);
-                      setCaseSummary(null);
                     }}
                     className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
