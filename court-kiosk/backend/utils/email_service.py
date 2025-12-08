@@ -18,6 +18,8 @@ from config import Config
 if Config.RESEND_API_KEY:
     resend.api_key = Config.RESEND_API_KEY
 
+COURT_DOCUMENTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'court_documents'))
+
 class EmailService:
     """Unified email service for Court Kiosk - handles all email functionality"""
     
@@ -474,22 +476,29 @@ class EmailService:
     def _download_forms(self, forms: list) -> list:
         """Download official forms from California Courts website"""
         attachments = []
-        
+
         if not forms:
             return attachments
-        
+
         print(f"📦 Downloading {len(forms)} forms...")
-        
+
         for form_code in forms:
             if isinstance(form_code, dict):
                 form_code = form_code.get('form_code', form_code.get('code', ''))
-            
+
             form_code = str(form_code).strip().upper()
-            
+
             try:
-                print(f"🔄 Downloading form: {form_code}")
-                form_path = self._download_single_form(form_code)
-                
+                # Prefer packaged PDFs so attachments never fail in offline or blocked environments
+                local_form_path = self._get_local_form_path(form_code)
+
+                if local_form_path and os.path.exists(local_form_path):
+                    form_path = local_form_path
+                    print(f"📎 Attaching local copy of {form_code}")
+                else:
+                    print(f"🔄 Downloading form: {form_code}")
+                    form_path = self._download_single_form(form_code)
+
                 if form_path and os.path.exists(form_path):
                     attachments.append({
                         'filename': f"{form_code}.pdf",
@@ -503,9 +512,81 @@ class EmailService:
             except Exception as e:
                 print(f"❌ Error downloading {form_code}: {e}")
                 continue
-        
+
         print(f"✅ Downloaded {len(attachments)} forms successfully")
         return attachments
+
+    def _get_local_form_path(self, form_code: str) -> Optional[str]:
+        """Return path to bundled PDF if available."""
+        local_files = {
+            # Domestic Violence
+            'DV-100': 'dv100.pdf',
+            'DV-101': 'dv101.pdf',
+            'DV-105': 'dv105.pdf',
+            'DV-105A': 'dv105a.pdf',
+            'DV-108': 'dv108.pdf',
+            'DV-109': 'dv109.pdf',
+            'DV-110': 'dv110.pdf',
+            'DV-112': 'dv112.pdf',
+            'DV-116': 'dv116.pdf',
+            'DV-120': 'dv120.pdf',
+            'DV-120INFO': 'dv120info.pdf',
+            'DV-125': 'dv125.pdf',
+            'DV-130': 'dv130.pdf',
+            'DV-140': 'dv140.pdf',
+            'DV-145': 'dv145.pdf',
+            'DV-200': 'dv200.pdf',
+            'DV-250': 'dv250.pdf',
+            'DV-700': 'dv700.pdf',
+            'DV-710': 'dv710.pdf',
+            'DV-720': 'dv720.pdf',
+            'DV-800': 'dv800.pdf',
+
+            # Civil Harassment
+            'CH-100': 'ch100.pdf',
+            'CH-109': 'ch109.pdf',
+            'CH-110': 'ch110.pdf',
+            'CH-120': 'ch120.pdf',
+            'CH-120-INFO': 'ch120info.pdf',
+            'CH-130': 'ch130.pdf',
+            'CH-200': 'ch200.pdf',
+            'CH-250': 'ch250.pdf',
+            'CH-700': 'ch700.pdf',
+            'CH-710': 'ch710.pdf',
+            'CH-720': 'ch720.pdf',
+            'CH-730': 'ch730.pdf',
+            'CH-800': 'ch800.pdf',
+
+            # Divorce / Family law
+            'FL-100': 'fl100.pdf',
+            'FL-105': 'fl105.pdf',
+            'FL-110': 'fl110.pdf',
+            'FL-115': 'fl115.pdf',
+            'FL-117': 'fl117.pdf',
+            'FL-120': 'fl120.pdf',
+            'FL-130': 'fl130.pdf',
+            'FL-140': 'fl140.pdf',
+            'FL-141': 'fl141.pdf',
+            'FL-142': 'fl142.pdf',
+            'FL-144': 'fl144.pdf',
+            'FL-150': 'fl150.pdf',
+
+            # Other forms
+            'CLETS-001': 'clets001.pdf',
+            'CM-010': 'cm010.pdf',
+            'MC-025': 'mc025.pdf',
+            'MC-031': 'mc031.pdf',
+            'MC-040': 'mc040.pdf',
+            'MC-050': 'mc050.pdf',
+            'POS-040': 'pos040.pdf',
+        }
+
+        filename = local_files.get(form_code.upper())
+        if not filename:
+            return None
+
+        candidate_path = os.path.join(COURT_DOCUMENTS_DIR, filename)
+        return candidate_path if os.path.exists(candidate_path) else None
     
     def _download_single_form(self, form_code: str) -> Optional[str]:
         """Download a single form from California Courts website"""
