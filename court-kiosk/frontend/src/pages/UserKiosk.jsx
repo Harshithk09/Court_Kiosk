@@ -38,61 +38,49 @@ const UserKiosk = () => {
 
   const caseTypes = [
     {
-      id: 'A',
+      id: 'DV',
       priority: 'A',
       case_type: 'DVRO',
       title: { en: 'Domestic Violence', es: 'Violencia Doméstica' },
-      description: { 
-        en: 'Restraining orders, protection orders, emergency cases.', 
-        es: 'Órdenes de restricción, órdenes de protección, casos de emergencia.' 
+      description: {
+        en: 'Domestic violence restraining orders, safety planning, emergency help.',
+        es: 'Órdenes de restricción por violencia doméstica, planificación de seguridad, ayuda de emergencia.'
       },
       icon: Shield,
       accent: 'bg-red-50'
     },
     {
-      id: 'B',
+      id: 'DIV',
       priority: 'B',
-      case_type: 'CHRO',
-      title: { en: 'Civil Harassment', es: 'Acoso Civil' },
-      description: { 
-        en: 'Civil harassment restraining orders for neighbors, coworkers, strangers.', 
-        es: 'Órdenes de restricción por acoso civil para vecinos, compañeros de trabajo, extraños.' 
-      },
-      icon: AlertTriangle,
-      accent: 'bg-orange-50'
-    },
-    {
-      id: 'C',
-      priority: 'C',
-      case_type: 'CUSTODY',
-      title: { en: 'Child Custody & Support', es: 'Custodia y Manutención' },
-      description: { 
-        en: 'Child custody, support, visitation rights.', 
-        es: 'Custodia de menores, manutención infantil, derechos de visita.' 
-      },
-      icon: HeartHandshake,
-      accent: 'bg-amber-50'
-    },
-    {
-      id: 'D',
-      priority: 'D',
       case_type: 'DIVORCE',
       title: { en: 'Divorce & Separation', es: 'Divorcio y Separación' },
-      description: { 
-        en: 'Divorce, legal separation, serving papers, next steps.', 
-        es: 'Divorcio, separación legal, entrega de documentos, próximos pasos.' 
+      description: {
+        en: 'Divorce, legal separation, serving papers, and financial disclosures.',
+        es: 'Divorcio, separación legal, entrega de documentos y declaraciones financieras.'
       },
       icon: FileText,
       accent: 'bg-blue-50'
     },
     {
-      id: 'E',
-      priority: 'E',
+      id: 'CUST',
+      priority: 'C',
+      case_type: 'CUSTODY',
+      title: { en: 'Child Custody & Support', es: 'Custodia y Manutención' },
+      description: {
+        en: 'Child custody, visitation, support, and safety concerns.',
+        es: 'Custodia de menores, visitas, manutención y preocupaciones de seguridad.'
+      },
+      icon: HeartHandshake,
+      accent: 'bg-amber-50'
+    },
+    {
+      id: 'OTHER',
+      priority: 'D',
       case_type: 'OTHER',
-      title: { en: 'Other Family Law', es: 'Otro Derecho de Familia' },
-      description: { 
-        en: 'Parentage, guardianship, name change, and more.', 
-        es: 'Paternidad, tutela, cambio de nombre y más.' 
+      title: { en: 'Other Family Court Issues', es: 'Otros Asuntos de la Corte de Familia' },
+      description: {
+        en: 'Civil Harassment (neighbors/strangers), elder abuse, parentage, guardianship, name change, fee waivers.',
+        es: 'Acoso civil (vecinos/desconocidos), abuso a mayores, paternidad, tutela, cambio de nombre, exenciones de tarifas.'
       },
       icon: Users,
       accent: 'bg-emerald-50'
@@ -104,21 +92,27 @@ const UserKiosk = () => {
     setIsProcessing(true);
 
     try {
-      // For Domestic Violence cases (Priority A), redirect to the comprehensive DVRO page
-      if (caseType.id === 'A') {
+      // For Domestic Violence cases, redirect to the comprehensive DVRO page
+      if (caseType.case_type === 'DVRO') {
         navigate('/dvro');
         return;
       }
 
-      // For Civil Harassment cases (Priority B), redirect to the CHRO page
-      if (caseType.id === 'B') {
-        navigate('/chro');
+      // For Divorce & Separation cases, redirect to the divorce page
+      if (caseType.case_type === 'DIVORCE') {
+        navigate('/divorce');
         return;
       }
 
-      // For Divorce & Separation cases (Priority D), redirect to the divorce flow runner
-      if (caseType.id === 'D') {
-        navigate('/divorce');
+      // For Child Custody cases, redirect to custody resources
+      if (caseType.case_type === 'CUSTODY') {
+        navigate('/custody');
+        return;
+      }
+
+      // For civil harassment and other family law issues, show the extended options page
+      if (caseType.case_type === 'OTHER') {
+        navigate('/other');
         return;
       }
 
@@ -320,6 +314,33 @@ const UserKiosk = () => {
             <Tile key={caseType.id} caseType={caseType} />
           ))}
         </div>
+      </div>
+
+      {/* Highlight the civil harassment pilot flow while keeping four core categories */}
+      <div className="mx-auto max-w-5xl w-full px-4 pb-8">
+        <ModernCard variant="info" className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <h3 className="text-2xl font-bold text-white mb-2">
+              {language === 'en'
+                ? 'Civil Harassment Restraining Order (for non-family members)'
+                : 'Orden de restricción por acoso civil (para personas sin relación familiar)'}
+            </h3>
+            <p className="text-white/90 text-lg font-medium">
+              {language === 'en'
+                ? 'Neighbors, coworkers, roommates, or strangers. Start the dedicated flow here so staff can implement it quickly.'
+                : 'Vecinos, compañeros de trabajo, compañeros de vivienda o desconocidos. Inicie el flujo dedicado aquí para que el personal pueda implementarlo rápidamente.'}
+            </p>
+          </div>
+          <ModernButton
+            variant="primary"
+            size="large"
+            onClick={() => navigate('/chro')}
+            icon={<ChevronRight className="w-5 h-5" />}
+            iconPosition="right"
+          >
+            {language === 'en' ? 'Start Civil Harassment' : 'Comenzar Acoso Civil'}
+          </ModernButton>
+        </ModernCard>
       </div>
 
       {/* Info Strip (keep only emergency; remove location/hours per feedback) */}
