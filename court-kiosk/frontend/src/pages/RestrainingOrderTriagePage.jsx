@@ -11,7 +11,7 @@ export default function RestrainingOrderTriagePage() {
   const [error, setError] = useState(null);
   const routingHandledRef = useRef(false);
 
-  // Map routing nodes to their destinations
+  // Map routing nodes to their destinations (moved outside useEffect to avoid dependency)
   const routingMap = {
     'DVROEntry': '/dvro',
     'EA_Start': '/elder-abuse',
@@ -52,6 +52,7 @@ export default function RestrainingOrderTriagePage() {
         setError(error.message);
         setLoading(false);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Custom finish handler that checks for routing

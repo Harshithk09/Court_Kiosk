@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { API_ENDPOINTS, buildApiUrl } from '../utils/apiConfig';
 
 /**
  * Custom hook for WebSocket connections with automatic reconnection

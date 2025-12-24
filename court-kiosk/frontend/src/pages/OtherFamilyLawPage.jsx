@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
@@ -9,12 +9,7 @@ const OtherFamilyLawPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [queueNumber, setQueueNumber] = useState(null);
 
-  useEffect(() => {
-    // Auto-generate queue when page loads
-    generateQueue();
-  }, []);
-
-  const generateQueue = async () => {
+  const generateQueue = useCallback(async () => {
     setIsSubmitting(true);
     try {
       const response = await fetch(buildApiUrl(API_ENDPOINTS.GENERATE_QUEUE), {
@@ -35,7 +30,12 @@ const OtherFamilyLawPage = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [language]);
+
+  useEffect(() => {
+    // Auto-generate queue when page loads
+    generateQueue();
+  }, [generateQueue]);
 
   if (isSubmitting) {
     return (

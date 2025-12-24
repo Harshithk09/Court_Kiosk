@@ -7,7 +7,6 @@ import GuidedQuestionPage from './GuidedQuestionPage';
 const CustodyPage = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState('question');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFirstQuestionAnswer = async (answer) => {
@@ -25,7 +24,6 @@ const CustodyPage = () => {
           })
         });
         if (response.ok) {
-          const data = await response.json();
           // Redirect to completion or show queue number
           navigate('/');
         }

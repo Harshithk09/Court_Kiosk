@@ -16,7 +16,6 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AttorneyDashboard = lazy(() => import('./components/AttorneyDashboard'));
 const DVROPage = lazy(() => import('./pages/DVROPage'));
 const CHROPage = lazy(() => import('./pages/CHROPage'));
-const RestrainingOrderPage = lazy(() => import('./pages/RestrainingOrderPage'));
 const RestrainingOrderTriagePage = lazy(() => import('./pages/RestrainingOrderTriagePage'));
 const GVROPage = lazy(() => import('./pages/GVROPage'));
 const WorkplaceViolencePage = lazy(() => import('./pages/WorkplaceViolencePage'));

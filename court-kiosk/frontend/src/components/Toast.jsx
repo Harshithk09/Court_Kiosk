@@ -35,6 +35,10 @@ const iconStyles = {
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
+
   const addToast = useCallback((message, type = 'info', duration = 5000) => {
     const id = Date.now() + Math.random();
     const toast = { id, message, type, duration };
@@ -48,18 +52,16 @@ export const ToastProvider = ({ children }) => {
     }
     
     return id;
-  }, []);
+  }, [removeToast]);
 
-  const removeToast = useCallback((id) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
-
-  const toast = useCallback({
-    success: (message, duration) => addToast(message, 'success', duration),
-    error: (message, duration) => addToast(message, 'error', duration),
-    info: (message, duration) => addToast(message, 'info', duration),
-    warning: (message, duration) => addToast(message, 'warning', duration),
-  }, [addToast]);
+  const toast = useCallback((() => {
+    return {
+      success: (message, duration) => addToast(message, 'success', duration),
+      error: (message, duration) => addToast(message, 'error', duration),
+      info: (message, duration) => addToast(message, 'info', duration),
+      warning: (message, duration) => addToast(message, 'warning', duration),
+    };
+  })(), [addToast]);
 
   return (
     <ToastContext.Provider value={toast}>
