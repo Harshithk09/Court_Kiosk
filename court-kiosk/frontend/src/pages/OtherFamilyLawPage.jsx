@@ -32,6 +32,14 @@ const OtherFamilyLawPage = () => {
       });
   }, []);
 
+  // Monitor flow progress and generate queue when reaching GetQueue node
+  useEffect(() => {
+    if (flowData) {
+      // This will be handled by the flow itself - when user reaches terminal node
+      // we'll generate queue in handleFinish
+    }
+  }, [flowData]);
+
   const generateQueue = async () => {
     setIsGeneratingQueue(true);
     try {
@@ -56,8 +64,11 @@ const OtherFamilyLawPage = () => {
   };
 
   const handleFinish = async ({ answers, forms }) => {
-    // Generate queue when flow completes (user reached the end)
-    await generateQueue();
+    // Generate queue when flow completes (user reached terminal node)
+    // This is called when user clicks "View Next Steps" on the terminal node
+    if (!queueNumber && !isGeneratingQueue) {
+      await generateQueue();
+    }
   };
 
   if (loading) {
