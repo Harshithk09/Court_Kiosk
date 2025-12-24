@@ -46,6 +46,10 @@
       "type": "decision",
       "text": "Are they someone you are/were dating, married to, have a child with, or a close family member (parent, sibling, grandparent, in-law)?"
     },
+    "CloseRelYes": {
+      "type": "process",
+      "text": "Since you didn't initially qualify for a Domestic Violence Restraining Order through the earlier questions, you may want to speak with a facilitator or attorney to explore your options. Let's continue to see if another type of restraining order might be appropriate."
+    },
     "ElderAge": {
       "type": "decision",
       "text": "Are you 65 or older, or between 18–64 with a disability?"
@@ -128,13 +132,17 @@
     },
     {
       "from": "CloseRel",
-      "to": "DVROEntry",
+      "to": "CloseRelYes",
       "when": "Yes"
     },
     {
       "from": "CloseRel",
       "to": "ElderAge",
       "when": "No"
+    },
+    {
+      "from": "CloseRelYes",
+      "to": "ElderAge"
     },
     {
       "from": "ElderAge",
