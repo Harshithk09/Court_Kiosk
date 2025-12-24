@@ -190,7 +190,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
     );
   }
 
-  const isEndNode = currentNode.type === 'end';
+  const isEndNode = currentNode.type === 'end' || currentNode.type === 'terminal';
   // Removed unused isDecisionNode variable
   const hasMultipleChoices = outgoingEdges.length > 1;
 
