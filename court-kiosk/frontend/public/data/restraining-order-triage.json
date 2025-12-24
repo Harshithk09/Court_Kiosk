@@ -14,10 +14,6 @@
       "type": "start",
       "text": "Unsure what restraining order you need?"
     },
-    "Start": {
-      "type": "decision",
-      "text": "What is your relationship to the person you want protection from?"
-    },
     "CloseRel": {
       "type": "decision",
       "text": "Are they someone you are/were dating, married to, have a child with, or a close family member (parent, sibling, grandparent, in-law)?"
@@ -62,10 +58,6 @@
   "edges": [
     {
       "from": "TriageRO",
-      "to": "Start"
-    },
-    {
-      "from": "Start",
       "to": "CloseRel"
     },
     {
