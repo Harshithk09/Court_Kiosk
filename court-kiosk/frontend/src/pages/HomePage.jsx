@@ -24,7 +24,7 @@ const HomePage = () => {
         en: 'I need a restraining order',
         es: 'Necesito una orden de restricción'
       },
-      route: '/dvro'
+      route: '/restraining-order'
     },
     {
       id: 'served',
