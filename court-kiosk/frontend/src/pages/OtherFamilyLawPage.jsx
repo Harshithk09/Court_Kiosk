@@ -1,16 +1,39 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import SimpleFlowRunner from '../components/SimpleFlowRunner';
 import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
 
 const OtherFamilyLawPage = () => {
-  const { language, toggleLanguage } = useLanguage();
+  const { language } = useLanguage();
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [flowData, setFlowData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [queueNumber, setQueueNumber] = useState(null);
+  const [isGeneratingQueue, setIsGeneratingQueue] = useState(false);
 
-  const generateQueue = useCallback(async () => {
-    setIsSubmitting(true);
+  useEffect(() => {
+    fetch('/data/other-family-law-flow.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to load flow data: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        setFlowData(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error loading flow data:', error);
+        setError(error.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const generateQueue = async () => {
+    setIsGeneratingQueue(true);
     try {
       const response = await fetch(buildApiUrl(API_ENDPOINTS.GENERATE_QUEUE), {
         method: 'POST',
@@ -28,36 +51,50 @@ const OtherFamilyLawPage = () => {
     } catch (error) {
       console.error('Error generating queue:', error);
     } finally {
-      setIsSubmitting(false);
+      setIsGeneratingQueue(false);
     }
-  }, [language]);
+  };
 
-  useEffect(() => {
-    // Auto-generate queue when page loads
-    generateQueue();
-  }, [generateQueue]);
+  const handleFinish = async ({ answers, forms }) => {
+    // Generate queue when flow completes (user reached the end)
+    await generateQueue();
+  };
 
-  if (isSubmitting) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{language === 'es' ? 'Procesando...' : 'Processing...'}</p>
+          <p className="text-gray-600">{language === 'es' ? 'Cargando...' : 'Loading...'}</p>
         </div>
       </div>
     );
   }
 
+  if (error || !flowData) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error || 'Failed to load flow data'}</p>
+          <button onClick={() => navigate('/')} className="px-6 py-3 bg-blue-600 text-white rounded-lg">
+            {language === 'es' ? 'Volver al inicio' : 'Return Home'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show queue number if generated
   if (queueNumber) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
         <div className="bg-blue-50 border-b border-blue-200 px-8 py-4">
           <div className="flex justify-end">
             <button
-              onClick={toggleLanguage}
+              onClick={() => navigate('/')}
               className="px-4 py-2 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
             >
-              {language === 'es' ? 'English' : 'Español'}
+              {language === 'es' ? 'Inicio' : 'Home'}
             </button>
           </div>
         </div>
@@ -95,7 +132,25 @@ const OtherFamilyLawPage = () => {
     );
   }
 
-  return null;
+  if (isGeneratingQueue) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{language === 'es' ? 'Generando número de cola...' : 'Generating queue number...'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <SimpleFlowRunner
+      flow={flowData}
+      onFinish={handleFinish}
+      onBack={() => navigate('/')}
+      onHome={() => navigate('/')}
+    />
+  );
 };
 
 export default OtherFamilyLawPage;

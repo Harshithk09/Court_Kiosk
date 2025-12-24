@@ -1,0 +1,131 @@
+{
+  "id": "other-family-law",
+  "version": "2025-12-23",
+  "start": "ServedStart",
+  "metadata": {
+    "title": "Served with Court Papers / Other Family Law Matters",
+    "jurisdiction": "CA",
+    "source": "San Mateo County Court",
+    "flow_family": "Other Family Law",
+    "description": "Guidance for users who were served with court papers or need help with other family law matters"
+  },
+  "nodes": {
+    "ServedStart": {
+      "type": "start",
+      "text": "You've been served with court papers. Let's help you understand what to do next."
+    },
+    "UnderstandPapers": {
+      "type": "info",
+      "text": "When you receive court papers, it means someone has filed a legal case involving you. The papers will tell you:\n\n• What type of case it is\n• What the other person is asking for\n• When you need to respond\n• When your court date is (if scheduled)"
+    },
+    "PaperType": {
+      "type": "decision",
+      "text": "What type of papers were you served with?"
+    },
+    "RestrainingOrderServed": {
+      "type": "warning",
+      "text": "If you were served with a restraining order (DVRO, CHRO, etc.), you have important deadlines:\n\n• You may have a Temporary Restraining Order (TRO) that is already in effect\n• You must respond by the deadline listed in your papers\n• You have the right to go to court and tell your side of the story\n• If you don't respond, the court may grant the order against you"
+    },
+    "DivorceServed": {
+      "type": "info",
+      "text": "If you were served with divorce papers, you have 30 days to file a Response (Form FL-120). You may also want to file a Request for Order if you need temporary orders for custody, support, or property."
+    },
+    "CustodyServed": {
+      "type": "info",
+      "text": "If you were served with custody or support papers, you typically have 30 days to file a Response. The papers will tell you the exact deadline."
+    },
+    "OtherType": {
+      "type": "info",
+      "text": "For other types of family law cases, check your papers for:\n\n• The deadline to respond\n• What forms you need to file\n• When your court date is scheduled"
+    },
+    "NeedHelp": {
+      "type": "decision",
+      "text": "Do you need help understanding your papers or filing a response?"
+    },
+    "SelfHelpCenter": {
+      "type": "info",
+      "text": "The Self-Help Center can assist you with:\n\n• Understanding your court papers\n• Finding the right forms to file\n• Learning about the court process\n• Preparing your response\n\nLocation: Room 101, First Floor\nHours: Monday-Friday, 8:30 AM - 12:00 PM\nPhone: (650) 261-5100 ext. 2"
+    },
+    "LegalAid": {
+      "type": "info",
+      "text": "Legal Aid Society of San Mateo County provides free legal assistance to eligible individuals:\n\n• Help understanding your rights\n• Assistance with filing responses\n• Representation in some cases\n\nPhone: (650) 558-0915\n\nNote: Income eligibility requirements apply"
+    },
+    "GetQueue": {
+      "type": "process",
+      "text": "A facilitator can help you understand your papers and determine what you need to do next. We'll get you a queue number so you can speak with someone."
+    },
+    "QueueGenerated": {
+      "type": "terminal",
+      "text": "Your queue number has been generated. Please wait to be called. A facilitator will help you understand your court papers and guide you through the next steps."
+    }
+  },
+  "edges": [
+    {
+      "from": "ServedStart",
+      "to": "UnderstandPapers"
+    },
+    {
+      "from": "UnderstandPapers",
+      "to": "PaperType"
+    },
+    {
+      "from": "PaperType",
+      "to": "RestrainingOrderServed",
+      "when": "Restraining Order (DVRO, CHRO, etc.)"
+    },
+    {
+      "from": "PaperType",
+      "to": "DivorceServed",
+      "when": "Divorce or Legal Separation"
+    },
+    {
+      "from": "PaperType",
+      "to": "CustodyServed",
+      "when": "Custody or Child Support"
+    },
+    {
+      "from": "PaperType",
+      "to": "OtherType",
+      "when": "Other type of case"
+    },
+    {
+      "from": "RestrainingOrderServed",
+      "to": "NeedHelp"
+    },
+    {
+      "from": "DivorceServed",
+      "to": "NeedHelp"
+    },
+    {
+      "from": "CustodyServed",
+      "to": "NeedHelp"
+    },
+    {
+      "from": "OtherType",
+      "to": "NeedHelp"
+    },
+    {
+      "from": "NeedHelp",
+      "to": "SelfHelpCenter",
+      "when": "Yes, I need help"
+    },
+    {
+      "from": "NeedHelp",
+      "to": "LegalAid",
+      "when": "I want to speak with an attorney"
+    },
+    {
+      "from": "SelfHelpCenter",
+      "to": "GetQueue"
+    },
+    {
+      "from": "LegalAid",
+      "to": "GetQueue"
+    },
+    {
+      "from": "GetQueue",
+      "to": "QueueGenerated"
+    }
+  ]
+}
+
