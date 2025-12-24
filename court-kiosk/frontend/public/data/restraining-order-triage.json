@@ -31,15 +31,15 @@
       "text": "You may qualify for a Domestic Violence Restraining Order"
     },
     "DVNotQual": {
-      "type": "info",
+      "type": "process",
       "text": "If you don't need protection from abuse, you may want to consider other legal options. Let's continue to find the right type of restraining order for your situation."
     },
     "DVAlt": {
-      "type": "info",
+      "type": "process",
       "text": "If the person is not a close family member or intimate partner, you may need a different type of restraining order. Let's continue to find the right option."
     },
     "DVMinor": {
-      "type": "info",
+      "type": "process",
       "text": "If you are under 12, you may need assistance from a parent, guardian, or attorney. Let's continue to explore your options."
     },
     "CloseRel": {
