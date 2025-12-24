@@ -14,13 +14,37 @@
       "type": "start",
       "text": "Unsure what restraining order you need?"
     },
-    "CloseRel": {
+    "DVCheck1": {
       "type": "decision",
-      "text": "Are they someone you are/were dating, married to, have a child with, or a close family member (parent, sibling, grandparent, in-law)?"
+      "text": "Do you want protection from someone who has abused you or your children? (Abuse can be physical, emotional, financial, or take place online)"
+    },
+    "DVCheck2": {
+      "type": "decision",
+      "text": "Are they someone you: dated, married, or had an intimate relationship with, or are related to (parent, child, sibling, grandparent — by birth or marriage)?"
+    },
+    "DVCheck3": {
+      "type": "decision",
+      "text": "Are you 12 or older?"
     },
     "DVROEntry": {
       "type": "process",
       "text": "You may qualify for a Domestic Violence Restraining Order"
+    },
+    "DVNotQual": {
+      "type": "info",
+      "text": "If you don't need protection from abuse, you may want to consider other legal options. Let's continue to find the right type of restraining order for your situation."
+    },
+    "DVAlt": {
+      "type": "info",
+      "text": "If the person is not a close family member or intimate partner, you may need a different type of restraining order. Let's continue to find the right option."
+    },
+    "DVMinor": {
+      "type": "info",
+      "text": "If you are under 12, you may need assistance from a parent, guardian, or attorney. Let's continue to explore your options."
+    },
+    "CloseRel": {
+      "type": "decision",
+      "text": "Are they someone you are/were dating, married to, have a child with, or a close family member (parent, sibling, grandparent, in-law)?"
     },
     "ElderAge": {
       "type": "decision",
@@ -58,12 +82,49 @@
   "edges": [
     {
       "from": "TriageRO",
+      "to": "DVCheck1"
+    },
+    {
+      "from": "DVCheck1",
+      "to": "DVCheck2",
+      "when": "Yes"
+    },
+    {
+      "from": "DVCheck1",
+      "to": "DVNotQual",
+      "when": "No"
+    },
+    {
+      "from": "DVCheck2",
+      "to": "DVCheck3",
+      "when": "Yes"
+    },
+    {
+      "from": "DVCheck2",
+      "to": "DVAlt",
+      "when": "No"
+    },
+    {
+      "from": "DVCheck3",
+      "to": "DVROEntry",
+      "when": "Yes"
+    },
+    {
+      "from": "DVCheck3",
+      "to": "DVMinor",
+      "when": "No"
+    },
+    {
+      "from": "DVNotQual",
       "to": "CloseRel"
     },
     {
-      "from": "CloseRel",
-      "to": "DVROEntry",
-      "when": "Yes"
+      "from": "DVAlt",
+      "to": "CloseRel"
+    },
+    {
+      "from": "DVMinor",
+      "to": "CloseRel"
     },
     {
       "from": "CloseRel",
