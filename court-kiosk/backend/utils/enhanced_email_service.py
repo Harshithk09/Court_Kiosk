@@ -676,6 +676,9 @@ Room 101, First Floor | (650) 261-5100
         """
         Send email using Resend API with PDF attachment
         """
+        if not resend:
+            return {"success": False, "error": "Email service (resend) not available"}
+        
         if not Config.RESEND_API_KEY:
             return {"success": False, "error": "Email service not configured"}
         

@@ -1,5 +1,4 @@
 import os
-import resend
 import json
 import tempfile
 import base64
@@ -14,9 +13,14 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from typing import List, Dict, Optional
 from config import Config
 
-# Initialize Resend
-if Config.RESEND_API_KEY:
-    resend.api_key = Config.RESEND_API_KEY
+# Initialize Resend with proper error handling
+try:
+    import resend
+    if Config.RESEND_API_KEY:
+        resend.api_key = Config.RESEND_API_KEY
+except ImportError:
+    resend = None
+    print("Warning: resend package not installed. Email functionality will be limited.")
 
 COURT_DOCUMENTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'court_documents'))
 
@@ -69,6 +73,9 @@ class EmailService:
     def send_case_email(self, case_data: dict, include_queue: bool = False) -> dict:
         """Main method - sends comprehensive case email with PDFs"""
         try:
+            if not resend:
+                return {"success": False, "error": "Email service (resend) not available"}
+            
             if not Config.RESEND_API_KEY:
                 return {"success": False, "error": "Email service not configured"}
             
@@ -78,11 +85,31 @@ class EmailService:
             
             print(f"📧 Preparing email for {user_email}...")
             
+            # Extract all forms from case data (check multiple locations)
+            all_forms = self._extract_forms_data(case_data)
+            
+            # If no forms found in extracted data, try documents_needed directly
+            if not all_forms:
+                all_forms = case_data.get('documents_needed', [])
+            
+            # Normalize forms list - extract form codes from various formats
+            form_codes = []
+            for form in all_forms:
+                if isinstance(form, str):
+                    form_codes.append(form)
+                elif isinstance(form, dict):
+                    form_codes.append(form.get('form_code') or form.get('code') or form.get('name', ''))
+            
+            # Remove duplicates and empty values
+            form_codes = list(set([f.strip().upper() for f in form_codes if f and f.strip()]))
+            
+            print(f"📋 Found {len(form_codes)} forms to attach: {', '.join(form_codes)}")
+            
             # Generate case summary PDF
             case_summary_path = self._generate_case_summary_pdf(case_data)
             
             # Download official forms
-            form_attachments = self._download_forms(case_data.get('documents_needed', []))
+            form_attachments = self._download_forms(form_codes)
             
             # Generate email content
             subject = f"Your Court Case Summary - {case_data.get('queue_number', 'N/A')}"
@@ -101,14 +128,22 @@ class EmailService:
                     })
             
             # Add form PDFs
+            attached_count = 0
             for form_attachment in form_attachments:
                 if os.path.exists(form_attachment['path']):
-                    with open(form_attachment['path'], 'rb') as f:
-                        attachments.append({
-                            'filename': form_attachment['filename'],
-                            'content': base64.b64encode(f.read()).decode('utf-8'),
-                            'type': 'application/pdf'
-                        })
+                    try:
+                        with open(form_attachment['path'], 'rb') as f:
+                            attachments.append({
+                                'filename': form_attachment['filename'],
+                                'content': base64.b64encode(f.read()).decode('utf-8'),
+                                'type': 'application/pdf'
+                            })
+                        attached_count += 1
+                        print(f"✅ Attached form: {form_attachment['filename']}")
+                    except Exception as e:
+                        print(f"⚠️ Error attaching {form_attachment['filename']}: {e}")
+            
+            print(f"📎 Total forms attached: {attached_count} out of {len(form_codes)} requested")
             
             # Send email
             success = self._send_email_with_attachments(user_email, subject, html_content, attachments)
@@ -128,6 +163,14 @@ class EmailService:
     
     def _send_email_with_attachments(self, to_email: str, subject: str, html_content: str, attachments: list = None) -> bool:
         """Send email with attachments using Resend API"""
+        if not resend:
+            print("❌ Resend package not available. Cannot send email.")
+            return False
+            
+        if not Config.RESEND_API_KEY:
+            print("❌ RESEND_API_KEY not configured. Cannot send email.")
+            return False
+            
         try:
             email_data = {
                 "from": self.from_email,
@@ -278,9 +321,9 @@ class EmailService:
     def _extract_forms_data(self, case_data: dict) -> list:
         """Extract forms data from case data with multiple fallbacks"""
         forms_data = []
-        possible_form_keys = ['forms_completed', 'documents_needed', 'forms', 'required_forms']
+        possible_form_keys = ['forms_completed', 'documents_needed', 'forms', 'required_forms', 'forms_list']
         
-        # Check summary_json first
+        # Check summary_json first (most comprehensive source)
         summary_json = case_data.get('summary_json', '{}')
         if isinstance(summary_json, str):
             try:
@@ -290,18 +333,37 @@ class EmailService:
         else:
             summary_data = summary_json
         
-        # Try to find forms in summary_data
+        # Try to find forms in summary_data (check nested structures)
         for key in possible_form_keys:
             if key in summary_data and summary_data[key]:
                 forms_data = summary_data[key]
+                print(f"📋 Found forms in summary_json.{key}: {len(forms_data) if isinstance(forms_data, list) else 'N/A'}")
                 break
+        
+        # Also check if summary_data has a nested structure (e.g., summary.forms)
+        if not forms_data and isinstance(summary_data, dict):
+            # Check nested structures like summary.forms
+            if 'summary' in summary_data and isinstance(summary_data['summary'], dict):
+                for key in possible_form_keys:
+                    if key in summary_data['summary'] and summary_data['summary'][key]:
+                        forms_data = summary_data['summary'][key]
+                        print(f"📋 Found forms in summary_json.summary.{key}: {len(forms_data) if isinstance(forms_data, list) else 'N/A'}")
+                        break
         
         # If not found, check case_data directly
         if not forms_data:
             for key in possible_form_keys:
                 if key in case_data and case_data[key]:
                     forms_data = case_data[key]
+                    print(f"📋 Found forms in case_data.{key}: {len(forms_data) if isinstance(forms_data, list) else 'N/A'}")
                     break
+        
+        # Ensure we return a list
+        if not isinstance(forms_data, list):
+            if forms_data:
+                forms_data = [forms_data]
+            else:
+                forms_data = []
         
         return forms_data
     
@@ -478,15 +540,20 @@ class EmailService:
         attachments = []
 
         if not forms:
+            print("⚠️ No forms provided to download")
             return attachments
 
-        print(f"📦 Downloading {len(forms)} forms...")
+        print(f"📦 Processing {len(forms)} forms for download/attachment...")
 
         for form_code in forms:
             if isinstance(form_code, dict):
                 form_code = form_code.get('form_code', form_code.get('code', ''))
 
             form_code = str(form_code).strip().upper()
+            
+            # Skip empty form codes
+            if not form_code:
+                continue
 
             try:
                 # Prefer packaged PDFs so attachments never fail in offline or blocked environments
@@ -494,7 +561,7 @@ class EmailService:
 
                 if local_form_path and os.path.exists(local_form_path):
                     form_path = local_form_path
-                    print(f"📎 Attaching local copy of {form_code}")
+                    print(f"📎 Using local copy of {form_code}")
                 else:
                     print(f"🔄 Downloading form: {form_code}")
                     form_path = self._download_single_form(form_code)
@@ -505,15 +572,15 @@ class EmailService:
                         'path': form_path,
                         'type': 'official'
                     })
-                    print(f"✅ Downloaded: {form_code}")
+                    print(f"✅ Prepared form for attachment: {form_code}")
                 else:
-                    print(f"⚠️ Could not download: {form_code}")
+                    print(f"⚠️ Could not find or download: {form_code} - form will not be attached")
                     
             except Exception as e:
-                print(f"❌ Error downloading {form_code}: {e}")
+                print(f"❌ Error processing {form_code}: {e}")
                 continue
 
-        print(f"✅ Downloaded {len(attachments)} forms successfully")
+        print(f"✅ Successfully prepared {len(attachments)} out of {len(forms)} forms for attachment")
         return attachments
 
     def _get_local_form_path(self, form_code: str) -> Optional[str]:

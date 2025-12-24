@@ -673,8 +673,8 @@ def get_queue():
             QueueEntry.created_at.asc()
         ).all()
         
-        # Get currently called number
-        current = QueueEntry.query.filter_by(status='called').order_by(QueueEntry.created_at.desc()).first()
+        # Get currently called number (in_progress status)
+        current = QueueEntry.query.filter_by(status='in_progress').order_by(QueueEntry.created_at.desc()).first()
         
         return jsonify({
             'queue': [{
@@ -711,7 +711,7 @@ def call_next():
         # Get next person in queue
         next_entry = QueueEntry.query.filter_by(status='waiting').order_by(
             QueueEntry.priority_level.asc(),
-            QueueEntry.timestamp.asc()
+            QueueEntry.created_at.asc()
         ).first()
         
         if not next_entry:
@@ -1854,28 +1854,42 @@ def get_case_details(queue_number):
         if not queue_entry:
             return jsonify({'error': 'Case not found'}), 404
         
-        # Get case summary if available
+        # Get case summary if available (QueueEntry doesn't have summary_id, but we can search by queue_number)
         case_summary = None
-        if hasattr(queue_entry, 'summary_id') and queue_entry.summary_id:
-            case_summary = CaseSummary.query.get(queue_entry.summary_id)
+        # Try to find case summary by queue number or other identifiers
+        if queue_entry.user_email:
+            case_summary = CaseSummary.query.filter_by(
+                user_email=queue_entry.user_email
+            ).order_by(CaseSummary.created_at.desc()).first()
+        
+        # Parse documents_needed if it's a JSON string
+        documents_needed = []
+        if queue_entry.documents_needed:
+            try:
+                if isinstance(queue_entry.documents_needed, str):
+                    documents_needed = json.loads(queue_entry.documents_needed)
+                else:
+                    documents_needed = queue_entry.documents_needed
+            except:
+                documents_needed = []
         
         # Build comprehensive case details
         case_details = {
             'queue_number': queue_entry.queue_number,
             'case_type': queue_entry.case_type,
-            'priority': queue_entry.priority,
+            'priority': queue_entry.priority_level,
+            'priority_level': queue_entry.priority_level,
             'status': queue_entry.status,
             'language': queue_entry.language,
             'user_name': queue_entry.user_name,
             'user_email': queue_entry.user_email,
             'phone_number': queue_entry.phone_number,
-            'arrived_at': queue_entry.arrived_at.isoformat() if queue_entry.arrived_at else None,
             'created_at': queue_entry.created_at.isoformat() if queue_entry.created_at else None,
             'updated_at': queue_entry.updated_at.isoformat() if queue_entry.updated_at else None,
             'conversation_summary': queue_entry.conversation_summary,
-            'documents_needed': queue_entry.documents_needed,
-            'next_steps': queue_entry.next_steps,
-            'summary_id': queue_entry.summary_id
+            'documents_needed': documents_needed,
+            'current_node': queue_entry.current_node,
+            'estimated_wait_time': queue_entry.estimated_wait_time
         }
         
         # Add enhanced summary data if available
