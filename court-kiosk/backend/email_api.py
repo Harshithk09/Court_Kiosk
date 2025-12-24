@@ -5,13 +5,17 @@ Consolidates all email functionality into clean, focused endpoints
 
 from flask import Blueprint, request, jsonify
 from utils.email_service import EmailService
+from utils.enhanced_email_service import EnhancedEmailService
+from utils.validation import validate_email, validate_phone_number, validate_name
 import logging
+import uuid
 
 # Create blueprint for email routes
 email_bp = Blueprint('email', __name__, url_prefix='/api/email')
 
-# Initialize email service
+# Initialize email services
 email_service = EmailService()
+enhanced_email_service = EnhancedEmailService()
 
 @email_bp.route('/send-case-summary', methods=['POST'])
 def send_case_summary():
@@ -50,10 +54,29 @@ def send_case_summary():
         if not email:
             return jsonify({'error': 'Email address is required'}), 400
         
+        # Validate email format
+        email_result = validate_email(email)
+        if not email_result['valid']:
+            return jsonify({'error': f'Invalid email: {email_result["error"]}'}), 400
+        email = email_result['email']  # Use normalized email
+        
         if not case_data:
             return jsonify({'error': 'Case data is required'}), 400
         
-        # Ensure email is in case_data
+        # Validate optional fields in case_data
+        if 'user_name' in case_data and case_data['user_name']:
+            name_result = validate_name(case_data['user_name'])
+            if not name_result['valid']:
+                return jsonify({'error': f'Invalid name: {name_result["error"]}'}), 400
+            case_data['user_name'] = name_result['sanitized']
+        
+        if 'phone_number' in case_data and case_data['phone_number']:
+            phone_result = validate_phone_number(case_data['phone_number'])
+            if not phone_result['valid']:
+                return jsonify({'error': f'Invalid phone number: {phone_result["error"]}'}), 400
+            case_data['phone_number'] = phone_result['formatted']
+        
+        # Ensure email is in case_data (use validated email)
         case_data['user_email'] = email
         
         # Check if queue information should be included
@@ -229,4 +252,63 @@ def email_health():
         return jsonify({
             'status': 'unhealthy',
             'error': str(e)
+        }), 500
+
+@email_bp.route('/send-case-summary-enhanced', methods=['POST'])
+def send_case_summary_enhanced():
+    """
+    Enhanced email endpoint following pseudocode structure
+    Complete 8-step email chain with AI-powered summaries
+    
+    Expected payload:
+    {
+        "user_session_id": "session_123",
+        "case_responses": {
+            "user_name": "John Doe",
+            "user_email": "john@example.com",
+            "phone_number": "(555) 123-4567",
+            "case_type": "DVRO",
+            "DVCheck1": "Yes",
+            "children": "yes",
+            ...
+        },
+        "queue_number": "A001"  // Optional
+    }
+    """
+    try:
+        if not request.json:
+            return jsonify({'success': False, 'error': 'No JSON data provided'}), 400
+        
+        # Extract data
+        user_session_id = request.json.get('user_session_id') or str(uuid.uuid4())
+        case_responses = request.json.get('case_responses', {})
+        queue_number = request.json.get('queue_number')
+        
+        # Validate inputs
+        if not case_responses:
+            return jsonify({
+                'success': False,
+                'error': 'Missing case_responses'
+            }), 400
+        
+        # Execute enhanced email chain
+        result = enhanced_email_service.send_complete_case_summary_email(
+            user_session_id=user_session_id,
+            case_responses=case_responses,
+            queue_number=queue_number
+        )
+        
+        # Return response
+        if result.get('success'):
+            return jsonify(result), 200
+        else:
+            status_code = 400 if result.get('error') == 'validation_error' else 500
+            return jsonify(result), status_code
+            
+    except Exception as e:
+        logging.error(f"Error in send_case_summary_enhanced: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'server_error',
+            'message': str(e)
         }), 500

@@ -1,0 +1,324 @@
+{
+  "id": "elder-abuse-flow",
+  "version": "2025-12-23",
+  "start": "EA_Start",
+  "metadata": {
+    "title": "Elder or Dependent Adult Abuse Restraining Order",
+    "jurisdiction": "CA",
+    "source": "San Mateo County Court Mermaid diagram (Restraining Orders-2025-12-23-013154.mmd)",
+    "flow_family": "Restraining Orders",
+    "description": "Complete flow for Elder or Dependent Adult Abuse Restraining Orders"
+  },
+  "nodes": {
+    "EA0": {
+      "type": "terminal",
+      "text": "Elder or Dependent Adult Abuse Restraining Order"
+    },
+    "EA1": {
+      "type": "process",
+      "text": "A judge can grant this restraining order to protect someone who is elderly (65 or older) or a dependent adult (18–64 with a disability) from abuse, neglect, abandonment, or harassment. Once granted, police can enforce the order."
+    },
+    "EA2": {
+      "type": "info",
+      "text": "This restraining order can include:\n• No contact\n• Stay a certain distance away\n• Move out (if the person lives with the protected person)\n• Counseling or anger management\n• Cannot own or have firearms, ammunition, or body armor\n    • Other protections ordered by the judge"
+    },
+    "EA3": {
+      "type": "decision",
+      "text": "Who can ask for this restraining order?"
+    },
+    "EA4": {
+      "type": "process",
+      "text": "• The elder or dependent adult (for themself)\n• The elder/dependent adult’s conservator or trustee\n• Their attorney or guardian ad litem\n    • A representative of Adult Protective Services (APS)"
+    },
+    "EA5": {
+      "type": "process",
+      "text": "Where to file in San Mateo County"
+    },
+    "EA6": {
+      "type": "process",
+      "text": "These cases are handled by the Probate Department.\n    If the person needing protection is 65 or older, the case is filed in Probate."
+    },
+    "EA_Start": {
+      "type": "start",
+      "text": "Start an Elder or Dependent Adult Abuse Restraining Order"
+    },
+    "EA_Step1": {
+      "type": "process",
+      "text": "Step 1: Fill out the required court forms"
+    },
+    "EA_Forms": {
+      "type": "process",
+      "text": "Required forms:\n• EA-100 — Request for Elder or Dependent Adult Abuse Restraining Orders\n• CLETS-001 — Confidential CLETS Information\n• EA-109 — Notice of Court Hearing\n    • EA-110 — Temporary Restraining Order (ONLY if asking for immediate protection)"
+    },
+    "EA_NoFee": {
+      "type": "process",
+      "text": "There is no court filing fee to request an Elder or Dependent Adult Abuse Restraining Order."
+    },
+    "EA_Step2": {
+      "type": "process",
+      "text": "Step 2: Make copies"
+    },
+    "EA_Copies": {
+      "type": "process",
+      "text": "Make at least 2 copies of everything:\n• One for you\n• One for the restrained person\n    The original is for the court."
+    },
+    "EA_Step3": {
+      "type": "process",
+      "text": "Step 3: Take your paperwork to the Probate Clerk’s Office"
+    },
+    "EA_JudgeReview": {
+      "type": "process",
+      "text": "The clerk will send your paperwork to a judge for review.\nIf the judge grants temporary orders, the judge will:\n• Sign EA-110 (if requested)\n    • Set a hearing date on EA-109"
+    },
+    "EA_Step4": {
+      "type": "process",
+      "text": "Step 4: Serve the restrained person"
+    },
+    "EA_Service": {
+      "type": "warning",
+      "text": "Service rules:\n• Someone over 18 (not you) must serve the papers\n• The San Mateo County Sheriff will attempt service of process for restraining orders free of charge\n    • Sheriff’s Office: 300 Bradford Street, 1st Floor, Redwood City, CA"
+    },
+    "EA_Step5": {
+      "type": "process",
+      "text": "Step 5: Go to court on the hearing date listed on EA-109"
+    },
+    "EA_AfterHearing": {
+      "type": "terminal",
+      "text": "If the judge grants the restraining order after the hearing, the long-term order is issued on:\n    • EA-130 — Elder or Dependent Adult Abuse Restraining Order After Hearing"
+    },
+    "EA_Read": {
+      "type": "process",
+      "text": "If someone filed court papers asking for an Elder or Dependent Adult Abuse restraining order against you, carefully read all the papers you were served."
+    },
+    "EA_Respond": {
+      "type": "process",
+      "text": "Respond to an Elder or Dependent Adult Abuse Restraining Order (If You Were Served)"
+    },
+    "EA_Check109": {
+      "type": "process",
+      "text": "Check EA-109 (Notice of Court Hearing). This form lists your court date, time, and location."
+    },
+    "EA_CourtNeeded": {
+      "type": "warning",
+      "text": "If you do not agree with the restraining order, you must go to court.\n    At the hearing, the judge decides whether to issue an order that can last up to 5 years."
+    },
+    "EA_Check110": {
+      "type": "decision",
+      "text": "Did the judge sign EA-110 (Temporary Restraining Order)?"
+    },
+    "EA_ObeyTRO": {
+      "type": "warning",
+      "text": "You must follow every order in EA-110 immediately.\n    If you do not, you could be arrested and charged with a crime."
+    },
+    "EA_ResponseOpt": {
+      "type": "decision",
+      "text": "Would you like to respond in writing before court? This is optional."
+    },
+    "EA120": {
+      "type": "process",
+      "text": "Fill out EA-120 — Response to Request for Elder or Dependent Adult Abuse Restraining Order.\n    Attach any evidence you want the judge to review (texts, emails, photos)."
+    },
+    "EA_PrepCourt": {
+      "type": "process",
+      "text": "Prepare for court:\nBring copies of all papers, your evidence, and notes of what you want to say.\n    Arrive early."
+    },
+    "EA_ServeResp": {
+      "type": "process",
+      "text": "Have someone 18+ (not you) serve your response as required.\n    File proof of service with the court before the hearing."
+    },
+    "EA_GoCourt": {
+      "type": "process",
+      "text": "Go to court on the date listed in EA-109."
+    },
+    "EA_RenewCheck": {
+      "type": "decision",
+      "text": "Do you already have EA-130 and it is going to expire?"
+    },
+    "EA_Renew": {
+      "type": "process",
+      "text": "Renew an Elder or Dependent Adult Abuse Restraining Order"
+    },
+    "EA_RenewWindow": {
+      "type": "process",
+      "text": "You can ask to renew the restraining order up to 3 months before the expiration date listed on EA-130 (page 1, item 4)."
+    },
+    "EA_RenewStep1": {
+      "type": "process",
+      "text": "Step 1: Fill out renewal forms"
+    },
+    "EA_RenewForms": {
+      "type": "process",
+      "text": "Required renewal forms:\n• EA-700 — Request to Renew Restraining Order\n• EA-710 — Notice of Hearing to Renew Restraining Order\n    Attach a copy of your current EA-130 to EA-700."
+    },
+    "EA_RenewCopies": {
+      "type": "process",
+      "text": "Make at least 2 copies (one for you, one for the restrained person)."
+    },
+    "EA_RenewFile": {
+      "type": "process",
+      "text": "Step 2: Take your paperwork to the Probate Clerk.\nThe clerk will file the papers and set a hearing date on EA-710.\n    Your current restraining order is extended until that hearing date."
+    },
+    "EA_RenewServe": {
+      "type": "process",
+      "text": "Step 3: Serve the restrained person with the renewal papers.\nSheriff service is free in San Mateo County:\n    300 Bradford Street, 1st Floor, Redwood City, CA"
+    },
+    "EA_RenewCourt": {
+      "type": "process",
+      "text": "Step 4: Go to court on the date listed in EA-710.\n    The judge decides whether to renew the restraining order."
+    }
+  },
+  "edges": [
+    {
+      "from": "EA1",
+      "to": "EA2"
+    },
+    {
+      "from": "EA2",
+      "to": "EA3"
+    },
+    {
+      "from": "EA3",
+      "to": "EA4"
+    },
+    {
+      "from": "EA4",
+      "to": "EA5"
+    },
+    {
+      "from": "EA5",
+      "to": "EA6"
+    },
+    {
+      "from": "EA6",
+      "to": "EA_Start"
+    },
+    {
+      "from": "EA_Start",
+      "to": "EA_Step1"
+    },
+    {
+      "from": "EA_Step1",
+      "to": "EA_Forms"
+    },
+    {
+      "from": "EA_Forms",
+      "to": "EA_NoFee"
+    },
+    {
+      "from": "EA_NoFee",
+      "to": "EA_Step2"
+    },
+    {
+      "from": "EA_Step2",
+      "to": "EA_Copies"
+    },
+    {
+      "from": "EA_Copies",
+      "to": "EA_Step3"
+    },
+    {
+      "from": "EA_Step3",
+      "to": "EA_JudgeReview"
+    },
+    {
+      "from": "EA_JudgeReview",
+      "to": "EA_Step4"
+    },
+    {
+      "from": "EA_Step4",
+      "to": "EA_Service"
+    },
+    {
+      "from": "EA_Service",
+      "to": "EA_Step5"
+    },
+    {
+      "from": "EA_Step5",
+      "to": "EA_AfterHearing"
+    },
+    {
+      "from": "EA_Respond",
+      "to": "EA_Read"
+    },
+    {
+      "from": "EA_Read",
+      "to": "EA_Check109"
+    },
+    {
+      "from": "EA_Check109",
+      "to": "EA_CourtNeeded"
+    },
+    {
+      "from": "EA_CourtNeeded",
+      "to": "EA_Check110"
+    },
+    {
+      "from": "EA_Check110",
+      "to": "EA_ObeyTRO",
+      "when": "Yes"
+    },
+    {
+      "from": "EA_Check110",
+      "to": "EA_ResponseOpt",
+      "when": "No"
+    },
+    {
+      "from": "EA_ObeyTRO",
+      "to": "EA_ResponseOpt"
+    },
+    {
+      "from": "EA_ResponseOpt",
+      "to": "EA120",
+      "when": "Yes"
+    },
+    {
+      "from": "EA_ResponseOpt",
+      "to": "EA_PrepCourt",
+      "when": "No"
+    },
+    {
+      "from": "EA120",
+      "to": "EA_ServeResp"
+    },
+    {
+      "from": "EA_ServeResp",
+      "to": "EA_PrepCourt"
+    },
+    {
+      "from": "EA_PrepCourt",
+      "to": "EA_GoCourt"
+    },
+    {
+      "from": "EA_Renew",
+      "to": "EA_RenewCheck"
+    },
+    {
+      "from": "EA_RenewCheck",
+      "to": "EA_RenewWindow"
+    },
+    {
+      "from": "EA_RenewWindow",
+      "to": "EA_RenewStep1"
+    },
+    {
+      "from": "EA_RenewStep1",
+      "to": "EA_RenewForms"
+    },
+    {
+      "from": "EA_RenewForms",
+      "to": "EA_RenewCopies"
+    },
+    {
+      "from": "EA_RenewCopies",
+      "to": "EA_RenewFile"
+    },
+    {
+      "from": "EA_RenewFile",
+      "to": "EA_RenewServe"
+    },
+    {
+      "from": "EA_RenewServe",
+      "to": "EA_RenewCourt"
+    }
+  ]
+}

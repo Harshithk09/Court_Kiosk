@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { addToQueue } from '../utils/queueAPI';
 import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
+import { getFormUrl, getLocalFormUrl, getOfficialFormUrl } from '../utils/formUtils';
+import { useToast } from './Toast';
 
 const CASE_TYPE_CONFIG = {
   DVRO: {
@@ -148,6 +150,7 @@ const CASE_TYPE_NEXT_STEPS = {
 };
 
 const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) => {
+  const toast = useToast();
   const [selectedOption, setSelectedOption] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -461,60 +464,92 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
       if (data.success) {
         setQueueNumber(data.queue_number);
         setIsInQueue(true);
-        console.log('Added to queue:', data);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Added to queue:', data);
+        }
+        toast.success('Successfully added to queue!');
       } else {
-        console.error('Failed to add to queue:', data);
-        alert('Failed to add to queue. Please try again.');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to add to queue:', data);
+        }
+        toast.error('Failed to add to queue. Please try again.');
       }
     } catch (error) {
-      console.error('Error adding to queue:', error);
-      alert('Error adding to queue. Please try again.');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error adding to queue:', error);
+      }
+      toast.error('Error adding to queue. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Email validation helper
+  const validateEmailFormat = (email) => {
+    if (!email) return false;
+    // Basic email regex validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
+
   const handleEmailRequest = async () => {
+    // Validate email before sending with proper format check
+    if (!email || !validateEmailFormat(email)) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
-      console.log('📧 Sending email request...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📧 Sending email request...');
+      }
 
-      // ===== FIXED: Send data in correct format =====
+      // Prepare forms list - extract form codes from summary.forms
+      const documentsNeeded = summary.forms.map(form => {
+        if (typeof form === 'string') return form;
+        return form.form_code || form.title || form;
+      });
+
+      // Prepare next steps as array of strings
+      const nextStepsArray = summary.nextSteps.map(step => {
+        if (typeof step === 'string') return step;
+        return `${step.action || ''} - ${step.details || ''}`.trim();
+      });
+
+      // Build case_data payload matching backend expectations
+      const caseData = {
+        user_email: email.trim(),
+        user_name: 'Court Kiosk User',
+        case_type: caseTypeCode,
+        case_type_label: caseTypeLabel,
+        priority_level: caseTypeConfig.priority || 'A',
+        language: 'en',
+        queue_number: queueNumber || 'N/A',
+        phone_number: phoneNumber || null,
+        location: 'San Mateo County Superior Court Kiosk',
+        session_id: summary.header.session_id,
+        documents_needed: documentsNeeded,
+        next_steps: nextStepsArray,
+        conversation_summary: JSON.stringify({
+          case_type: caseTypeLabel,
+          forms: summary.forms,
+          key_answers: summary.keyAnswers,
+          next_steps: summary.nextSteps,
+          resources: summary.resources
+        }),
+        summary_json: JSON.stringify(summary)
+      };
+
+      // Build email payload matching backend API structure
       const emailPayload = {
-          email: email,
-          case_data: {
-          user_email: email,
-          user_name: 'Court Kiosk User',
-
-          case_type: caseTypeCode,
-          case_type_label: caseTypeLabel,
-          priority_level: caseTypeConfig.priority || 'A',
-          language: 'en',
-          queue_number: queueNumber || 'N/A',
-          phone_number: phoneNumber || null,
-          location: 'San Mateo County Superior Court Kiosk',
-          session_id: summary.header.session_id,
-
-          // CRITICAL: Send at root level, not nested
-          forms_completed: summary.forms || [],
-          documents_needed: summary.forms || [],
-          next_steps: summary.nextSteps || [],
-          nextSteps: summary.nextSteps || [],
-          download_links: downloadLinks,
-          packet_url: packetUrl,
-          forms_library_url: formsLibraryUrl,
-
-          // Also send full summary
-          summary_json: JSON.stringify(summary),
-          conversation_summary: summary,
-          resources: summary.resources,
-
-          // Admin data for staff assistance
-          admin_data: adminData || null
-        }
+        email: email.trim(),
+        case_data: caseData
       };
       
-      console.log('📧 Sending:', emailPayload);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📧 Sending email payload:', emailPayload);
+      }
       
       const response = await fetch(buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL), {
         method: 'POST',
@@ -530,13 +565,15 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
       const result = await response.json();
       
       if (result.success) {
-        alert('✅ Case summary email sent successfully! Check your inbox.');
+        toast.success('Case summary email sent successfully! Check your inbox.');
       } else {
-        alert('❌ Failed to send email: ' + (result.error || 'Unknown error'));
+        toast.error('Failed to send email: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('❌ Error:', error);
-      alert('❌ Error sending email: ' + error.message);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error sending email:', error);
+      }
+      toast.error('Error sending email: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -616,12 +653,57 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
                   Forms Completed
                 </h2>
                 <div className="space-y-2">
-                  {summary.forms.map((form, index) => (
-                    <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <div className="font-medium text-blue-900">{form.form_code}</div>
-                      <div className="text-sm text-blue-700">{form.title}</div>
-                    </div>
-                  ))}
+                  {summary.forms.map((form, index) => {
+                    const formCode = form.form_code || form;
+                    const formTitle = form.title || form;
+                    // Get local form URL (from court_documents folder)
+                    const formUrl = getLocalFormUrl(formCode);
+                    // Also get the official URL as fallback
+                    const officialUrl = getOfficialFormUrl(formCode);
+                    
+                    return (
+                      <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium text-blue-900">{formCode}</div>
+                            <div className="text-sm text-blue-700">{formTitle}</div>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-4">
+                            <a
+                              href={formUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                              onClick={async (e) => {
+                                // Try to verify local form exists, fallback to official URL if needed
+                                try {
+                                  const checkResponse = await fetch(formUrl, { method: 'HEAD' });
+                                  if (!checkResponse.ok) {
+                                    e.preventDefault();
+                                    window.open(officialUrl, '_blank');
+                                  }
+                                } catch (error) {
+                                  // If local form fails, use official URL
+                                  e.preventDefault();
+                                  window.open(officialUrl, '_blank');
+                                }
+                              }}
+                            >
+                              Download PDF
+                            </a>
+                            <a
+                              href={officialUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
+                            >
+                              Official Link
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -712,7 +794,7 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
                 {summary?.header?.case_type?.toLowerCase?.().includes('violence') && (
                   <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-3">
                     <a
-                      href="/api/documents/dvro-packet-91624.pdf"
+                      href={buildApiUrl('/api/documents/dvro_packet.pdf')}
                       className="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
                       target="_blank" rel="noopener noreferrer"
                     >

@@ -1,6 +1,9 @@
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-CORS==4.0.0
+Flask-SocketIO==5.3.5
+python-socketio==5.10.0
+eventlet==0.40.4
 openai==0.28.1
 python-dotenv==1.0.0
 Werkzeug==2.3.7
@@ -11,3 +14,4 @@ requests==2.31.0
 marshmallow==3.20.1
 flask-limiter==3.5.0
 gunicorn==21.2.0 # Force new deployment Fri Oct 17 14:08:33 PDT 2025
+bleach==6.1.0  # For HTML sanitization in input validation

@@ -42,8 +42,15 @@ class QueueManager:
                 flowchart_file="dv_flow_combined.json",
                 is_active=True
             )
-            db.session.add(case_info)
-            db.session.commit()
+            try:
+                db.session.add(case_info)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to create case type {case_type}: {e}")
+                raise
         
         priority_level = case_info.priority_level
         queue_number = self.generate_queue_number(priority_level, case_type)
@@ -89,28 +96,37 @@ class QueueManager:
         
         print(f"Created queue entry: {queue_entry.queue_number}")
         
-        db.session.add(queue_entry)
-        db.session.commit()
-        
-        # Record initial progress if history provided
-        if history and isinstance(history, list):
-            for node_id in history:
-                progress = FlowProgress(
-                    queue_entry_id=queue_entry.id,
-                    node_id=node_id,
-                    node_text=f"Completed step: {node_id}",
-                    user_response=None
-                )
-                db.session.add(progress)
+        # Create queue entry with proper transaction handling
+        try:
+            db.session.add(queue_entry)
+            db.session.flush()  # Get ID without committing
             
-            # Update current node to last completed step
-            if history:
-                queue_entry.current_node = history[-1]
-                db.session.commit()
-        
-        print(f"Queue entry saved to database: {queue_entry.queue_number}")
-        
-        return queue_entry
+            # Record initial progress if history provided (same transaction)
+            if history and isinstance(history, list):
+                for node_id in history:
+                    progress = FlowProgress(
+                        queue_entry_id=queue_entry.id,
+                        node_id=node_id,
+                        node_text=f"Completed step: {node_id}",
+                        user_response=None
+                    )
+                    db.session.add(progress)
+                
+                # Update current node to last completed step
+                if history:
+                    queue_entry.current_node = history[-1]
+            
+            # Commit all at once
+            db.session.commit()
+            
+            print(f"Queue entry saved to database: {queue_entry.queue_number}")
+            return queue_entry
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to add queue entry: {e}")
+            raise
     
     def get_next_priority_number(self, priority_level):
         """Get the next sequential number for a priority level"""
@@ -182,10 +198,16 @@ class QueueManager:
             user_response=user_response
         )
         
-        db.session.add(progress)
-        db.session.commit()
-        
-        return queue_entry
+        try:
+            db.session.add(progress)
+            db.session.commit()
+            return queue_entry
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to update progress for queue {queue_number}: {e}")
+            raise
     
     def generate_summary(self, queue_number):
         """Generate a summary of the user's progress for facilitators"""
@@ -233,10 +255,16 @@ class QueueManager:
             summary = f"Error generating summary: {str(e)}"
         
         # Update queue entry with summary
-        queue_entry.conversation_summary = summary
-        db.session.commit()
-        
-        return summary
+        try:
+            queue_entry.conversation_summary = summary
+            db.session.commit()
+            return summary
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to update summary for queue {queue_number}: {e}")
+            raise
     
     def assign_to_facilitator(self, queue_number, facilitator_id=None):
         """Assign a case to a facilitator for review"""
@@ -254,15 +282,21 @@ class QueueManager:
             facilitator_case = FacilitatorCase(queue_entry_id=queue_entry.id)
             db.session.add(facilitator_case)
         
-        if facilitator_id:
-            facilitator_case.facilitator_id = facilitator_id
-            facilitator_case.status = 'assigned'
-        else:
-            facilitator_case.status = 'pending'
-        
-        db.session.commit()
-        
-        return facilitator_case
+        try:
+            if facilitator_id:
+                facilitator_case.facilitator_id = facilitator_id
+                facilitator_case.status = 'assigned'
+            else:
+                facilitator_case.status = 'pending'
+            
+            db.session.commit()
+            return facilitator_case
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to assign case {queue_number} to facilitator: {e}")
+            raise
     
     def get_next_case(self, facilitator_id=None):
         """Get the next case in the queue for a facilitator"""
@@ -273,12 +307,25 @@ class QueueManager:
         ).first()
         
         if next_case:
-            next_case.status = 'in_progress'
-            db.session.commit()
-            
-            # Assign to facilitator if specified
-            if facilitator_id:
-                self.assign_to_facilitator(next_case.queue_number, facilitator_id)
+            try:
+                next_case.status = 'in_progress'
+                db.session.commit()
+                
+                # Assign to facilitator if specified (non-transactional)
+                if facilitator_id:
+                    try:
+                        self.assign_to_facilitator(next_case.queue_number, facilitator_id)
+                    except Exception as assign_error:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Failed to assign to facilitator: {assign_error}")
+                        # Status update still succeeded
+            except Exception as e:
+                db.session.rollback()
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to update case status: {e}")
+                raise
         
         return next_case
     
@@ -286,8 +333,15 @@ class QueueManager:
         """Mark a case as completed"""
         queue_entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
         if queue_entry:
-            queue_entry.status = 'completed'
-            queue_entry.updated_at = datetime.utcnow()
-            db.session.commit()
+            try:
+                queue_entry.status = 'completed'
+                queue_entry.updated_at = datetime.utcnow()
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to complete case {queue_number}: {e}")
+                raise
         
         return queue_entry

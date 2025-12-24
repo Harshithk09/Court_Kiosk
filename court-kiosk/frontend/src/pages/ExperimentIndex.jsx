@@ -21,17 +21,6 @@ const caseTypes = [
     path: "/dvro",
   },
   {
-    title: { en: "Child Custody & Support", es: "Custodia y Manutención" },
-    description: { 
-      en: "Child custody arrangements, support calculations, and visitation rights. Protecting children's best interests.",
-      es: "Arreglos de custodia de menores, cálculos de manutención y derechos de visita. Protegiendo el mejor interés de los niños."
-    },
-    icon: Heart,
-    priority: "PRIORITY B",
-    colorScheme: "child-custody",
-    path: "/custody",
-  },
-  {
     title: { en: "Divorce & Separation", es: "Divorcio y Separación" },
     description: { 
       en: "Divorce proceedings, legal separation, serving papers, and next steps. Guided process for life transitions.",
@@ -43,10 +32,21 @@ const caseTypes = [
     path: "/divorce",
   },
   {
-    title: { en: "Other Family Law", es: "Otro Derecho de Familia" },
+    title: { en: "Child Custody & Support", es: "Custodia y Manutención" },
     description: { 
-      en: "Parentage, guardianship, name changes, adoption, and other family legal matters. Comprehensive support.",
-      es: "Paternidad, tutela, cambios de nombre, adopción y otros asuntos legales familiares. Apoyo integral."
+      en: "Child custody arrangements, support calculations, and visitation rights. Protecting children's best interests.",
+      es: "Arreglos de custodia de menores, cálculos de manutención y derechos de visita. Protegiendo el mejor interés de los niños."
+    },
+    icon: Heart,
+    priority: "PRIORITY B",
+    colorScheme: "child-custody",
+    path: "/custody",
+  },
+  {
+    title: { en: "Other Family Court Issues", es: "Otros Asuntos del Tribunal de Familia" },
+    description: { 
+      en: "Parentage, guardianship, name changes, civil harassment, elder abuse, workplace violence, and other family legal matters.",
+      es: "Paternidad, tutela, cambios de nombre, acoso civil, abuso de ancianos, violencia en el lugar de trabajo y otros asuntos legales familiares."
     },
     icon: Users,
     priority: "PRIORITY D",

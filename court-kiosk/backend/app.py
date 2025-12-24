@@ -2,24 +2,21 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
 import json
 import os
-import openai
 import random
 import logging
-from email.mime.base import MIMEBase
-from email import encoders
 from utils.llm_service import LLMService
 from utils.email_service import EmailService
 from utils.case_summary_service import CaseSummaryService
 from utils.auth_service import AuthService
+from utils.validation import validate_email, validate_phone_number, validate_name, validate_queue_request, validate_email_request
+from utils.error_handling import ErrorResponse, log_error_detailed, handle_database_error, handle_email_error
 from email_api import email_bp
 from config import Config
-from models import db, QueueEntry, User, UserSession, AuditLog, CaseSummary
+from models import db, QueueEntry, User, UserSession, AuditLog, CaseSummary, CaseType
 from validation_schemas import (
     validate_request_data, AskQuestionSchema, SubmitSessionSchema, 
     GenerateQueueSchema, DVRORAGSchema, CallNextSchema, CompleteCaseSchema,
@@ -27,6 +24,12 @@ from validation_schemas import (
 )
 
 app = Flask(__name__)
+# Use eventlet for better async performance (falls back to threading if eventlet not available)
+try:
+    import eventlet
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+except ImportError:
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 COURT_DOCUMENTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'court_documents'))
 
@@ -84,18 +87,6 @@ db.init_app(app)
 
 # Validate required API keys
 Config.validate_required_keys()
-
-# OpenAI client with better error handling and compatibility (for older version 0.28.1)
-if not Config.OPENAI_API_KEY:
-    print("Warning: OPENAI_API_KEY environment variable is not set. Some features may not work.")
-    client = None
-else:
-    try:
-        openai.api_key = Config.OPENAI_API_KEY
-        client = openai
-    except Exception as e:
-        print(f"Warning: Could not initialize OpenAI client: {e}")
-        client = None
 
 # Initialize services
 llm_service = LLMService(Config.OPENAI_API_KEY)
@@ -268,7 +259,8 @@ def get_document_suggestions(message_content, language='en'):
     return list(set(suggested_docs))
 
 def generate_llm_response(user_message, conversation_history, language='en', system_prompt=None):
-    if client is None:
+    """Generate LLM response using LLMService"""
+    if not llm_service or not llm_service.client:
         return "I'm sorry, the AI assistant is currently unavailable. Please consult with court staff for assistance."
     
     if system_prompt:
@@ -277,7 +269,7 @@ def generate_llm_response(user_message, conversation_history, language='en', sys
         system_prompt = SYSTEM_PROMPTS.get(language, SYSTEM_PROMPTS['en'])
     
     try:
-        response = client.chat.completions.create(
+        response = llm_service.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -286,29 +278,27 @@ def generate_llm_response(user_message, conversation_history, language='en', sys
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error generating AI response: {e}")
+        logger.error(f"Error generating AI response: {e}")
         return "I'm sorry, I'm unable to process your request at this time. Please consult with court staff for assistance."
 
 def send_summary_email(to_address, subject, body):
-    if not all([Config.EMAIL_HOST, Config.EMAIL_PORT, Config.EMAIL_USER, Config.EMAIL_PASS]):
-        print("Email configuration is missing. Skipping email.")
-        return False
-    
-    msg = MIMEMultipart()
-    msg['From'] = Config.EMAIL_USER
-    msg['To'] = to_address
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
-    
+    """Legacy email function - use EmailService instead"""
+    # Use the modern email service instead of SMTP
     try:
-        with smtplib.SMTP(Config.EMAIL_HOST, Config.EMAIL_PORT) as server:
-            server.starttls()
-            server.login(Config.EMAIL_USER, Config.EMAIL_PASS)
-            server.send_message(msg)
-            print(f"Email sent successfully to {to_address}")
-            return True
+        case_data = {
+            'user_email': to_address,
+            'user_name': 'Court Kiosk User',
+            'case_type': 'DVRO',
+            'priority_level': 'A',
+            'language': 'en',
+            'documents_needed': [],
+            'next_steps': [],
+            'conversation_summary': body
+        }
+        result = email_service.send_case_email(case_data)
+        return result.get('success', False)
     except Exception as e:
-        print(f"Failed to send email to {to_address}: {e}")
+        logger.error(f"Failed to send email to {to_address}: {e}")
         return False
 
 @app.route('/api/ask', methods=['POST'])
@@ -355,31 +345,65 @@ def api_submit_session():
         
         logger.info(f"Session submission: {user_email}, case: {case_number}")
         
-        # Save to DB
-        session = KioskSession(
-            user_email=user_email,
-            case_number=case_number,
-            conversation_summary=summary,
-            language=language,
-            documents_suggested=json.dumps(documents)
-        )
-        db.session.add(session)
-        db.session.commit()
+        # Save to DB with proper transaction handling
+        try:
+            session = KioskSession(
+                user_email=user_email,
+                case_number=case_number,
+                conversation_summary=summary,
+                language=language,
+                documents_suggested=json.dumps(documents)
+            )
+            db.session.add(session)
+            db.session.commit()
+            
+            # Email user and facilitator AFTER successful commit
+            # These are non-transactional operations, so failures don't affect DB
+            try:
+                subject = f"Court Kiosk Summary (Case: {case_number or 'N/A'})"
+                doc_list = '\n'.join(documents)
+                body = f"Summary of your session:\n\n{summary}\n\nRecommended documents:\n{doc_list}"
+                
+                send_summary_email(user_email, subject, body)
+                if Config.FACILITATOR_EMAIL:
+                    send_summary_email(Config.FACILITATOR_EMAIL, subject, body)
+            except Exception as email_error:
+                # Email failed but session is saved - log it
+                logger.error(
+                    f"Email failed for session {session.id}: {str(email_error)}",
+                    exc_info=True,
+                    extra={
+                        'session_id': session.id,
+                        'user_email': user_email,
+                        'error_type': type(email_error).__name__
+                    }
+                )
+                # Session is still created successfully
         
-        # Email user and facilitator
-        subject = f"Court Kiosk Summary (Case: {case_number or 'N/A'})"
-        doc_list = '\n'.join(documents)
-        body = f"Summary of your session:\n\n{summary}\n\nRecommended documents:\n{doc_list}"
-        
-        send_summary_email(user_email, subject, body)
-        if Config.FACILITATOR_EMAIL:
-            send_summary_email(Config.FACILITATOR_EMAIL, subject, body)
-        
-        return jsonify({'status': 'success'})
+            return jsonify({'status': 'success'})
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(
+                f"Database error in /api/submit-session: {str(db_error)}",
+                exc_info=True,
+                extra={
+                    'endpoint': '/api/submit-session',
+                    'user_email': user_email,
+                    'error_type': type(db_error).__name__
+                }
+            )
+            raise  # Re-raise to be caught by outer except
     
     except Exception as e:
-        logger.error(f"Error in /api/submit-session: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in /api/submit-session",
+            extra_data={
+                'endpoint': '/api/submit-session',
+                'user_email': user_email if 'user_email' in locals() else None
+            }
+        )
+        return ErrorResponse.internal_error("An error occurred processing your session")
 
 @app.route('/api/qna', methods=['POST'])
 def api_qna():
@@ -552,6 +576,25 @@ def generate_queue():
         user_email = validated_data.get('user_email')
         phone_number = validated_data.get('phone_number')
 
+        # Additional validation for optional fields
+        if user_email:
+            email_result = validate_email(user_email)
+            if not email_result['valid']:
+                return jsonify({'error': f'Invalid email: {email_result["error"]}'}), 400
+            user_email = email_result['email']  # Use normalized email
+        
+        if phone_number:
+            phone_result = validate_phone_number(phone_number)
+            if not phone_result['valid']:
+                return jsonify({'error': f'Invalid phone number: {phone_result["error"]}'}), 400
+            phone_number = phone_result['formatted']  # Use formatted phone
+        
+        if user_name:
+            name_result = validate_name(user_name)
+            if not name_result['valid']:
+                return jsonify({'error': f'Invalid name: {name_result["error"]}'}), 400
+            user_name = name_result['sanitized']  # Use sanitized name
+
         logger.info(f"Queue generation request: {case_type}, priority: {priority}, user: {user_email}")
 
         # Generate queue number based on priority level (format: A001, B001, C001, etc.)
@@ -568,26 +611,58 @@ def generate_queue():
         queue_number = f"{priority}{new_num:03d}"
         
         # Create queue entry using the correct field names
-        entry = QueueEntry(
-            queue_number=queue_number,
-            case_type=case_type,
-            priority_level=priority,
-            priority_number=new_num,
-            language=language,
-            status='waiting',
-            user_name=user_name,
-            user_email=user_email,
-            phone_number=phone_number
-        )
-        db.session.add(entry)
-        db.session.commit()
-        
-        logger.info(f"Queue number generated: {queue_number}")
-        return jsonify({'queue_number': queue_number})
+        try:
+            entry = QueueEntry(
+                queue_number=queue_number,
+                case_type=case_type,
+                priority_level=priority,
+                priority_number=new_num,
+                language=language,
+                status='waiting',
+                user_name=user_name,
+                user_email=user_email,
+                phone_number=phone_number
+            )
+            db.session.add(entry)
+            db.session.commit()
+            
+            logger.info(f"Queue number generated: {queue_number}")
+            
+            # Non-transactional operations AFTER commit
+            # Send SMS if phone number provided
+            if phone_number:
+                try:
+                    # SMS sending would go here
+                    logger.info(f"Queue number {queue_number} would be sent to {phone_number}")
+                except Exception as sms_error:
+                    logger.error(
+                        f"SMS failed for queue {queue_number}: {str(sms_error)}",
+                        exc_info=True,
+                        extra={
+                            'queue_number': queue_number,
+                            'phone_number': phone_number,
+                            'error_type': type(sms_error).__name__
+                        }
+                    )
+                    # Queue entry still exists
+            
+            return jsonify({'queue_number': queue_number})
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(f"Database error in /api/generate-queue: {str(db_error)}")
+            raise  # Re-raise to be caught by outer except
     
     except Exception as e:
-        logger.error(f"Error in /api/generate-queue: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in /api/generate-queue",
+            extra_data={
+                'endpoint': '/api/generate-queue',
+                'case_type': case_type if 'case_type' in locals() else None,
+                'priority': priority if 'priority' in locals() else None
+            }
+        )
+        return ErrorResponse.internal_error("Failed to generate queue number. Please try again.")
 
 @app.route('/api/queue', methods=['GET'])
 def get_queue():
@@ -623,42 +698,110 @@ def get_queue():
             } if current else None
         })
     except Exception as e:
-        logger.error(f"Error in /api/queue: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in /api/queue",
+            extra_data={'endpoint': '/api/queue'}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve queue. Please try again.")
 
 @app.route('/api/call-next', methods=['POST'])
 def call_next():
-    # Get next person in queue
-    next_entry = QueueEntry.query.filter_by(status='waiting').order_by(
-        QueueEntry.priority_level.asc(),
-        QueueEntry.timestamp.asc()
-    ).first()
-    
-    if not next_entry:
-        return jsonify({'error': 'No one waiting in queue'}), 404
-    
-    # Mark as called
-    next_entry.status = 'called'
-    db.session.commit()
-    
-    return jsonify({'success': True, 'queue_number': next_entry.queue_number})
+    try:
+        # Get next person in queue
+        next_entry = QueueEntry.query.filter_by(status='waiting').order_by(
+            QueueEntry.priority_level.asc(),
+            QueueEntry.timestamp.asc()
+        ).first()
+        
+        if not next_entry:
+            return jsonify({'error': 'No one waiting in queue'}), 404
+        
+        # Mark as called with proper transaction handling
+        try:
+            next_entry.status = 'called'
+            db.session.commit()
+            
+            # Broadcast update AFTER successful commit
+            try:
+                broadcast_queue_update()
+            except Exception as broadcast_error:
+                logger.error(f"WebSocket broadcast failed: {broadcast_error}")
+                # Status update still succeeded
+            
+            return jsonify({'success': True, 'queue_number': next_entry.queue_number})
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(
+                f"Database error in /api/call-next: {str(db_error)}",
+                exc_info=True,
+                extra={
+                    'endpoint': '/api/call-next',
+                    'error_type': type(db_error).__name__
+                }
+            )
+            return ErrorResponse.internal_error("Failed to update queue status")
+    except Exception as e:
+        log_error_detailed(
+            error=e,
+            context="Error in /api/call-next",
+            extra_data={'endpoint': '/api/call-next'}
+        )
+        return ErrorResponse.internal_error("An error occurred calling the next case")
 
 @app.route('/api/complete-case', methods=['POST'])
 def complete_case():
-    data = request.json
-    queue_number = data.get('queue_number')
-    
-    if not queue_number:
-        return jsonify({'error': 'Missing queue number'}), 400
-    
-    entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
-    if not entry:
-        return jsonify({'error': 'Queue entry not found'}), 404
-    
-    entry.status = 'completed'
-    db.session.commit()
-    
-    return jsonify({'success': True})
+    try:
+        data = request.json
+        queue_number = data.get('queue_number')
+        
+        if not queue_number:
+            return jsonify({'error': 'Missing queue number'}), 400
+        
+        entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
+        if not entry:
+            return jsonify({'error': 'Queue entry not found'}), 404        
+        try:
+            entry.status = 'completed'
+            db.session.commit()
+            
+            # Broadcast update AFTER successful commit
+            try:
+                broadcast_queue_update()
+            except Exception as broadcast_error:
+                logger.error(
+                    f"WebSocket broadcast failed: {str(broadcast_error)}",
+                    exc_info=True,
+                    extra={
+                        'queue_number': queue_number,
+                        'error_type': type(broadcast_error).__name__
+                    }
+                )
+                # Status update still succeeded
+            
+            return jsonify({'success': True})
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(
+                f"Database error in /api/complete-case: {str(db_error)}",
+                exc_info=True,
+                extra={
+                    'endpoint': '/api/complete-case',
+                    'queue_number': queue_number,
+                    'error_type': type(db_error).__name__
+                }
+            )
+            return ErrorResponse.internal_error("Failed to complete case")
+    except Exception as e:
+        log_error_detailed(
+            error=e,
+            context="Error in /api/complete-case",
+            extra_data={
+                'endpoint': '/api/complete-case',
+                'queue_number': queue_number if 'queue_number' in locals() else None
+            }
+        )
+        return ErrorResponse.internal_error("An error occurred completing the case")
 
 @app.route('/api/guided-questions', methods=['POST'])
 def guided_questions():
@@ -708,18 +851,32 @@ def process_answers():
     enhanced_summary = generate_enhanced_summary(case_type, current_step, progress, summary, language)
     enhanced_next_steps = generate_enhanced_next_steps(case_type, current_step, next_steps, language)
     
-    # Update entry
-    entry.summary = enhanced_summary
-    entry.next_steps = enhanced_next_steps
-    db.session.commit()
-    
-    return jsonify({
-        'summary': enhanced_summary,
-        'next_steps': enhanced_next_steps
-    })
+    # Update entry with proper transaction handling
+    try:
+        entry.summary = enhanced_summary
+        entry.next_steps = enhanced_next_steps
+        db.session.commit()
+        
+        return jsonify({
+            'summary': enhanced_summary,
+            'next_steps': enhanced_next_steps
+        })
+    except Exception as db_error:
+        db.session.rollback()
+        logger.error(
+            f"Database error in /api/process-answers: {str(db_error)}",
+            exc_info=True,
+            extra={
+                'endpoint': '/api/process-answers',
+                'queue_number': queue_number if 'queue_number' in locals() else None,
+                'error_type': type(db_error).__name__
+            }
+        )
+        return ErrorResponse.internal_error("Failed to update case information")
 
 def generate_enhanced_summary(case_type, current_step, progress, existing_summary, language):
-    if client is None:
+    """Generate enhanced summary using LLMService"""
+    if not llm_service:
         return existing_summary
     
     progress_text = ""
@@ -742,7 +899,8 @@ def generate_enhanced_summary(case_type, current_step, progress, existing_summar
     """
     
     try:
-        response = client.chat.completions.create(
+        # Use LLMService instead of direct client access
+        response = llm_service.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a court facilitator assistant. Provide clear, comprehensive summaries of client situations."},
@@ -751,11 +909,12 @@ def generate_enhanced_summary(case_type, current_step, progress, existing_summar
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error generating enhanced summary: {e}")
+        logger.error(f"Error generating enhanced summary: {e}")
         return existing_summary
 
 def generate_enhanced_next_steps(case_type, current_step, existing_steps, language):
-    if client is None:
+    """Generate enhanced next steps using LLMService"""
+    if not llm_service:
         return "\n".join(existing_steps) if isinstance(existing_steps, list) else existing_steps
     
     existing_steps_text = "\n".join(existing_steps) if isinstance(existing_steps, list) else existing_steps
@@ -776,7 +935,8 @@ def generate_enhanced_next_steps(case_type, current_step, existing_steps, langua
     """
     
     try:
-        response = client.chat.completions.create(
+        # Use LLMService instead of direct client access
+        response = llm_service.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a court facilitator assistant. Provide clear, actionable next steps for clients."},
@@ -785,17 +945,22 @@ def generate_enhanced_next_steps(case_type, current_step, existing_steps, langua
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Error generating enhanced next steps: {e}")
+        logger.error(f"Error generating enhanced next steps: {e}")
         return existing_steps_text
 
 # ===== EMAIL ENDPOINTS =====
-# All email functionality has been moved to email_api.py
+# Primary email functionality is in email_api.py (blueprint)
 # The EmailService class handles all email operations
-# Available endpoints:
-# - /api/email/send-case-summary
-# - /api/email/send-queue-notification  
-# - /api/email/send-facilitator-notification
-# - /api/email/health
+# 
+# PRIMARY ENDPOINTS (use these):
+# - /api/email/send-case-summary (email_api.py) - Main endpoint for sending case summaries
+# - /api/email/send-queue-notification (email_api.py) - Queue notifications
+# - /api/email/send-facilitator-notification (email_api.py) - Facilitator notifications
+# - /api/email/health (email_api.py) - Health check
+#
+# LEGACY/ALTERNATIVE ENDPOINTS (kept for compatibility):
+# - /api/send-comprehensive-email - More flexible email endpoint (used by queueAPI.js)
+# - /api/send-case-summary-email - DEPRECATED: Sends email by summary_id (not actively used)
 
 @app.route('/api/generate-case-summary', methods=['POST'])
 def generate_case_summary():
@@ -813,6 +978,19 @@ def generate_case_summary():
         
         if not user_email:
             return jsonify({'error': 'Email is required'}), 400
+        
+        # Validate email format
+        email_result = validate_email(user_email)
+        if not email_result['valid']:
+            return jsonify({'error': f'Invalid email: {email_result["error"]}'}), 400
+        user_email = email_result['email']  # Use normalized email
+        
+        # Validate user name if provided
+        if user_name:
+            name_result = validate_name(user_name)
+            if not name_result['valid']:
+                return jsonify({'error': f'Invalid name: {name_result["error"]}'}), 400
+            user_name = name_result['sanitized']
         
         # Create case summary and optionally add to queue
         result = case_summary_service.save_summary_and_maybe_queue(
@@ -833,12 +1011,23 @@ def generate_case_summary():
         })
         
     except Exception as e:
-        app.logger.error(f"Error generating case summary: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error generating case summary",
+            extra_data={
+                'endpoint': '/api/generate-case-summary',
+                'flow_type': flow_type if 'flow_type' in locals() else None
+            }
+        )
+        return ErrorResponse.internal_error("Failed to generate case summary")
 
 @app.route('/api/send-case-summary-email', methods=['POST'])
 def send_case_summary_email():
-    """Send email for a specific case summary"""
+    """
+    DEPRECATED: Send email for a specific case summary by summary_id
+    This endpoint is kept for backward compatibility but is not actively used.
+    New code should use /api/email/send-case-summary instead.
+    """
     try:
         data = request.get_json()
         summary_id = data.get('summary_id')
@@ -879,8 +1068,15 @@ def send_case_summary_email():
             return jsonify({'error': result.get('error', 'Failed to send email')}), 500
             
     except Exception as e:
-        app.logger.error(f"Error sending case summary email: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error sending case summary email",
+            extra_data={
+                'endpoint': '/api/send-case-summary-email',
+                'summary_id': summary_id if 'summary_id' in locals() else None
+            }
+        )
+        return ErrorResponse.internal_error("Failed to send case summary email")
 
 @app.route('/api/send-comprehensive-email', methods=['POST'])
 def send_comprehensive_email():
@@ -911,10 +1107,37 @@ def send_comprehensive_email():
             logger.error("No email provided")
             return jsonify({'success': False, 'error': 'Email is required'}), 400
         
-        # Prepare comprehensive case data for email
+        # Validate email format
+        email_result = validate_email(email)
+        if not email_result['valid']:
+            logger.error(f"Invalid email format: {email_result['error']}")
+            return jsonify({'success': False, 'error': f'Invalid email: {email_result["error"]}'}), 400
+        email = email_result['email']  # Use normalized email
+        
+        # Validate phone number if provided
+        phone_number = data.get('phone_number', case_data.get('phone_number'))
+        if phone_number:
+            phone_result = validate_phone_number(phone_number)
+            if not phone_result['valid']:
+                logger.warning(f"Invalid phone number format: {phone_result['error']}")
+                # Don't fail on invalid phone, just log it
+            else:
+                phone_number = phone_result['formatted']
+        
+        # Validate user name if provided
+        user_name = data.get('user_name', case_data.get('user_name'))
+        if user_name:
+            name_result = validate_name(user_name)
+            if not name_result['valid']:
+                logger.warning(f"Invalid name format: {name_result['error']}")
+                # Don't fail on invalid name, just sanitize it
+            else:
+                user_name = name_result['sanitized']
+        
+        # Prepare comprehensive case data for email (using validated values)
         comprehensive_case_data = {
-            'user_email': email,
-            'user_name': data.get('user_name', case_data.get('user_name', 'Court Kiosk User')),
+            'user_email': email,  # Already validated and normalized
+            'user_name': user_name or case_data.get('user_name', 'Court Kiosk User'),
             'case_type': data.get('case_type', case_data.get('case_type', 'Domestic Violence Restraining Order')),
             'priority_level': data.get('priority') or data.get('priority_level', case_data.get('priority') or case_data.get('priority_level', 'A')),
             'language': data.get('language', case_data.get('language', 'en')),
@@ -922,7 +1145,7 @@ def send_comprehensive_email():
             'documents_needed': data.get('forms', []) or data.get('documents_needed', []) or case_data.get('forms', []) or case_data.get('documents_needed', []),
             'next_steps': data.get('next_steps', []) or case_data.get('next_steps', []),
             'conversation_summary': data.get('summary', '') or case_data.get('summary', '') or case_data.get('conversation_summary', ''),
-            'phone_number': data.get('phone_number', case_data.get('phone_number'))
+            'phone_number': phone_number or data.get('phone_number', case_data.get('phone_number'))
         }
         
         # Handle summary_json if provided
@@ -955,8 +1178,11 @@ def send_comprehensive_email():
         return jsonify({'success': False, 'error': f'Internal server error: {str(e)}'}), 500
 
 @app.route('/api/send-summary', methods=['POST'])
-def send_summary_email():
-    """Send summary email with form attachments"""
+def send_summary_email_endpoint():
+    """
+    DEPRECATED: Legacy endpoint - use /api/email/send-case-summary instead
+    Kept for backward compatibility
+    """
     try:
         data = request.get_json()
         email = data.get('email')
@@ -967,196 +1193,44 @@ def send_summary_email():
         if not email:
             return jsonify({'error': 'Email is required'}), 400
         
-        # Generate case number
-        case_number = f"DVRO{random.randint(1000, 9999)}"
+        # Use modern email service
+        case_data = {
+            'user_email': email,
+            'user_name': answers.get('user_name', 'Court Kiosk User'),
+            'case_type': 'DVRO',
+            'priority_level': 'A',
+            'language': 'en',
+            'documents_needed': forms,
+            'next_steps': [
+                'Complete all required forms',
+                'Make 3 copies of each form',
+                'File forms with the court clerk',
+                'Arrange for service of the other party',
+                'Attend your court hearing'
+            ],
+            'conversation_summary': summary
+        }
         
-        # Create email content
-        subject = f"DVRO Case Summary - {case_number}"
+        result = email_service.send_case_email(case_data)
         
-        # Generate detailed email body
-        email_body = generate_email_body(case_number, answers, forms, summary)
-        
-        # Generate PDF attachments for forms
-        attachments = generate_form_pdfs(forms)
-        
-        # Send email with attachments
-        success = send_email_with_attachments(email, subject, email_body, attachments)
-        
-        if success:
+        if result.get('success'):
             return jsonify({
                 'success': True,
-                'message': 'Summary and forms sent successfully',
-                'case_number': case_number
+                'message': 'Summary and forms sent successfully'
             })
         else:
-            return jsonify({'error': 'Failed to send email'}), 500
+            return jsonify({'error': result.get('error', 'Failed to send email')}), 500
             
     except Exception as e:
-        app.logger.error(f"Error sending summary email: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-def generate_email_body(case_number, answers, forms, summary):
-    """Generate detailed email body with case information"""
-    
-    # Basic case info
-    body = f"""
-Dear User,
-
-Thank you for using the Family Court Clinic system. Here is your case summary and next steps.
-
-CASE NUMBER: {case_number}
-CASE TYPE: Domestic Violence Restraining Order
-PRIORITY: A (High Priority)
-
-CASE SUMMARY:
-{summary}
-
-REQUIRED FORMS ({len(forms)} total):
-"""
-    
-    # Add form details
-    form_catalog = {
-        'DV-100': 'Request for Domestic Violence Restraining Order',
-        'CLETS-001': 'Confidential CLETS Information',
-        'DV-109': 'Notice of Court Hearing',
-        'DV-110': 'Temporary Restraining Order',
-        'DV-105': 'Request for Child Custody and Visitation Orders',
-        'DV-140': 'Child Custody and Visitation Order',
-        'DV-200': 'Proof of Personal Service',
-        'FL-150': 'Income and Expense Declaration',
-        'DV-120': 'Response to Request for Domestic Violence Restraining Order',
-        'CH-100': 'Request for Civil Harassment Restraining Order',
-        'CH-110': 'Temporary Restraining Order (Civil Harassment)'
-    }
-    
-    for i, form in enumerate(forms, 1):
-        form_name = form_catalog.get(form, form)
-        body += f"{i}. {form} - {form_name}\n"
-    
-    # Add next steps
-    body += """
-
-IMMEDIATE NEXT STEPS:
-
-1. Complete all required forms (attached as PDFs)
-2. Make 3 copies of each form
-3. File forms with the court clerk
-4. Arrange for service of the other party
-5. Attend your court hearing
-
-IMPORTANT REMINDERS:
-- If you are in immediate danger, call 911
-- Keep copies of all forms with you at all times
-- Service must be completed at least 5 days before hearing
-- Bring all evidence and witnesses to court
-- Dress appropriately for court
-
-HEARING PREPARATION:
-- Arrive 15 minutes early
-- Bring all original forms and copies
-- Bring evidence (photos, documents, witnesses)
-- Be prepared to testify
-- Dress professionally
-
-If you have questions, please contact the Family Court Clinic.
-
-Best regards,
-Family Court Clinic System
-"""
-    
-    return body
-
-def generate_form_pdfs(forms):
-    """Generate PDF files for required forms"""
-    attachments = []
-    
-    # This would typically generate actual PDF forms
-    # For now, we'll create placeholder PDFs
-    for form in forms:
-        try:
-            # Create a simple PDF with form information
-            pdf_content = f"""
-            {form} - Form Template
-            
-            This is a placeholder for the {form} form.
-            In a real implementation, this would contain the actual form.
-            
-            Generated by Family Court Clinic System
-            """
-            
-            # Save PDF to temporary file
-            pdf_path = f"/tmp/{form}_template.pdf"
-            with open(pdf_path, 'w') as f:
-                f.write(pdf_content)
-            
-            attachments.append({
-                'filename': f"{form}_form.pdf",
-                'path': pdf_path
-            })
-            
-        except Exception as e:
-            app.logger.error(f"Error generating PDF for {form}: {str(e)}")
-    
-    return attachments
-
-def send_email_with_attachments(to_email, subject, body, attachments):
-    """Send email with PDF attachments"""
-    try:
-        # Configure email settings (you'll need to set these in environment)
-        smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-        smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        smtp_username = os.getenv('SMTP_USERNAME')
-        smtp_password = os.getenv('SMTP_PASSWORD')
-        
-        if not all([smtp_username, smtp_password]):
-            app.logger.warning("SMTP credentials not configured, skipping email send")
-            return True  # Return True for development
-        
-        # Create message
-        msg = MIMEMultipart()
-        msg['From'] = smtp_username
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        
-        # Add body
-        msg.attach(MIMEText(body, 'plain'))
-        
-        # Add attachments
-        for attachment in attachments:
-            try:
-                with open(attachment['path'], 'rb') as f:
-                    part = MIMEBase('application', 'octet-stream')
-                    part.set_payload(f.read())
-                
-                encoders.encode_base64(part)
-                part.add_header(
-                    'Content-Disposition',
-                    f'attachment; filename= {attachment["filename"]}'
-                )
-                msg.attach(part)
-                
-            except Exception as e:
-                app.logger.error(f"Error attaching {attachment['filename']}: {str(e)}")
-        
-        # Send email
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(smtp_username, smtp_password)
-        server.send_message(msg)
-        server.quit()
-        
-        # Clean up temporary files
-        for attachment in attachments:
-            try:
-                os.remove(attachment['path'])
-            except:
-                pass
-        
-        return True
-        
-    except Exception as e:
-        app.logger.error(f"Error sending email: {str(e)}")
-        return False
+        log_error_detailed(
+            error=e,
+            context="Error sending summary email",
+            extra_data={
+                'endpoint': '/api/send-summary',
+                'email': email if 'email' in locals() else None
+            }
+        )
+        return ErrorResponse.internal_error("Failed to send summary email")
 
 # --- Simple SMS endpoints (mock/dev) ---
 @app.route('/api/sms/send-queue-number', methods=['POST'])
@@ -1173,8 +1247,15 @@ def send_queue_number_sms():
         app.logger.info(f"[SMS] Would send queue number {queue_number} to {phone_number}")
         return jsonify({'success': True})
     except Exception as e:
-        app.logger.error(f"Error in send_queue_number_sms: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in send_queue_number_sms",
+            extra_data={
+                'endpoint': '/api/sms/send-queue-number',
+                'queue_number': queue_number if 'queue_number' in locals() else None
+            }
+        )
+        return ErrorResponse.internal_error("Failed to send SMS")
 
 # =============================================================================
 # AUTHENTICATION ENDPOINTS
@@ -1196,8 +1277,12 @@ def login():
             return jsonify(result), 401
             
     except Exception as e:
-        app.logger.error(f"Login error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in login",
+            extra_data={'endpoint': '/api/auth/login'}
+        )
+        return ErrorResponse.internal_error("Login failed. Please try again.")
 
 @app.route('/api/auth/logout', methods=['POST'])
 @AuthService.require_auth
@@ -1208,8 +1293,12 @@ def logout():
         result = AuthService.logout_user(session_token)
         return jsonify(result), 200
     except Exception as e:
-        app.logger.error(f"Logout error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in logout",
+            extra_data={'endpoint': '/api/auth/logout'}
+        )
+        return ErrorResponse.internal_error("Logout failed")
 
 @app.route('/api/auth/me', methods=['GET'])
 @AuthService.require_auth
@@ -1219,8 +1308,12 @@ def get_current_user():
         user = request.current_user
         return jsonify({'success': True, 'user': user.to_dict()}), 200
     except Exception as e:
-        app.logger.error(f"Get current user error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error getting current user",
+            extra_data={'endpoint': '/api/auth/me'}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve user information")
 
 @app.route('/api/auth/users', methods=['GET'])
 @AuthService.require_auth
@@ -1234,8 +1327,12 @@ def get_users():
             'users': [user.to_dict() for user in users]
         }), 200
     except Exception as e:
-        app.logger.error(f"Get users error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error getting users",
+            extra_data={'endpoint': '/api/auth/users'}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve users")
 
 @app.route('/api/auth/users', methods=['POST'])
 @AuthService.require_auth
@@ -1260,8 +1357,12 @@ def create_user():
             return jsonify(result), 400
             
     except Exception as e:
-        app.logger.error(f"Create user error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error creating user",
+            extra_data={'endpoint': '/api/auth/users'}
+        )
+        return ErrorResponse.internal_error("Failed to create user")
 
 @app.route('/api/auth/audit-logs', methods=['GET'])
 @AuthService.require_auth
@@ -1283,8 +1384,12 @@ def get_audit_logs():
         
         return jsonify({'success': True, 'logs': logs}), 200
     except Exception as e:
-        app.logger.error(f"Get audit logs error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error getting audit logs",
+            extra_data={'endpoint': '/api/auth/audit-logs'}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve audit logs")
 
 # =============================================================================
 # PROTECTED ADMIN ENDPOINTS (require authentication)
@@ -1376,8 +1481,12 @@ def get_admin_queue():
         }), 200
         
     except Exception as e:
-        app.logger.error(f"Get admin queue error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in get_admin_queue",
+            extra_data={'endpoint': '/api/admin/queue'}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve queue data")
 
 @app.route('/api/admin/call-next', methods=['POST'])
 @AuthService.require_auth
@@ -1398,9 +1507,35 @@ def admin_call_next():
         if not next_entry:
             return jsonify({'success': False, 'error': 'No cases in queue'}), 400
         
-        # Update status
-        next_entry.status = 'in_progress'
-        db.session.commit()
+        # Update status with proper transaction handling
+        try:
+            next_entry.status = 'in_progress'
+            db.session.commit()
+            
+            # Broadcast queue update via WebSocket AFTER successful commit
+            try:
+                broadcast_queue_update()
+            except Exception as broadcast_error:
+                app.logger.error(
+                    f"WebSocket broadcast failed: {str(broadcast_error)}",
+                    exc_info=True,
+                    extra={
+                        'queue_number': next_entry.queue_number if 'next_entry' in locals() else None,
+                        'error_type': type(broadcast_error).__name__
+                    }
+                )
+                # Status update still succeeded
+        except Exception as db_error:
+            db.session.rollback()
+            app.logger.error(
+                f"Database error in admin_call_next: {str(db_error)}",
+                exc_info=True,
+                extra={
+                    'endpoint': '/api/admin/call-next',
+                    'error_type': type(db_error).__name__
+                }
+            )
+            return ErrorResponse.internal_error("Failed to update queue status")
         
         # Parse documents_needed if it's a JSON string
         documents_needed = []
@@ -1459,8 +1594,12 @@ def admin_call_next():
         }), 200
         
     except Exception as e:
-        app.logger.error(f"Admin call next error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in admin_call_next",
+            extra_data={'endpoint': '/api/admin/call-next'}
+        )
+        return ErrorResponse.internal_error("An error occurred calling the next case")
 
 @app.route('/api/admin/complete-case', methods=['POST'])
 @AuthService.require_auth
@@ -1487,14 +1626,172 @@ def admin_complete_case():
         if not entry:
             return jsonify({'success': False, 'error': 'Case not found'}), 404
         
-        entry.status = 'completed'
-        db.session.commit()
-        
-        return jsonify({'success': True}), 200
+        # Update status with proper transaction handling
+        try:
+            entry.status = 'completed'
+            db.session.commit()
+            
+            # Broadcast queue update via WebSocket AFTER successful commit
+            try:
+                broadcast_queue_update()
+            except Exception as broadcast_error:
+                app.logger.error(
+                    f"WebSocket broadcast failed: {str(broadcast_error)}",
+                    exc_info=True,
+                    extra={
+                        'queue_number': queue_number,
+                        'error_type': type(broadcast_error).__name__
+                    }
+                )
+                # Status update still succeeded
+            
+            return jsonify({'success': True}), 200
+        except Exception as db_error:
+            db.session.rollback()
+            app.logger.error(
+                f"Database error in admin_complete_case: {str(db_error)}",
+                exc_info=True,
+                extra={
+                    'endpoint': '/api/admin/complete-case',
+                    'queue_number': queue_number,
+                    'error_type': type(db_error).__name__
+                }
+            )
+            return ErrorResponse.internal_error("Failed to complete case")
         
     except Exception as e:
-        app.logger.error(f"Admin complete case error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error in admin_complete_case",
+            extra_data={
+                'endpoint': '/api/admin/complete-case',
+                'queue_number': queue_number if 'queue_number' in locals() else None
+            }
+        )
+        return ErrorResponse.internal_error("An error occurred completing the case")
+
+# =============================================================================
+# WEBSOCKET HANDLERS FOR REAL-TIME UPDATES
+# =============================================================================
+
+def broadcast_queue_update():
+    """Broadcast queue updates to all connected WebSocket clients"""
+    try:
+        # Get current queue state
+        queue_entries = QueueEntry.query.filter_by(status='waiting').order_by(QueueEntry.priority_level, QueueEntry.created_at).all()
+        current_entry = QueueEntry.query.filter_by(status='in_progress').first()
+        
+        queue_data = []
+        for entry in queue_entries:
+            documents_needed = []
+            if entry.documents_needed:
+                try:
+                    if isinstance(entry.documents_needed, str):
+                        documents_needed = json.loads(entry.documents_needed)
+                    else:
+                        documents_needed = entry.documents_needed
+                except:
+                    documents_needed = []
+            
+            queue_data.append({
+                'queue_number': entry.queue_number,
+                'priority': entry.priority_level,
+                'priority_level': entry.priority_level,
+                'case_type': entry.case_type,
+                'user_name': entry.user_name,
+                'user_email': entry.user_email,
+                'phone_number': entry.phone_number,
+                'language': entry.language,
+                'status': entry.status,
+                'created_at': entry.created_at.isoformat() if entry.created_at else None,
+                'arrived_at': entry.created_at.isoformat() if entry.created_at else None,
+                'timestamp': entry.created_at.isoformat() if entry.created_at else None,
+                'conversation_summary': entry.conversation_summary,
+                'documents_needed': documents_needed,
+                'current_node': entry.current_node,
+            })
+        
+        current_number = None
+        if current_entry:
+            documents_needed = []
+            if current_entry.documents_needed:
+                try:
+                    if isinstance(current_entry.documents_needed, str):
+                        documents_needed = json.loads(current_entry.documents_needed)
+                    else:
+                        documents_needed = current_entry.documents_needed
+                except:
+                    documents_needed = []
+            
+            current_number = {
+                'queue_number': current_entry.queue_number,
+                'priority': current_entry.priority_level,
+                'priority_level': current_entry.priority_level,
+                'case_type': current_entry.case_type,
+                'user_name': current_entry.user_name,
+                'user_email': current_entry.user_email,
+                'phone_number': current_entry.phone_number,
+                'language': current_entry.language,
+                'conversation_summary': current_entry.conversation_summary,
+                'documents_needed': documents_needed,
+                'current_node': current_entry.current_node,
+                'created_at': current_entry.created_at.isoformat() if current_entry.created_at else None,
+                'arrived_at': current_entry.created_at.isoformat() if current_entry.created_at else None,
+                'timestamp': current_entry.created_at.isoformat() if current_entry.created_at else None
+            }
+        
+        # Broadcast to all clients in the 'queue' room
+        socketio.emit('queue_update', {
+            'type': 'queue_update',
+            'queue': queue_data,
+            'current_number': current_number
+        }, room='queue', namespace='/api/ws/queue')
+    except Exception as e:
+        app.logger.error(
+            f"Error broadcasting queue update: {str(e)}",
+            exc_info=True,
+            extra={'error_type': type(e).__name__}
+        )
+
+@socketio.on('connect', namespace='/api/ws/queue')
+def handle_connect():
+    """Handle WebSocket connection"""
+    try:
+        join_room('queue')
+        app.logger.info(f"Client connected to WebSocket: {request.sid}")
+        # Send initial queue state
+        broadcast_queue_update()
+    except Exception as e:
+        app.logger.error(
+            f"WebSocket connect error: {str(e)}",
+            exc_info=True,
+            extra={'error_type': type(e).__name__}
+        )
+
+@socketio.on('disconnect', namespace='/api/ws/queue')
+def handle_disconnect():
+    """Handle WebSocket disconnection"""
+    try:
+        leave_room('queue')
+        app.logger.info(f"Client disconnected from WebSocket: {request.sid}")
+    except Exception as e:
+        app.logger.error(
+            f"WebSocket disconnect error: {str(e)}",
+            exc_info=True,
+            extra={'error_type': type(e).__name__}
+        )
+
+@socketio.on('request_update', namespace='/api/ws/queue')
+def handle_request_update():
+    """Handle client request for queue update"""
+    try:
+        broadcast_queue_update()
+    except Exception as e:
+        app.logger.error(
+            f"WebSocket request update error: {str(e)}",
+            exc_info=True,
+            extra={'error_type': type(e).__name__}
+        )
 
 if __name__ == '__main__':
     with app.app_context():
@@ -1502,15 +1799,23 @@ if __name__ == '__main__':
         
         # Create default admin user if none exists
         if not User.query.filter_by(username='admin').first():
-            admin_user = User(
-                username='admin',
-                email='admin@court.gov',
-                role='admin'
-            )
-            admin_user.set_password('admin123')  # Change this in production!
-            db.session.add(admin_user)
-            db.session.commit()
-            print("Created default admin user: admin/admin123")
+            try:
+                admin_user = User(
+                    username='admin',
+                    email='admin@court.gov',
+                    role='admin'
+                )
+                admin_user.set_password('admin123')  # Change this in production!
+                db.session.add(admin_user)
+                db.session.commit()
+                print("Created default admin user: admin/admin123")
+            except Exception as e:
+                db.session.rollback()
+                app.logger.error(
+                    f"Failed to create default admin user: {str(e)}",
+                    exc_info=True,
+                    extra={'error_type': type(e).__name__}
+                )
 
 @app.route('/api/case-summary/<int:summary_id>', methods=['GET'])
 def get_case_summary(summary_id):
@@ -1533,8 +1838,12 @@ def get_case_summary(summary_id):
         
         return jsonify(summary_data)
     except Exception as e:
-        logger.error(f"Error fetching case summary: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        log_error_detailed(
+            error=e,
+            context="Error fetching case summary",
+            extra_data={'summary_id': summary_id}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve case summary")
 
 @app.route('/api/case-details/<int:queue_number>', methods=['GET'])
 def get_case_details(queue_number):
@@ -1579,7 +1888,66 @@ def get_case_details(queue_number):
         
         return jsonify(case_details)
     except Exception as e:
-        logger.error(f"Error fetching case details: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-    
-    app.run(debug=False, port=5001)
+        log_error_detailed(
+            error=e,
+            context="Error fetching case details",
+            extra_data={'queue_number': queue_number}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve case details")
+
+# =============================================================================
+# GLOBAL ERROR HANDLERS
+# =============================================================================
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Handle 404 errors"""
+    logger.warning(f"404 Not Found: {request.path}")
+    return ErrorResponse.not_found(f"The requested URL was not found: {request.path}")
+
+@app.errorhandler(405)
+def method_not_allowed_error(error):
+    """Handle 405 errors"""
+    logger.warning(
+        f"405 Method Not Allowed: {request.method} {request.path}",
+        extra={
+            'method': request.method,
+            'path': request.path
+        }
+    )
+    return jsonify({
+        'success': False,
+        'error': f"Method {request.method} not allowed for this endpoint",
+        'code': 'METHOD_NOT_ALLOWED'
+    }), 405
+
+@app.errorhandler(500)
+def internal_error_handler(error):
+    """Handle 500 errors"""
+    logger.error(
+        f"500 Internal Server Error: {str(error)}",
+        exc_info=True,
+        extra={
+            'endpoint': request.endpoint,
+            'path': request.path
+        }
+    )
+    return ErrorResponse.internal_error()
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    """Catch-all for unexpected errors"""
+    log_error_detailed(
+        error=error,
+        context="Unhandled exception",
+        extra_data={
+            'endpoint': request.endpoint if request else None,
+            'method': request.method if request else None,
+            'path': request.path if request else None
+        }
+    )
+    return ErrorResponse.internal_error()
+
+# Run with SocketIO support
+if __name__ == '__main__':
+    socketio.run(app, debug=False, port=5001, host='0.0.0.0')

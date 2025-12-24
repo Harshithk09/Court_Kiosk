@@ -5,93 +5,38 @@
 import { buildApiUrl } from './apiConfig';
 
 /**
- * Map of locally bundled PDFs so links don't 404 and emails can attach them reliably
+ * Get the local document URL for a form
+ * @param {string} formCode - The form code (e.g., 'DV-100', 'CLETS-001')
+ * @returns {string} The URL to the local form PDF
  */
-const localFormFiles = {
-  // Domestic Violence
-  'DV-100': 'dv100.pdf',
-  'DV-101': 'dv101.pdf',
-  'DV-105': 'dv105.pdf',
-  'DV-105A': 'dv105a.pdf',
-  'DV-108': 'dv108.pdf',
-  'DV-109': 'dv109.pdf',
-  'DV-110': 'dv110.pdf',
-  'DV-112': 'dv112.pdf',
-  'DV-116': 'dv116.pdf',
-  'DV-120': 'dv120.pdf',
-  'DV-120INFO': 'dv120info.pdf',
-  'DV-125': 'dv125.pdf',
-  'DV-130': 'dv130.pdf',
-  'DV-140': 'dv140.pdf',
-  'DV-145': 'dv145.pdf',
-  'DV-200': 'dv200.pdf',
-  'DV-250': 'dv250.pdf',
-  'DV-700': 'dv700.pdf',
-  'DV-710': 'dv710.pdf',
-  'DV-720': 'dv720.pdf',
-  'DV-800': 'dv800.pdf',
-
-  // Civil Harassment
-  'CH-100': 'ch100.pdf',
-  'CH-109': 'ch109.pdf',
-  'CH-110': 'ch110.pdf',
-  'CH-120': 'ch120.pdf',
-  'CH-120-INFO': 'ch120info.pdf',
-  'CH-130': 'ch130.pdf',
-  'CH-200': 'ch200.pdf',
-  'CH-250': 'ch250.pdf',
-  'CH-700': 'ch700.pdf',
-  'CH-710': 'ch710.pdf',
-  'CH-720': 'ch720.pdf',
-  'CH-730': 'ch730.pdf',
-  'CH-800': 'ch800.pdf',
-
-  // Divorce / Family law
-  'FL-100': 'fl100.pdf',
-  'FL-105': 'fl105.pdf',
-  'FL-110': 'fl110.pdf',
-  'FL-115': 'fl115.pdf',
-  'FL-117': 'fl117.pdf',
-  'FL-120': 'fl120.pdf',
-  'FL-130': 'fl130.pdf',
-  'FL-140': 'fl140.pdf',
-  'FL-141': 'fl141.pdf',
-  'FL-142': 'fl142.pdf',
-  'FL-144': 'fl144.pdf',
-  'FL-150': 'fl150.pdf',
-
-  // Other frequently used forms
-  'CLETS-001': 'clets001.pdf',
-  'CM-010': 'cm010.pdf',
-  'MC-025': 'mc025.pdf',
-  'MC-031': 'mc031.pdf',
-  'MC-040': 'mc040.pdf',
-  'MC-050': 'mc050.pdf',
-  'POS-040': 'pos040.pdf',
-};
-
-const getLocalFormUrl = (normalized) => {
-  const fileName = localFormFiles[normalized];
-  return fileName ? buildApiUrl(`/api/documents/${fileName}`) : null;
-};
+export function getLocalFormUrl(formCode) {
+  if (!formCode) {
+    return null;
+  }
+  
+  // Convert form code to filename (e.g., "DV-100" -> "dv100.pdf")
+  const formFilename = formCode.trim().toLowerCase().replace(/-/g, '') + '.pdf';
+  return buildApiUrl(`/api/documents/${formFilename}`);
+}
 
 /**
- * Get the URL for a court form
+ * Get the URL for a court form (prioritizes local, falls back to official)
  * @param {string} formCode - The form code (e.g., 'DV-100', 'CLETS-001')
+ * @param {boolean} preferLocal - Whether to prefer local documents (default: true)
  * @returns {string} The URL to the form PDF or search page
  */
-export function getFormUrl(formCode) {
+export function getFormUrl(formCode, preferLocal = true) {
   if (!formCode) {
     return "https://www.courts.ca.gov/forms.htm";
   }
 
   const normalized = formCode.trim().toUpperCase();
-
-  const localUrl = getLocalFormUrl(normalized);
-  if (localUrl) {
-    return localUrl;
+  
+  // If preferLocal is true, return local URL first (components can check if it exists)
+  if (preferLocal) {
+    return getLocalFormUrl(formCode);
   }
-
+  
   // Comprehensive mapping of all California Judicial Council forms
   // Using official California Courts website URLs
   const knownForms = {
@@ -184,10 +129,35 @@ export function getFormUrl(formCode) {
     "FW-003": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/fw003.pdf",
     "FW-005": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/fw005.pdf",
     
+    // Elder/Dependent Adult Abuse Forms
+    "EA-100": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/ea100.pdf",
+    "EA-109": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/ea109.pdf",
+    "EA-110": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/ea110.pdf",
+    "EA-120": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/ea120.pdf",
+    "EA-130": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/ea130.pdf",
+    "EA-700": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/ea700.pdf",
+    "EA-710": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/ea710.pdf",
+    
+    // Gun Violence Restraining Order Forms
+    "GV-100": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/gv100.pdf",
+    "GV-109": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/gv109.pdf",
+    "GV-110": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/gv110.pdf",
+    "GV-120": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/gv120.pdf",
+    
+    // Workplace Violence Forms
+    "WV-100": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/wv100.pdf",
+    "WV-109": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/wv109.pdf",
+    "WV-110": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/wv110.pdf",
+    "WV-120": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/wv120.pdf",
+    "WV-200": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/wv200.pdf",
+    "WV-250": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/wv250.pdf",
+    "WV-800": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/wv800.pdf",
+    
     // Other Forms
     "CLETS-001": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/clets001.pdf",
     "CM-010": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/cm010.pdf",
     "EPO-001": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/epo001.pdf",
+    "EPO-002": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/epo002.pdf",
     "JV-255": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/jv255.pdf",
     "MC-025": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/mc025.pdf",
     "MC-031": "https://courts.ca.gov/sites/default/files/courts/default/2024-11/mc031.pdf",
@@ -202,6 +172,15 @@ export function getFormUrl(formCode) {
 }
 
 /**
+ * Get the official (external) URL for a form
+ * @param {string} formCode - The form code
+ * @returns {string} The official California Courts URL
+ */
+export function getOfficialFormUrl(formCode) {
+  return getFormUrl(formCode, false);
+}
+
+/**
  * Check if a form is a standard Judicial Council form
  * @param {string} formCode - The form code to check
  * @returns {boolean} True if it's a Judicial Council form
@@ -209,9 +188,10 @@ export function getFormUrl(formCode) {
 export function isJudicialCouncilForm(formCode) {
   // Common Judicial Council form patterns
   const patterns = [
-    /^(DV|CH|FL|CM|FW|JV|MC|POS|SC|SUM|UD|WC)-\d+$/i,  // Standard patterns
+    /^(DV|CH|FL|CM|FW|JV|MC|POS|SC|SUM|UD|WC|EA|GV|WV)-\d+$/i,  // Standard patterns
     /^CLETS-001$/i,  // Special cases
     /^SER-001$/i,    // Sheriff service
+    /^EPO-\d+$/i,    // Emergency Protective Orders
   ];
   
   return patterns.some(pattern => pattern.test(formCode));
@@ -254,7 +234,30 @@ export function getFormExplanation(formCode) {
     'CH-250': 'Proof of Service by Mail (Civil Harassment).',
     'FW-001': 'Request to Waive Court Fees.',
     'FW-003': 'Order on Request to Waive Court Fees.',
-    'CM-010': 'Civil Case Cover Sheet.'
+    'CM-010': 'Civil Case Cover Sheet.',
+    // Elder/Dependent Adult Abuse Forms
+    'EA-100': 'Request for Elder or Dependent Adult Abuse Restraining Order. Main form to request protection for elderly or dependent adults.',
+    'EA-109': 'Notice of Court Hearing (Elder Abuse). Tells you when and where your court hearing will be.',
+    'EA-110': 'Temporary Restraining Order (Elder Abuse). Temporary protection before the hearing.',
+    'EA-120': 'Response to Request for Elder or Dependent Adult Abuse Restraining Order.',
+    'EA-130': 'Elder or Dependent Adult Abuse Restraining Order After Hearing.',
+    'EA-700': 'Request to Renew Elder or Dependent Adult Abuse Restraining Order.',
+    'EA-710': 'Notice of Hearing to Renew Elder or Dependent Adult Abuse Restraining Order.',
+    // Gun Violence Restraining Order Forms
+    'GV-100': 'Request for Gun Violence Restraining Order. Used to temporarily prevent someone from owning or possessing firearms.',
+    'GV-109': 'Notice of Court Hearing (Gun Violence). Tells you when and where your court hearing will be.',
+    'GV-110': 'Temporary Gun Violence Restraining Order. Temporary firearm restriction before the hearing.',
+    'GV-120': 'Response to Request for Gun Violence Restraining Order.',
+    // Workplace Violence Forms
+    'WV-100': 'Request for Workplace Violence Restraining Order. Used by employers to protect employees.',
+    'WV-109': 'Notice of Court Hearing (Workplace Violence). Tells you when and where your court hearing will be.',
+    'WV-110': 'Temporary Restraining Order (Workplace Violence). Temporary protection before the hearing.',
+    'WV-120': 'Response to Request for Workplace Violence Restraining Order.',
+    'WV-200': 'Proof of Personal Service (Workplace Violence).',
+    'WV-250': 'Proof of Service by Mail (Workplace Violence).',
+    'WV-800': 'Receipt for Firearms, Firearm Parts, and Ammunition (Workplace Violence).',
+    // Emergency Protective Orders
+    'EPO-002': 'Emergency Protective Order. Temporary protection issued by law enforcement.'
   };
   
   return explanations[formCode] || `Form ${formCode} - Please consult court staff for details.`;

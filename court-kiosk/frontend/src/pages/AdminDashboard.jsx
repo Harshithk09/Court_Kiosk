@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useKioskMode } from '../contexts/KioskModeContext';
+import { useToast } from '../components/Toast';
+import { useWebSocket } from '../hooks/useWebSocket';
 import { Users, CheckCircle, RefreshCw, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon, Monitor, MonitorOff } from 'lucide-react';
 import { getQueue, callNext, completeCase, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
 import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
@@ -13,6 +15,7 @@ const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
   const { user, logout, sessionToken } = useAuth();
   const { isKioskMode, toggleKioskMode } = useKioskMode();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'forms'
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
@@ -20,15 +23,43 @@ const AdminDashboard = () => {
   const [selectedCase, setSelectedCase] = useState(null);
   const [error, setError] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [showCaseSummaryModal, setShowCaseSummaryModal] = useState(false);
   const [caseSummaryData, setCaseSummaryData] = useState(null);
   const [showCaseDetailsModal, setShowCaseDetailsModal] = useState(false);
   const [selectedCaseForDetails, setSelectedCaseForDetails] = useState(null);
+  const [isTabActive, setIsTabActive] = useState(true);
+  
+  // Refs for polling management
+  const pollIntervalRef = useRef(null);
+  const pollCountRef = useRef(0);
+  const lastFetchTimeRef = useRef(Date.now());
+
+  // Helper function for debug logging (only in development)
+  const debugLog = useCallback((...args) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AdminDashboard]', ...args);
+    }
+  }, []);
+
+  // Helper function to get priority consistently
+  const getPriority = useCallback((item) => {
+    return item?.priority || item?.priority_level || 'C';
+  }, []);
+
+  // Track tab visibility for intelligent polling
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabActive(!document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   const fetchQueue = useCallback(async () => {
     try {
       setError(null);
-      console.log('AdminDashboard: Fetching queue data...');
+      debugLog('Fetching queue data...');
       
       // Use authenticated API if available, fallback to regular API
       let data;
@@ -38,46 +69,140 @@ const AdminDashboard = () => {
         data = await getQueue();
       }
       
-      console.log('AdminDashboard: Received queue data:', data);
+      debugLog('Received queue data:', data);
       
       // Ensure queue is always an array
       const queueArray = data.queue || [];
-      console.log('AdminDashboard: Setting queue array:', queueArray);
+      debugLog('Setting queue array:', queueArray);
       setQueue(queueArray);
       setCurrentNumber(data.current_number || null);
       
-      // Log queue statistics
-      console.log('AdminDashboard: Queue statistics:');
-      console.log('- Total cases:', queueArray.length);
-      console.log('- Cases by priority:', queueArray.reduce((acc, item) => {
-        acc[item.priority] = (acc[item.priority] || 0) + 1;
-        return acc;
-      }, {}));
-      console.log('- Cases by status:', queueArray.reduce((acc, item) => {
-        acc[item.status] = (acc[item.status] || 0) + 1;
-        return acc;
-      }, {}));
+      // Log queue statistics (development only)
+      if (process.env.NODE_ENV === 'development') {
+        debugLog('Queue statistics:');
+        debugLog('- Total cases:', queueArray.length);
+        debugLog('- Cases by priority:', queueArray.reduce((acc, item) => {
+          acc[getPriority(item)] = (acc[getPriority(item)] || 0) + 1;
+          return acc;
+        }, {}));
+        debugLog('- Cases by status:', queueArray.reduce((acc, item) => {
+          acc[item.status] = (acc[item.status] || 0) + 1;
+          return acc;
+        }, {}));
+      }
+      
+      // Reset poll count on successful fetch
+      pollCountRef.current = 0;
+      lastFetchTimeRef.current = Date.now();
       
     } catch (error) {
-      console.error('Error fetching queue:', error);
+      debugLog('Error fetching queue:', error);
       setError('Failed to fetch queue data');
       // Set empty arrays to prevent undefined errors
       setQueue([]);
       setCurrentNumber(null);
+      
+      // Increment error count for backoff
+      pollCountRef.current += 1;
     } finally {
       setLoading(false);
     }
-  }, [sessionToken]);
+  }, [sessionToken, debugLog, getPriority]);
 
+  // Calculate polling interval with exponential backoff
+  const getPollingInterval = useCallback(() => {
+    const baseInterval = 5000; // 5 seconds
+    const maxInterval = 60000; // 60 seconds
+    const inactiveMultiplier = 4; // Poll 4x slower when tab inactive
+    
+    // Exponential backoff on errors
+    const backoffInterval = Math.min(
+      baseInterval * Math.pow(2, pollCountRef.current),
+      maxInterval
+    );
+    
+    // Reduce polling when tab is inactive
+    return isTabActive ? backoffInterval : backoffInterval * inactiveMultiplier;
+  }, [isTabActive]);
+
+  // Setup polling with intelligent intervals
   useEffect(() => {
+    // Initial fetch
     fetchQueue();
-    const interval = setInterval(fetchQueue, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
-  }, [fetchQueue]);
+    
+    // Setup polling
+    const startPolling = () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+      const interval = getPollingInterval();
+      debugLog(`Setting poll interval to ${interval}ms (active: ${isTabActive})`);
+      pollIntervalRef.current = setInterval(fetchQueue, interval);
+    };
+    
+    startPolling();
+    
+    // Restart polling when interval changes
+    const restartInterval = setInterval(() => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+      startPolling();
+    }, getPollingInterval());
+    
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+      if (restartInterval) {
+        clearInterval(restartInterval);
+      }
+    };
+  }, [fetchQueue, getPollingInterval, isTabActive, debugLog]);
+
+  // WebSocket connection for real-time updates (falls back to polling if unavailable)
+  const { isConnected: wsConnected } = useWebSocket('/api/ws/queue', {
+    enabled: !!sessionToken, // Only enable if authenticated
+    onMessage: (data) => {
+      debugLog('WebSocket message received:', data);
+      if (data.type === 'queue_update') {
+        setQueue(data.queue || []);
+        setCurrentNumber(data.current_number || null);
+        pollCountRef.current = 0; // Reset error count on successful update
+      }
+    },
+    onError: (error) => {
+      debugLog('WebSocket error:', error);
+      // Falls back to polling automatically
+    },
+  });
+
+  // Debounced action handler to prevent spam
+  const handleActionWithDebounce = useCallback(async (actionFn, successMessage, errorMessage) => {
+    if (actionLoading) {
+      debugLog('Action already in progress, ignoring click');
+      return;
+    }
+    
+    setActionLoading(true);
+    setError(null);
+    
+    try {
+      await actionFn();
+      toast.success(successMessage);
+      await fetchQueue(); // Refresh queue immediately after action
+    } catch (err) {
+      debugLog('Action error:', err);
+      const errorMsg = errorMessage || err.message || 'Action failed';
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [actionLoading, toast, fetchQueue, debugLog]);
 
   const handleCallNext = async () => {
-    try {
-      setError(null);
+    await handleActionWithDebounce(async () => {
       let result;
       if (sessionToken) {
         result = await callNextAuthenticated(sessionToken);
@@ -91,47 +216,47 @@ const AdminDashboard = () => {
         // Show a notification with case type information
         const caseTypeInfo = result.queue_entry.case_type_info;
         const caseTypeName = caseTypeInfo?.name || result.queue_entry.case_type || 'Unknown Case Type';
-        const priorityLabel = getPriorityLabel(result.queue_entry.priority || result.queue_entry.priority_level)[language];
+        const priorityLabel = getPriorityLabel(getPriority(result.queue_entry))[language];
         
-        alert(language === 'en' 
+        toast.success(language === 'en' 
           ? `Called ${result.queue_entry.queue_number} - ${caseTypeName} (${priorityLabel})`
           : `Llamado ${result.queue_entry.queue_number} - ${caseTypeName} (${priorityLabel})`
         );
       }
       
-      fetchQueue();
-    } catch (error) {
-      console.error('Error calling next number:', error);
-      setError(error.message || 'Failed to call next number');
-    }
+      return result;
+    }, 
+    language === 'en' ? 'Next case called successfully' : 'Siguiente caso llamado exitosamente',
+    language === 'en' ? 'Failed to call next number' : 'Error al llamar siguiente número'
+    );
   };
 
   const handleCompleteCase = async (queueNumber) => {
-    try {
+    await handleActionWithDebounce(async () => {
       if (sessionToken) {
         await completeCaseAuthenticated(queueNumber, sessionToken);
       } else {
         await completeCase(queueNumber);
       }
-      fetchQueue();
       if (selectedCase?.queue_number === queueNumber) {
         setSelectedCase(null);
       }
-    } catch (error) {
-      console.error('Error completing case:', error);
-      setError('Failed to complete case');
-    }
+      if (currentNumber?.queue_number === queueNumber) {
+        setCurrentNumber(null);
+      }
+    },
+    language === 'en' ? 'Case completed successfully' : 'Caso completado exitosamente',
+    language === 'en' ? 'Failed to complete case' : 'Error al completar caso'
+    );
   };
 
   const handleAddTestData = async () => {
-    try {
+    await handleActionWithDebounce(async () => {
       await addTestData();
-      fetchQueue();
-      setError(null);
-    } catch (error) {
-      console.error('Error adding test data:', error);
-      setError('Failed to add test data');
-    }
+    },
+    language === 'en' ? 'Test data added successfully' : 'Datos de prueba agregados exitosamente',
+    language === 'en' ? 'Failed to add test data' : 'Error al agregar datos de prueba'
+    );
   };
 
   const handleCaseSelect = async (caseItem) => {
@@ -177,15 +302,19 @@ const AdminDashboard = () => {
       
       if (result.success) {
         setError(null);
-        alert(language === 'en' 
+        toast.success(language === 'en' 
           ? `Email sent successfully to ${caseItem.user_email}` 
           : `Correo enviado exitosamente a ${caseItem.user_email}`);
       } else {
-        setError(result.error || 'Failed to send email');
+        const errorMsg = result.error || (language === 'en' ? 'Failed to send email' : 'Error al enviar correo');
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
-      console.error('Error sending email:', error);
-      setError('Failed to send email');
+      debugLog('Error sending email:', error);
+      const errorMsg = language === 'en' ? 'Failed to send email' : 'Error al enviar correo';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setSendingEmail(false);
     }
@@ -343,9 +472,9 @@ const AdminDashboard = () => {
   // Sort by priority and wait time
   const sortedQueue = queueWithWaitTimes.sort((a, b) => {
     const priorityOrder = { 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
-    // Handle both 'priority' and 'priority_level' field names
-    const aPriorityValue = a.priority || a.priority_level || 'C';
-    const bPriorityValue = b.priority || b.priority_level || 'C';
+    // Use helper function for consistency
+    const aPriorityValue = getPriority(a);
+    const bPriorityValue = getPriority(b);
     const aPriority = priorityOrder[aPriorityValue] || 5;
     const bPriority = priorityOrder[bPriorityValue] || 5;
     
@@ -430,17 +559,27 @@ const AdminDashboard = () => {
               </button>
               <button
                 onClick={fetchQueue}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={actionLoading}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label={language === 'en' ? 'Refresh queue' : 'Actualizar cola'}
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className={`w-4 h-4 mr-2 ${actionLoading ? 'animate-spin' : ''}`} />
                 {language === 'en' ? 'Refresh' : 'Actualizar'}
               </button>
+              {wsConnected && (
+                <div className="flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-lg text-xs">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                  {language === 'en' ? 'Live' : 'En vivo'}
+                </div>
+              )}
               <button
                 onClick={handleAddTestData}
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                disabled={actionLoading}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label={language === 'en' ? 'Add test data' : 'Agregar datos de prueba'}
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                {language === 'en' ? 'Add Test Data' : 'Agregar Datos de Prueba'}
+                {actionLoading ? (language === 'en' ? 'Processing...' : 'Procesando...') : (language === 'en' ? 'Add Test Data' : 'Agregar Datos de Prueba')}
               </button>
               <button
                 onClick={toggleLanguage}
@@ -544,17 +683,17 @@ const AdminDashboard = () => {
               {/* Left Column: Queue Number and Basic Info */}
               <div className="lg:col-span-1">
                 <div className="flex items-center mb-4">
-                  <div className={`w-20 h-20 ${getPriorityColor(currentNumber.priority || currentNumber.priority_level)} rounded-lg flex items-center justify-center mr-4`}>
+                  <div className={`w-20 h-20 ${getPriorityColor(getPriority(currentNumber))} rounded-lg flex items-center justify-center mr-4`}>
                     <span className="text-4xl font-bold text-white">
                       {currentNumber.queue_number}
                     </span>
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900">
-                      {getPriorityLabel(currentNumber.priority || currentNumber.priority_level)[language]}
+                      {getPriorityLabel(getPriority(currentNumber))[language]}
                     </h3>
                     <p className="text-gray-600">
-                      {language === 'en' ? 'Priority' : 'Prioridad'} {currentNumber.priority || currentNumber.priority_level}
+                      {language === 'en' ? 'Priority' : 'Prioridad'} {getPriority(currentNumber)}
                     </p>
                   </div>
                 </div>
@@ -683,10 +822,12 @@ const AdminDashboard = () => {
                   )}
                   <button
                     onClick={() => handleCompleteCase(currentNumber.queue_number)}
-                    className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    disabled={actionLoading}
+                    className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label={language === 'en' ? 'Complete current case' : 'Completar caso actual'}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    {language === 'en' ? 'Complete Case' : 'Completar Caso'}
+                    {actionLoading ? (language === 'en' ? 'Processing...' : 'Procesando...') : (language === 'en' ? 'Complete Case' : 'Completar Caso')}
                   </button>
                 </div>
               </div>
@@ -699,10 +840,14 @@ const AdminDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 py-4">
         <button
           onClick={handleCallNext}
-          disabled={waitingCount === 0}
+          disabled={waitingCount === 0 || actionLoading}
           className="w-full bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xl font-semibold"
+          aria-label={language === 'en' ? 'Call next case from queue' : 'Llamar siguiente caso de la cola'}
         >
-          {language === 'en' ? 'Call Next Number' : 'Llamar Siguiente Número'}
+          {actionLoading 
+            ? (language === 'en' ? 'Processing...' : 'Procesando...')
+            : (language === 'en' ? 'Call Next Number' : 'Llamar Siguiente Número')
+          }
         </button>
       </div>
 
@@ -722,7 +867,7 @@ const AdminDashboard = () => {
                     </span>
                     <div>
                       <p className="font-medium text-gray-900">
-                        {getPriorityLabel(item.priority || item.priority_level)[language]}
+                        {getPriorityLabel(getPriority(item))[language]}
                       </p>
                       <div className="flex items-center space-x-2 text-sm">
                         <Clock className="w-3 h-3 text-gray-400" />
@@ -739,10 +884,12 @@ const AdminDashboard = () => {
                   </div>
                   <button
                     onClick={() => handleCompleteCase(item.queue_number)}
-                    className="flex items-center px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
+                    disabled={actionLoading}
+                    className="flex items-center px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label={language === 'en' ? `Complete case ${item.queue_number}` : `Completar caso ${item.queue_number}`}
                   >
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    {language === 'en' ? 'Complete' : 'Completar'}
+                    {actionLoading ? (language === 'en' ? '...' : '...') : (language === 'en' ? 'Complete' : 'Completar')}
                   </button>
                 </div>
               ))}
@@ -785,11 +932,11 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {sortedQueue
+                      {sortedQueue
                       .filter(item => item.status !== 'completed')
                       .map((item) => {
                         const isSelected = selectedCase?.queue_number === item.queue_number;
-                        const priority = item.priority || item.priority_level || 'C';
+                        const priority = getPriority(item);
                         const waitTimeClass = getWaitTimeColor(item.waitTimeMinutes || 0);
                         const waitTimeAlert = getWaitTimeAlert(item.waitTimeMinutes || 0);
                         const statusColor = getStatusColor(item.status);
@@ -804,7 +951,7 @@ const AdminDashboard = () => {
                               {item.queue_number}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900">
-                              {item.case_type || getPriorityLabel(priority)[language]}
+                              {item.case_type || getPriorityLabel(getPriority(item))[language]}
                               {item.user_name && (
                                 <div className="text-xs text-gray-500">
                                   {item.user_name}
@@ -813,7 +960,7 @@ const AdminDashboard = () => {
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-                                {priority} · {getPriorityLabel(priority)[language]}
+                                {priority} · {getPriorityLabel(getPriority(item))[language]}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm">
@@ -870,10 +1017,12 @@ const AdminDashboard = () => {
                                       e.stopPropagation();
                                       handleCompleteCase(item.queue_number);
                                     }}
-                                    className="inline-flex items-center px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
+                                    disabled={actionLoading}
+                                    className="inline-flex items-center px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    aria-label={language === 'en' ? `Complete case ${item.queue_number}` : `Completar caso ${item.queue_number}`}
                                   >
                                     <CheckCircle className="w-3 h-3 mr-1" />
-                                    {language === 'en' ? 'Complete' : 'Completar'}
+                                    {actionLoading ? (language === 'en' ? '...' : '...') : (language === 'en' ? 'Complete' : 'Completar')}
                                   </button>
                                 )}
                               </div>
@@ -923,8 +1072,8 @@ const AdminDashboard = () => {
                     <h3 className="text-lg font-semibold text-gray-900">
                       {language === 'en' ? 'Case Information' : 'Información del Caso'}
                     </h3>
-                    <div className={`px-3 py-1 ${getPriorityColor(selectedCase.priority || selectedCase.priority_level)} text-white rounded-full text-sm font-medium`}>
-                      {selectedCase.priority || selectedCase.priority_level}
+                    <div className={`px-3 py-1 ${getPriorityColor(getPriority(selectedCase))} text-white rounded-full text-sm font-medium`}>
+                      {getPriority(selectedCase)}
                     </div>
                   </div>
 
@@ -939,7 +1088,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="text-gray-500">{language === 'en' ? 'Case Type' : 'Tipo de Caso'}</p>
                         <p className="font-medium">
-                          {selectedCase.case_type || getPriorityLabel(selectedCase.priority || selectedCase.priority_level)[language]}
+                          {selectedCase.case_type || getPriorityLabel(getPriority(selectedCase))[language]}
                         </p>
                       </div>
                       <div>
@@ -1055,10 +1204,12 @@ const AdminDashboard = () => {
 
                   <button
                     onClick={() => handleCompleteCase(selectedCase.queue_number)}
-                    className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    disabled={actionLoading}
+                    className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label={language === 'en' ? 'Complete selected case' : 'Completar caso seleccionado'}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    {language === 'en' ? 'Complete Case' : 'Completar Caso'}
+                    {actionLoading ? (language === 'en' ? 'Processing...' : 'Procesando...') : (language === 'en' ? 'Complete Case' : 'Completar Caso')}
                   </button>
 
                   <button
@@ -1120,17 +1271,17 @@ const AdminDashboard = () => {
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className={`w-12 h-12 ${getPriorityColor(caseSummaryData.priority || caseSummaryData.priority_level)} rounded-lg flex items-center justify-center mr-4`}>
+                    <div className={`w-12 h-12 ${getPriorityColor(getPriority(caseSummaryData))} rounded-lg flex items-center justify-center mr-4`}>
                       <span className="text-xl font-bold text-white">
                         {caseSummaryData.queue_number}
                       </span>
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {getPriorityLabel(caseSummaryData.priority || caseSummaryData.priority_level)[language]}
+                        {getPriorityLabel(getPriority(caseSummaryData))[language]}
                       </h3>
                       <p className="text-gray-600">
-                        {language === 'en' ? 'Priority' : 'Prioridad'} {caseSummaryData.priority || caseSummaryData.priority_level}
+                        {language === 'en' ? 'Priority' : 'Prioridad'} {getPriority(caseSummaryData)}
                       </p>
                     </div>
                   </div>
@@ -1200,7 +1351,7 @@ const AdminDashboard = () => {
                       {language === 'en' ? 'Case Type' : 'Tipo de Caso'}
                     </p>
                     <p className="font-medium">
-                      {caseSummaryData.case_type || getPriorityLabel(caseSummaryData.priority || caseSummaryData.priority_level)[language]}
+                      {caseSummaryData.case_type || getPriorityLabel(getPriority(caseSummaryData))[language]}
                     </p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-lg">

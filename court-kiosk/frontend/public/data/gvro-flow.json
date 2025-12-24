@@ -1,0 +1,221 @@
+{
+  "id": "gvro-flow",
+  "version": "2025-12-23",
+  "start": "GVRO_Start",
+  "metadata": {
+    "title": "Gun Violence Restraining Order (GVRO)",
+    "jurisdiction": "CA",
+    "source": "San Mateo County Court Mermaid diagram (Restraining Orders-2025-12-23-013154.mmd)",
+    "flow_family": "Restraining Orders",
+    "description": "Complete flow for Gun Violence Restraining Orders"
+  },
+  "nodes": {
+    "GVRO_Start": {
+      "type": "start",
+      "text": "Start a Gun Violence Restraining Order (GVRO)"
+    },
+    "GVRO_What": {
+      "type": "process",
+      "text": "A GVRO is used to temporarily prevent someone from owning, buying, or possessing firearms, ammunition, or body armor if they may be dangerous to themself or others."
+    },
+    "GVRO_Who": {
+      "type": "info",
+      "text": "Only certain people can ask for a GVRO, including:\n• Law enforcement officer or agency\n• Immediate family member (spouse, parent, child, grandparent) or someone who lives with them now or lived with them in the last 6 months\n• The person’s employer\n• The person’s co-worker (regular contact for at least a year + employer permission)\n    • An employee/teacher at a school the person attended in the last 6 months (with administrator/supervisor permission)"
+    },
+    "GVRO_Limit": {
+      "type": "process",
+      "text": "Important: A GVRO does NOT include stay-away or no-contact orders. If you need orders like stay-away/no contact, you may need a different type of restraining order in addition to (or instead of) a GVRO."
+    },
+    "GVRO_FormsStart": {
+      "type": "process",
+      "text": "Step 1: Fill out the required court forms"
+    },
+    "GVRO_FormList": {
+      "type": "process",
+      "text": "Required forms (typical packet):\n• GV-100 — Request for Gun Violence Restraining Order\n• CLETS-001 — Confidential CLETS Information\n• GV-109 — Notice of Court Hearing\n    • GV-110 — Temporary Gun Violence Restraining Order (ONLY if asking for immediate protection)"
+    },
+    "GVRO_SMCReview": {
+      "type": "process",
+      "text": "Step 2: San Mateo — go to the Civil Department for judicial review (judge review happens BEFORE filing)"
+    },
+    "GVRO_SMCReviewTime": {
+      "type": "warning",
+      "text": "San Mateo Civil Department timing:\n• Judicial review is during Civil Ex Parte hours: Monday–Friday at 2:00pm\n• You must be in the courtroom by 2:00pm (no later than 2:15pm)\n• If you arrive after 2:15pm, the courtroom will not allow you to enter\n• Check in with the Civil Department Clerk’s Office to confirm which courtroom Ex Parte will be in that day\n• Your packet must be fully completed BEFORE 2:00pm\n    • The clerk does NOT file the papers first — the judge reviews them, then they must be filed"
+    },
+    "GVRO_JudgeDecision": {
+      "type": "process",
+      "text": "The judge may:\n• Grant a temporary GVRO and set a hearing date, or\n    • Deny the request"
+    },
+    "GVRO_FileAfter": {
+      "type": "process",
+      "text": "Step 3: File after the judge reviews/signs (as directed by the clerk/judge)"
+    },
+    "GVRO_ServiceStart": {
+      "type": "process",
+      "text": "Step 4: Serve the restrained person"
+    },
+    "GVRO_ServiceRules": {
+      "type": "warning",
+      "text": "Service rules:\n• Someone over 18 (not you) must serve the papers\n• The San Mateo County Sheriff will attempt service of process for restraining orders free of charge\n    • Sheriff’s Office: 300 Bradford Street, 1st Floor, Redwood City, CA"
+    },
+    "GVRO_Hearing": {
+      "type": "process",
+      "text": "Step 5: Go to court on the hearing date listed on GV-109"
+    },
+    "GVRO_LongTerm": {
+      "type": "process",
+      "text": "At the hearing, the judge decides whether to issue a GVRO that can last up to 5 years."
+    },
+    "GVRO_Read": {
+      "type": "process",
+      "text": "If someone has filed court papers to ask for a restraining order against you, carefully read over the papers you were given."
+    },
+    "GVRO_Respond": {
+      "type": "process",
+      "text": "Respond to a Gun Vioelnce Restraining Order"
+    },
+    "GVRO_EPOQ": {
+      "type": "decision",
+      "text": "Were you served with form EPO-002 (Emergency Protective Order)?"
+    },
+    "GVRO_EPOExplain": {
+      "type": "process",
+      "text": "EPO-002 means a judge granted an emergency restraining order against you.\n    You will have a court date listed on EPO-002, or it will be sent to the address listed under your name on the form."
+    },
+    "GVRO_GV109Q": {
+      "type": "decision",
+      "text": "Were you served with form GV-109 (Notice of Court Hearing)?"
+    },
+    "GVRO_GV109Explain": {
+      "type": "warning",
+      "text": "GV-109 means you have a court date.\nIf you do not agree to the restraining order, make sure you go to court.\n    At the court date, a judge will decide whether to grant a GVRO against you that can last up to 5 years."
+    },
+    "GVRO_GV110Q": {
+      "type": "decision",
+      "text": "Were you served with form GV-110 (Temporary Gun Violence Restraining Order)?"
+    },
+    "GVRO_GV110Explain": {
+      "type": "warning",
+      "text": "GV-110 means the judge granted a temporary restraining order against you.\n    You must follow all the orders granted by the judge."
+    },
+    "GVRO_Warning": {
+      "type": "warning",
+      "text": "If you don’t follow the judge’s orders, you could be arrested and charged with a crime."
+    },
+    "GVRO_ResponseOpt": {
+      "type": "process",
+      "text": "Optional: If you want the judge to consider your side, you may file a written response before the hearing."
+    },
+    "GVRO_ResponseForms": {
+      "type": "process",
+      "text": "Optional response form:\n    • GV-120 — Response to Request for Gun Violence Restraining Order"
+    },
+    "GVRO_CourtDate": {
+      "type": "process",
+      "text": "Go to court on the date listed in your papers. Bring copies of your response and any evidence you want the judge to see."
+    }
+  },
+  "edges": [
+    {
+      "from": "GVRO_Start",
+      "to": "GVRO_What"
+    },
+    {
+      "from": "GVRO_What",
+      "to": "GVRO_Who"
+    },
+    {
+      "from": "GVRO_Who",
+      "to": "GVRO_Limit"
+    },
+    {
+      "from": "GVRO_Limit",
+      "to": "GVRO_FormsStart"
+    },
+    {
+      "from": "GVRO_FormsStart",
+      "to": "GVRO_FormList"
+    },
+    {
+      "from": "GVRO_FormList",
+      "to": "GVRO_SMCReview"
+    },
+    {
+      "from": "GVRO_SMCReview",
+      "to": "GVRO_SMCReviewTime"
+    },
+    {
+      "from": "GVRO_SMCReviewTime",
+      "to": "GVRO_JudgeDecision"
+    },
+    {
+      "from": "GVRO_JudgeDecision",
+      "to": "GVRO_FileAfter"
+    },
+    {
+      "from": "GVRO_FileAfter",
+      "to": "GVRO_ServiceStart"
+    },
+    {
+      "from": "GVRO_ServiceStart",
+      "to": "GVRO_ServiceRules"
+    },
+    {
+      "from": "GVRO_ServiceRules",
+      "to": "GVRO_Hearing"
+    },
+    {
+      "from": "GVRO_Hearing",
+      "to": "GVRO_LongTerm"
+    },
+    {
+      "from": "GVRO_Respond",
+      "to": "GVRO_Read"
+    },
+    {
+      "from": "GVRO_Read",
+      "to": "GVRO_EPOQ"
+    },
+    {
+      "from": "GVRO_EPOQ",
+      "to": "GVRO_EPOExplain",
+      "when": "Yes"
+    },
+    {
+      "from": "GVRO_EPOQ",
+      "to": "GVRO_GV109Q",
+      "when": "No"
+    },
+    {
+      "from": "GVRO_GV109Q",
+      "to": "GVRO_GV109Explain",
+      "when": "Yes"
+    },
+    {
+      "from": "GVRO_GV109Q",
+      "to": "GVRO_GV110Q",
+      "when": "No"
+    },
+    {
+      "from": "GVRO_GV110Q",
+      "to": "GVRO_GV110Explain",
+      "when": "Yes"
+    },
+    {
+      "from": "GVRO_GV110Explain",
+      "to": "GVRO_Warning"
+    },
+    {
+      "from": "GVRO_Warning",
+      "to": "GVRO_ResponseOpt"
+    },
+    {
+      "from": "GVRO_ResponseOpt",
+      "to": "GVRO_ResponseForms"
+    },
+    {
+      "from": "GVRO_ResponseForms",
+      "to": "GVRO_CourtDate"
+    }
+  ]
+}

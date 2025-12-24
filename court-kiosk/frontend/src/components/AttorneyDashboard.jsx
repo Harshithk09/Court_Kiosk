@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from './Toast';
 import { 
   Users, 
   Clock, 
@@ -30,6 +31,7 @@ import './ModernButton.css';
 
 const AttorneyDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
+  const toast = useToast();
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,9 @@ const AttorneyDashboard = () => {
       setQueue(queueArray);
       setCurrentNumber(data.current_number || null);
     } catch (error) {
-      console.error('Error fetching queue:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching queue:', error);
+      }
       setError('Failed to fetch queue data');
       setQueue([]);
       setCurrentNumber(null);
@@ -67,8 +71,11 @@ const AttorneyDashboard = () => {
       await callNext();
       fetchQueue();
     } catch (error) {
-      console.error('Error calling next number:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error calling next number:', error);
+      }
       setError('Failed to call next number');
+      toast.error('Failed to call next number');
     }
   };
 
@@ -80,8 +87,11 @@ const AttorneyDashboard = () => {
         setSelectedCase(null);
       }
     } catch (error) {
-      console.error('Error completing case:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error completing case:', error);
+      }
       setError('Failed to complete case');
+      toast.error('Failed to complete case');
     }
   };
 
@@ -96,8 +106,11 @@ const AttorneyDashboard = () => {
         const analysis = await generateCaseAnalysis(caseItem);
         setCaseAnalysis(analysis);
       } catch (error) {
-        console.error('Error generating case analysis:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error generating case analysis:', error);
+        }
         setError('Failed to generate case analysis');
+        toast.error('Failed to generate case analysis');
       } finally {
         setAnalyzing(false);
       }
@@ -179,15 +192,21 @@ const AttorneyDashboard = () => {
       
       if (result.success) {
         setError(null);
-        alert(language === 'en' 
+        toast.success(language === 'en' 
           ? `Email sent successfully to ${caseItem.user_email}` 
           : `Correo enviado exitosamente a ${caseItem.user_email}`);
       } else {
-        setError(result.error || 'Failed to send email');
+        const errorMsg = result.error || 'Failed to send email';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
-      console.error('Error sending email:', error);
-      setError('Failed to send email');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error sending email:', error);
+      }
+      const errorMsg = 'Failed to send email';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setSendingEmail(false);
     }
