@@ -41,7 +41,11 @@ const getApiBaseUrl = () => {
 
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: getApiBaseUrl(),
+  get BASE_URL() {
+    // Dynamically evaluate base URL each time it's accessed
+    // This ensures window.location is available when accessed
+    return getApiBaseUrl();
+  },
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 second
@@ -88,11 +92,15 @@ export const isDevelopment = () => {
 };
 
 // Log API configuration (only in development)
-if (isDevelopment()) {
-  console.log('API Configuration:', {
-    baseUrl: API_CONFIG.BASE_URL,
-    environment: process.env.NODE_ENV,
-    isVercel: process.env.VERCEL === '1',
-    vercelUrl: process.env.VERCEL_URL,
-  });
+if (isDevelopment() && typeof window !== 'undefined') {
+  // Use setTimeout to ensure window.location is available
+  setTimeout(() => {
+    console.log('API Configuration:', {
+      baseUrl: API_CONFIG.BASE_URL,
+      environment: process.env.NODE_ENV,
+      isVercel: process.env.VERCEL === '1',
+      vercelUrl: process.env.VERCEL_URL,
+      hostname: window.location?.hostname,
+    });
+  }, 100);
 }

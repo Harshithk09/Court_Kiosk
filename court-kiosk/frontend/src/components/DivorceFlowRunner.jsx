@@ -3,12 +3,14 @@ import SimpleFlowRunner from '../components/SimpleFlowRunner';
 import ModernHeader from './ModernHeader';
 import ModernCard from './ModernCard';
 import ModernButton from './ModernButton';
+import { useToast } from './Toast';
 import { CheckCircle, User, Mail, Phone, ArrowLeft } from 'lucide-react';
 import './ModernHeader.css';
 import './ModernCard.css';
 import './ModernButton.css';
 
 const DivorceFlowRunner = () => {
+  const toast = useToast();
   const [flow, setFlow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showQueueForm, setShowQueueForm] = useState(false);
@@ -29,14 +31,16 @@ const DivorceFlowRunner = () => {
         setLoading(false);
       })
       .catch(error => {
-        console.error('Error loading flow data:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error loading flow data:', error);
+        }
         setLoading(false);
       });
   }, []);
 
   const handleAddToQueue = async () => {
     if (!userInfo.name.trim()) {
-      alert('Please enter your name');
+      toast.error('Please enter your name');
       return;
     }
 
@@ -60,13 +64,18 @@ const DivorceFlowRunner = () => {
       if (response.ok) {
         const data = await response.json();
         setQueueNumber(data.queue_number);
+        toast.success('Successfully added to queue!');
       } else {
-        console.error('Failed to add to queue');
-        alert('Failed to add to queue. Please try again.');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to add to queue');
+        }
+        toast.error('Failed to add to queue. Please try again.');
       }
     } catch (error) {
-      console.error('Error adding to queue:', error);
-      alert('Error adding to queue. Please try again.');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error adding to queue:', error);
+      }
+      toast.error('Error adding to queue. Please try again.');
     } finally {
       setIsAddingToQueue(false);
     }
@@ -80,8 +89,10 @@ const DivorceFlowRunner = () => {
   };
 
   const handleFlowFinish = ({ answers, forms }) => {
-    console.log('divorce answers', answers);
-    console.log('divorce forms', forms);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('divorce answers', answers);
+      console.log('divorce forms', forms);
+    }
     setFlowResults({ answers, forms });
     setShowQueueForm(true);
   };

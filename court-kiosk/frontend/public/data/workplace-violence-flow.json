@@ -1,0 +1,252 @@
+{
+  "id": "workplace-violence-flow",
+  "version": "2025-12-23",
+  "start": "WV_Start",
+  "metadata": {
+    "title": "Workplace Violence Restraining Order",
+    "jurisdiction": "CA",
+    "source": "San Mateo County Court Mermaid diagram (Restraining Orders-2025-12-23-013154.mmd)",
+    "flow_family": "Restraining Orders",
+    "description": "Complete flow for Workplace Violence Restraining Orders"
+  },
+  "nodes": {
+    "WV0": {
+      "type": "process",
+      "text": "Workplace Violence Restraining Order"
+    },
+    "WV1": {
+      "type": "process",
+      "text": "An employer can ask for a restraining order to protect one or more employees from someone who has stalked, harassed, threatened violence, or been violent at the workplace."
+    },
+    "WV2": {
+      "type": "process",
+      "text": "Abuse at the workplace can include:\n• Threats made in person, by phone, mail, email, or online\n• Following an employee to or from work\n• Harassment or threats during work hours\n    • Violence or credible threats of violence"
+    },
+    "WV3": {
+      "type": "decision",
+      "text": "Who can ask for this restraining order?"
+    },
+    "WV4": {
+      "type": "warning",
+      "text": "Only an employer can ask for a Workplace Violence Restraining Order.\n    Employees cannot file this type of restraining order themselves."
+    },
+    "WV5": {
+      "type": "process",
+      "text": "An employer may ask for protection for:\n• One or more employees\n• Other employees who may be at risk\n    • In some cases, family or household members of employees"
+    },
+    "WV6": {
+      "type": "process",
+      "text": "Where to file in San Mateo County"
+    },
+    "WV7": {
+      "type": "warning",
+      "text": "These cases are handled by the Civil Department.\n    Workplace Violence Restraining Orders must be requested during Civil Ex Parte hours."
+    },
+    "WV_Start": {
+      "type": "start",
+      "text": "Start a Workplace Violence Restraining Order"
+    },
+    "WV_Step1": {
+      "type": "process",
+      "text": "Step 1: Fill out the required court forms"
+    },
+    "WV_Forms": {
+      "type": "process",
+      "text": "Required forms (San Mateo County):\n• NOTICE TO PROTECTED PARTY SHEET\n• WV-100-INFO — Information sheet\n• CIVIL CASE COVER SHEET — CM-010\n• CLETS-001 — Confidential CLETS Information\n• WV-100 — Request for Workplace Violence Restraining Orders\n• WV-109 — Notice of Court Hearing\n• WV-110 — Temporary Restraining Order (ONLY if asking for immediate protection)\n• WV-200-INFO — Firearms Information\n• WV-200 — Proof of Firearms Turned In, Sold, or Stored\n• WV-120 — Response to Request for Workplace Violence Restraining Order\n• WV-250 — Proof of Service by Mail\n    • WV-800 — Firearms Relinquishment Options Sheet"
+    },
+    "WV_Step2": {
+      "type": "process",
+      "text": "Step 2: Go to Civil Ex Parte for judicial review (judge review happens BEFORE filing)"
+    },
+    "WV_ExParteRules": {
+      "type": "warning",
+      "text": "San Mateo Civil Ex Parte rules:\n• Hearings are Monday–Friday at 2:00 pm\n• You must be in the courtroom by 2:00 pm (no later than 2:15 pm)\n• If you arrive after 2:15 pm, the courtroom will not allow you to enter\n• Check in with the Civil Department Clerk’s Office to confirm which courtroom Ex Parte will be in that day\n• Your restraining order packet must be fully completed before 2:00 pm\n    • The clerk does NOT file the papers first — the judge reviews them, then the papers must be filed"
+    },
+    "WV_JudgeDecision": {
+      "type": "process",
+      "text": "The judge may:\n• Grant a temporary restraining order and set a hearing date, or\n    • Deny the request"
+    },
+    "WV_FileAfter": {
+      "type": "process",
+      "text": "Step 3: File the papers after the judge reviews/signs (as directed by the clerk/judge)"
+    },
+    "WV_Step4": {
+      "type": "process",
+      "text": "Step 4: Serve the restrained person"
+    },
+    "WV_Service": {
+      "type": "warning",
+      "text": "Service rules:\n• Someone over 18 (not you) must serve the papers\n• The San Mateo County Sheriff will attempt service of process for restraining orders free of charge\n    • Sheriff’s Office: 300 Bradford Street, 1st Floor, Redwood City, CA"
+    },
+    "WV_Step5": {
+      "type": "process",
+      "text": "Step 5: Go to court on the hearing date listed on WV-109"
+    },
+    "WV_AfterHearing": {
+      "type": "info",
+      "text": "If the judge grants the order after the hearing, it can include:\n• No contact\n• Stay-away from employees and the workplace\n• No harassment, stalking, or threats\n    • Firearm, ammunition, and body armor restrictions"
+    },
+    "WV_Read": {
+      "type": "process",
+      "text": "If an employer filed court papers asking for a Workplace Violence Restraining Order against you, carefully read all the papers you were served."
+    },
+    "WV_Respond": {
+      "type": "process",
+      "text": "Respond to a Workplace Violence Restraining Order (If You Were Served)"
+    },
+    "WV_Check109": {
+      "type": "process",
+      "text": "Check WV-109 (Notice of Court Hearing).\n    This form lists your court date, time, and location."
+    },
+    "WV_CourtNeeded": {
+      "type": "warning",
+      "text": "If you do not agree with the restraining order, you must go to court.\n    At the hearing, a judge decides whether to issue a Workplace Violence Restraining Order against you."
+    },
+    "WV_Check110": {
+      "type": "decision",
+      "text": "Did the judge sign WV-110 (Temporary Restraining Order)?"
+    },
+    "WV_ObeyTRO": {
+      "type": "warning",
+      "text": "You must follow every order in WV-110 immediately.\n    If you do not, you could be arrested and charged with a crime."
+    },
+    "WV_ResponseOpt": {
+      "type": "decision",
+      "text": "Would you like to respond in writing before court? This is optional."
+    },
+    "WV120": {
+      "type": "process",
+      "text": "Fill out WV-120 — Response to Request for Workplace Violence Restraining Order.\n    Attach any evidence you want the judge to review."
+    },
+    "WV_PrepCourt": {
+      "type": "process",
+      "text": "Prepare for court:\nBring copies of your response, any evidence, and notes of what you want to say.\n    Arrive early."
+    },
+    "WV_ServeResp": {
+      "type": "process",
+      "text": "Have someone 18+ (not you) serve your response as required.\n    File proof of service with the court before the hearing."
+    },
+    "WV_GoCourt": {
+      "type": "process",
+      "text": "Go to court on the date listed in WV-109."
+    }
+  },
+  "edges": [
+    {
+      "from": "WV1",
+      "to": "WV2"
+    },
+    {
+      "from": "WV2",
+      "to": "WV3"
+    },
+    {
+      "from": "WV3",
+      "to": "WV4"
+    },
+    {
+      "from": "WV4",
+      "to": "WV5"
+    },
+    {
+      "from": "WV5",
+      "to": "WV6"
+    },
+    {
+      "from": "WV6",
+      "to": "WV7"
+    },
+    {
+      "from": "WV7",
+      "to": "WV_Start"
+    },
+    {
+      "from": "WV_Start",
+      "to": "WV_Step1"
+    },
+    {
+      "from": "WV_Step1",
+      "to": "WV_Forms"
+    },
+    {
+      "from": "WV_Forms",
+      "to": "WV_Step2"
+    },
+    {
+      "from": "WV_Step2",
+      "to": "WV_ExParteRules"
+    },
+    {
+      "from": "WV_ExParteRules",
+      "to": "WV_JudgeDecision"
+    },
+    {
+      "from": "WV_JudgeDecision",
+      "to": "WV_FileAfter"
+    },
+    {
+      "from": "WV_FileAfter",
+      "to": "WV_Step4"
+    },
+    {
+      "from": "WV_Step4",
+      "to": "WV_Service"
+    },
+    {
+      "from": "WV_Service",
+      "to": "WV_Step5"
+    },
+    {
+      "from": "WV_Step5",
+      "to": "WV_AfterHearing"
+    },
+    {
+      "from": "WV_Respond",
+      "to": "WV_Read"
+    },
+    {
+      "from": "WV_Read",
+      "to": "WV_Check109"
+    },
+    {
+      "from": "WV_Check109",
+      "to": "WV_CourtNeeded"
+    },
+    {
+      "from": "WV_CourtNeeded",
+      "to": "WV_Check110"
+    },
+    {
+      "from": "WV_Check110",
+      "to": "WV_ObeyTRO",
+      "when": "Yes"
+    },
+    {
+      "from": "WV_Check110",
+      "to": "WV_ResponseOpt",
+      "when": "No"
+    },
+    {
+      "from": "WV_ObeyTRO",
+      "to": "WV_ResponseOpt"
+    },
+    {
+      "from": "WV_ResponseOpt",
+      "to": "WV120",
+      "when": "Yes"
+    },
+    {
+      "from": "WV_ResponseOpt",
+      "to": "WV_PrepCourt",
+      "when": "No"
+    },
+    {
+      "from": "WV120",
+      "to": "WV_ServeResp"
+    },
+    {
+      "from": "WV_ServeResp",
+      "to": "WV_PrepCourt"
+    }
+  ]
+}

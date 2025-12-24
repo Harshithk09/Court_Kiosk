@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import CompletionPage from './CompletionPage';
 import AdminQuestionsPage from './AdminQuestionsPage';
 import ErrorBoundary from './ErrorBoundary';
-import { getFormUrl } from '../utils/formUtils';
+import { getFormUrl, getLocalFormUrl, getOfficialFormUrl } from '../utils/formUtils';
 import { FileText, ExternalLink, Eye } from 'lucide-react';
 
-const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
+const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
   const [currentNodeId, setCurrentNodeId] = useState(flow?.start || 'DVROStart');
   const [history, setHistory] = useState([flow?.start || 'DVROStart']);
   const [showSummary, setShowSummary] = useState(false);
@@ -15,6 +15,17 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
 
   const currentNode = flow?.nodes?.[currentNodeId];
   const outgoingEdges = flow?.edges?.filter(edge => edge.from === currentNodeId) || [];
+
+  // Check if current node has a routeTarget and handle navigation
+  useEffect(() => {
+    if (currentNode?.routeTarget && onRoute) {
+      // Small delay to show the message, then navigate
+      const timer = setTimeout(() => {
+        onRoute(currentNode.routeTarget, currentNodeId);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentNodeId, currentNode, onRoute]);
 
   // Debug logging
   console.log('Current node:', currentNodeId, currentNode);
@@ -126,7 +137,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
         }
         
         // Also look for specific form patterns
-        const specificForms = node.text.match(/\b(DV-\d+|CLETS-001|SER-001|POS-040|CH-\d+|FL-\d+|FW-\d+|CM-\d+|EPO-\d+|JV-\d+|MC-\d+)\b/g);
+        const specificForms = node.text.match(/\b(DV-\d+|CLETS-001|SER-001|POS-040|CH-\d+|FL-\d+|FW-\d+|CM-\d+|EPO-\d+|JV-\d+|MC-\d+|EA-\d+|GV-\d+|WV-\d+)\b/g);
         if (specificForms) {
           specificForms.forEach(form => forms.add(form));
         }
@@ -483,7 +494,8 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
               
               <div className="space-y-3">
                 {getFormsForSidebar().map((formCode, index) => {
-                  const formUrl = getFormUrl(formCode);
+                  const localFormUrl = getLocalFormUrl(formCode);
+                  const officialFormUrl = getOfficialFormUrl(formCode);
                   return (
                     <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="flex items-center space-x-3">
@@ -492,11 +504,24 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome }) => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <a
-                          href={formUrl}
+                          href={localFormUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 transition-colors"
-                          title="Open form"
+                          title="Download form (local)"
+                          onClick={async (e) => {
+                            // Try local first, fallback to official if needed
+                            try {
+                              const checkResponse = await fetch(localFormUrl, { method: 'HEAD' });
+                              if (!checkResponse.ok) {
+                                e.preventDefault();
+                                window.open(officialFormUrl, '_blank');
+                              }
+                            } catch (error) {
+                              e.preventDefault();
+                              window.open(officialFormUrl, '_blank');
+                            }
+                          }}
                         >
                           <ExternalLink className="w-4 h-4" />
                         </a>

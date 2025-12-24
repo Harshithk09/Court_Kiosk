@@ -275,21 +275,28 @@ class CaseSummaryService:
         }
         
         # Create case summary record (using session_id as case_number for database compatibility)
-        case_summary = CaseSummary(
-            case_number=session_id,  # Using session_id instead of case number
-            flow_type=flow_type,
-            summary_json=json.dumps(summary_json),
-            required_forms=json.dumps(required_forms),
-            next_steps=json.dumps(next_steps),
-            user_email=user_email,
-            user_name=user_name,
-            language=language
-        )
-        
-        db.session.add(case_summary)
-        db.session.commit()
-        
-        return case_summary
+        try:
+            case_summary = CaseSummary(
+                case_number=session_id,  # Using session_id instead of case number
+                flow_type=flow_type,
+                summary_json=json.dumps(summary_json),
+                required_forms=json.dumps(required_forms),
+                next_steps=json.dumps(next_steps),
+                user_email=user_email,
+                user_name=user_name,
+                language=language
+            )
+            
+            db.session.add(case_summary)
+            db.session.commit()
+            
+            return case_summary
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to create case summary: {e}")
+            raise
     
     def save_summary_and_maybe_queue(self,
                                    flow_type: str,
@@ -331,17 +338,24 @@ class CaseSummaryService:
         last_ticket = QueueTicket.query.order_by(QueueTicket.position.desc()).first()
         next_position = (last_ticket.position + 1) if last_ticket else 1
         
-        # Create queue ticket
-        queue_ticket = QueueTicket(
-            summary_id=summary_id,
-            position=next_position,
-            status='waiting'
-        )
-        
-        db.session.add(queue_ticket)
-        db.session.commit()
-        
-        return queue_ticket
+        # Create queue ticket with proper transaction handling
+        try:
+            queue_ticket = QueueTicket(
+                summary_id=summary_id,
+                position=next_position,
+                status='waiting'
+            )
+            
+            db.session.add(queue_ticket)
+            db.session.commit()
+            
+            return queue_ticket
+        except Exception as e:
+            db.session.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to create queue ticket: {e}")
+            raise
     
     def send_summary_email(self, case_summary: CaseSummary) -> Dict:
         """Send detailed summary email with hyperlinked forms"""
@@ -396,5 +410,8 @@ class CaseSummaryService:
             db.session.commit()
             return True
         except Exception as e:
-            print(f"Error updating queue ticket: {e}")
+            db.session.rollback()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error updating queue ticket {ticket_id}: {e}")
             return False

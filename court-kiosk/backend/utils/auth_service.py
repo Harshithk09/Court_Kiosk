@@ -6,9 +6,12 @@ Handles user authentication, session management, and authorization
 import secrets
 import hashlib
 import json
+import logging
 from datetime import datetime, timedelta
 from flask import request
 from models import db, User, UserSession, AuditLog
+
+logger = logging.getLogger(__name__)
 
 class AuthService:
     """Service for handling authentication and authorization"""
@@ -73,9 +76,14 @@ class AuthService:
             )
             return {'success': False, 'error': 'Invalid credentials'}
         
-        # Update last login
-        user.last_login = datetime.utcnow()
-        db.session.commit()
+        # Update last login with proper transaction handling
+        try:
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Failed to update last login for user {user.id}: {e}")
+            # Continue anyway - login can still succeed
         
         # Create session
         session = AuthService.create_session(user)
@@ -112,10 +120,14 @@ class AuthService:
             user_agent=request.headers.get('User-Agent') if request else None
         )
         
-        db.session.add(session)
-        db.session.commit()
-        
-        return session
+        try:
+            db.session.add(session)
+            db.session.commit()
+            return session
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Failed to create session for user {user.id}: {e}")
+            raise
     
     @staticmethod
     def validate_session(session_token):
@@ -127,9 +139,13 @@ class AuthService:
         
         if not session or session.is_expired():
             if session:
-                # Remove expired session
-                db.session.delete(session)
-                db.session.commit()
+                # Remove expired session with proper transaction handling
+                try:
+                    db.session.delete(session)
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    logger.error(f"Failed to delete expired session: {e}")
             return None
         
         user = User.query.get(session.user_id)
@@ -145,15 +161,23 @@ class AuthService:
         
         if session:
             user_id = session.user_id
-            db.session.delete(session)
-            db.session.commit()
-            
-            # Log logout
-            AuthService.log_action(
-                user_id=user_id,
-                action='logout',
-                details={'session_token': session_token[:8] + '...'}
-            )
+            try:
+                db.session.delete(session)
+                db.session.commit()
+                
+                # Log logout (non-transactional, failures don't affect logout)
+                try:
+                    AuthService.log_action(
+                        user_id=user_id,
+                        action='logout',
+                        details={'session_token': session_token[:8] + '...'}
+                    )
+                except Exception as log_error:
+                    logger.error(f"Failed to log logout action: {log_error}")
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Failed to delete session during logout: {e}")
+                return {'success': False, 'error': 'Failed to logout'}
         
         return {'success': True}
     
@@ -164,11 +188,14 @@ class AuthService:
             UserSession.expires_at < datetime.utcnow()
         ).all()
         
-        for session in expired_sessions:
-            db.session.delete(session)
-        
         if expired_sessions:
-            db.session.commit()
+            try:
+                for session in expired_sessions:
+                    db.session.delete(session)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Failed to cleanup expired sessions: {e}")
     
     @staticmethod
     def log_action(user_id=None, action=None, resource_type=None, resource_id=None, details=None):
@@ -188,7 +215,8 @@ class AuthService:
             db.session.commit()
         except Exception as e:
             # Don't let audit logging break the main functionality
-            print(f"Audit logging error: {e}")
+            db.session.rollback()
+            logger.error(f"Audit logging error: {e}")
     
     @staticmethod
     def get_audit_logs(limit=100, offset=0, user_id=None, action=None):

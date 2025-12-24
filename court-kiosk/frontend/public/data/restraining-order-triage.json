@@ -1,0 +1,117 @@
+{
+  "id": "restraining-order-triage",
+  "version": "2025-12-23",
+  "start": "TriageRO",
+  "metadata": {
+    "title": "Restraining Order Triage",
+    "jurisdiction": "CA",
+    "source": "San Mateo County Court Mermaid diagram",
+    "flow_family": "Restraining Orders",
+    "description": "Triage flow to help users identify which type of restraining order they need"
+  },
+  "nodes": {
+    "TriageRO": {
+      "type": "start",
+      "text": "Unsure what restraining order you need?"
+    },
+    "Start": {
+      "type": "decision",
+      "text": "What is your relationship to the person you want protection from?"
+    },
+    "CloseRel": {
+      "type": "decision",
+      "text": "Are they someone you are/were dating, married to, have a child with, or a close family member (parent, sibling, grandparent, in-law)?"
+    },
+    "DVROEntry": {
+      "type": "process",
+      "text": "You may qualify for a Domestic Violence Restraining Order"
+    },
+    "ElderAge": {
+      "type": "decision",
+      "text": "Are you 65 or older, or between 18–64 with a disability?"
+    },
+    "EA_Start": {
+      "type": "start",
+      "text": "Start an Elder or Dependent Adult Abuse Restraining Order"
+    },
+    "SpecialCheck": {
+      "type": "decision",
+      "text": "Which situation best matches what you need help with?"
+    },
+    "GVRO_Start": {
+      "type": "start",
+      "text": "Start a Gun Violence Restraining Order (GVRO)"
+    },
+    "WV_Start": {
+      "type": "start",
+      "text": "Start a Workplace Violence Restraining Order"
+    },
+    "CROInfo": {
+      "type": "decision",
+      "text": "Is the harm done by someone you are NOT closely related to, for example, a neighbor, roommate, or stranger?"
+    },
+    "CRO": {
+      "type": "process",
+      "text": "You may qualify for a Civil Harassment Restraining Order"
+    },
+    "CRONO": {
+      "type": "terminal",
+      "text": "If you are looking for another type of restraining order not listed here, please see the Self-Help Center staff or speak with an attorney."
+    }
+  },
+  "edges": [
+    {
+      "from": "TriageRO",
+      "to": "Start"
+    },
+    {
+      "from": "Start",
+      "to": "CloseRel"
+    },
+    {
+      "from": "CloseRel",
+      "to": "DVROEntry",
+      "when": "Yes"
+    },
+    {
+      "from": "CloseRel",
+      "to": "ElderAge",
+      "when": "No"
+    },
+    {
+      "from": "ElderAge",
+      "to": "EA_Start",
+      "when": "Yes"
+    },
+    {
+      "from": "ElderAge",
+      "to": "SpecialCheck",
+      "when": "No"
+    },
+    {
+      "from": "SpecialCheck",
+      "to": "GVRO_Start",
+      "when": "I’m worried someone may hurt themselves or others with a gun"
+    },
+    {
+      "from": "SpecialCheck",
+      "to": "WV_Start",
+      "when": "I’m an employer trying to protect an employee at the workplace"
+    },
+    {
+      "from": "SpecialCheck",
+      "to": "CROInfo",
+      "when": "None of these"
+    },
+    {
+      "from": "CROInfo",
+      "to": "CRO",
+      "when": "Yes"
+    },
+    {
+      "from": "CROInfo",
+      "to": "CRONO",
+      "when": "No"
+    }
+  ]
+}
