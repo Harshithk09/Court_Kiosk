@@ -24,7 +24,10 @@ except ImportError:
     resend = None
     print("Warning: resend package not installed. Email functionality will be limited.")
 
-COURT_DOCUMENTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'court_documents'))
+# Use the shared court_documents directory at the project root
+COURT_DOCUMENTS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', '..', 'court_documents')
+)
 
 class EmailService:
     """Unified email service for Court Kiosk - handles all email functionality"""
@@ -54,9 +57,32 @@ class EmailService:
         # Setup PDF styles
         self.styles = getSampleStyleSheet()
         self._setup_pdf_styles()
+
+        # Load local PDFs so attachments work even when network is blocked
+        self.court_documents_dir = COURT_DOCUMENTS_DIR
+        self.form_filename_index = self._build_form_index()
         
         # Initialize LLM service for AI-powered summaries (optional)
         self.llm_service = LLMService(Config.OPENAI_API_KEY) if Config.OPENAI_API_KEY else None
+
+    def _build_form_index(self) -> Dict[str, str]:
+        """Create a lowercase index of available local PDF filenames."""
+        index: Dict[str, str] = {}
+
+        try:
+            if not os.path.isdir(self.court_documents_dir):
+                print(f"⚠️ Court documents directory not found: {self.court_documents_dir}")
+                return index
+
+            for filename in os.listdir(self.court_documents_dir):
+                if filename.lower().endswith('.pdf'):
+                    index[filename.lower()] = os.path.join(self.court_documents_dir, filename)
+
+            print(f"✅ Loaded {len(index)} local court form PDFs for attachments")
+        except Exception as e:
+            print(f"⚠️ Could not index local court forms: {e}")
+
+        return index
     
     def _setup_pdf_styles(self):
         """Setup custom paragraph styles for court documents"""
@@ -771,75 +797,36 @@ class EmailService:
 
     def _get_local_form_path(self, form_code: str) -> Optional[str]:
         """Return path to bundled PDF if available."""
-        local_files = {
-            # Domestic Violence
-            'DV-100': 'dv100.pdf',
-            'DV-101': 'dv101.pdf',
-            'DV-105': 'dv105.pdf',
-            'DV-105A': 'dv105a.pdf',
-            'DV-108': 'dv108.pdf',
-            'DV-109': 'dv109.pdf',
-            'DV-110': 'dv110.pdf',
-            'DV-112': 'dv112.pdf',
-            'DV-116': 'dv116.pdf',
-            'DV-120': 'dv120.pdf',
-            'DV-120INFO': 'dv120info.pdf',
-            'DV-125': 'dv125.pdf',
-            'DV-130': 'dv130.pdf',
-            'DV-140': 'dv140.pdf',
-            'DV-145': 'dv145.pdf',
-            'DV-200': 'dv200.pdf',
-            'DV-250': 'dv250.pdf',
-            'DV-700': 'dv700.pdf',
-            'DV-710': 'dv710.pdf',
-            'DV-720': 'dv720.pdf',
-            'DV-800': 'dv800.pdf',
-
-            # Civil Harassment
-            'CH-100': 'ch100.pdf',
-            'CH-109': 'ch109.pdf',
-            'CH-110': 'ch110.pdf',
-            'CH-120': 'ch120.pdf',
-            'CH-120-INFO': 'ch120info.pdf',
-            'CH-130': 'ch130.pdf',
-            'CH-200': 'ch200.pdf',
-            'CH-250': 'ch250.pdf',
-            'CH-700': 'ch700.pdf',
-            'CH-710': 'ch710.pdf',
-            'CH-720': 'ch720.pdf',
-            'CH-730': 'ch730.pdf',
-            'CH-800': 'ch800.pdf',
-
-            # Divorce / Family law
-            'FL-100': 'fl100.pdf',
-            'FL-105': 'fl105.pdf',
-            'FL-110': 'fl110.pdf',
-            'FL-115': 'fl115.pdf',
-            'FL-117': 'fl117.pdf',
-            'FL-120': 'fl120.pdf',
-            'FL-130': 'fl130.pdf',
-            'FL-140': 'fl140.pdf',
-            'FL-141': 'fl141.pdf',
-            'FL-142': 'fl142.pdf',
-            'FL-144': 'fl144.pdf',
-            'FL-150': 'fl150.pdf',
-
-            # Other forms
-            'CLETS-001': 'clets001.pdf',
-            'CM-010': 'cm010.pdf',
-            'MC-025': 'mc025.pdf',
-            'MC-031': 'mc031.pdf',
-            'MC-040': 'mc040.pdf',
-            'MC-050': 'mc050.pdf',
-            'POS-040': 'pos040.pdf',
-        }
-
-        filename = local_files.get(form_code.upper())
-        if not filename:
+        if not form_code:
             return None
 
-        candidate_path = os.path.join(COURT_DOCUMENTS_DIR, filename)
-        return candidate_path if os.path.exists(candidate_path) else None
+        # Normalize form code and generate several filename variants
+        base = str(form_code).strip()
+        base_upper = base.upper()
+        base_lower = base_upper.lower()
+
+        candidates = [
+            f"{base_upper}.pdf",
+            f"{base_lower}.pdf",
+            f"{base_upper.replace('-', '')}.pdf",
+            f"{base_lower.replace('-', '')}.pdf",
+            f"{base_upper.replace('-', '_')}.pdf",
+            f"{base_lower.replace('-', '_')}.pdf",
+        ]
+
+        for candidate in candidates:
+            path = self.form_filename_index.get(candidate.lower())
+            if path and os.path.exists(path):
+                return path
+
+        # Fallback: try loose match ignoring separators
+        target_key = base_lower.replace('-', '').replace('_', '')
+        for filename, path in self.form_filename_index.items():
+            compare_key = filename.replace('.pdf', '').replace('-', '').replace('_', '')
+            if compare_key == target_key and os.path.exists(path):
+                return path
+
+        return None
     
     def _download_single_form(self, form_code: str) -> Optional[str]:
         """Download a single form from California Courts website"""
