@@ -5,7 +5,6 @@ Consolidates all email functionality into clean, focused endpoints
 
 from flask import Blueprint, request, jsonify
 from utils.email_service import EmailService
-from utils.enhanced_email_service import EnhancedEmailService
 from utils.validation import validate_email, validate_phone_number, validate_name
 import logging
 import uuid
@@ -13,9 +12,8 @@ import uuid
 # Create blueprint for email routes
 email_bp = Blueprint('email', __name__, url_prefix='/api/email')
 
-# Initialize email services
+# Initialize email service
 email_service = EmailService()
-enhanced_email_service = EnhancedEmailService()
 
 @email_bp.route('/send-case-summary', methods=['POST'])
 def send_case_summary():
@@ -292,7 +290,7 @@ def send_case_summary_enhanced():
             }), 400
         
         # Execute enhanced email chain
-        result = enhanced_email_service.send_complete_case_summary_email(
+        result = email_service.send_complete_case_summary_email(
             user_session_id=user_session_id,
             case_responses=case_responses,
             queue_number=queue_number

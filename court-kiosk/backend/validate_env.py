@@ -64,6 +64,12 @@ RECOMMENDED_VARS = {
         'required_for': 'Email functionality',
         'validate': lambda v: v.startswith('re_') if v else False
     },
+    'RESEND_FROM_DOMAIN': {
+        'description': 'Verified domain for sending emails (required to send to all recipients)',
+        'example': 'courtkiosk.com',
+        'required_for': 'Sending emails to all recipients (not just testing)',
+        'validate': lambda v: '.' in v if v else False
+    },
     'DATABASE_URL': {
         'description': 'Database connection URL',
         'example': 'sqlite:///court_kiosk.db (dev) or postgresql://... (prod)',
@@ -80,6 +86,11 @@ RECOMMENDED_VARS = {
 
 # Optional environment variables (nice to have)
 OPTIONAL_VARS = {
+    'RESEND_FROM_EMAIL': {
+        'description': 'Specific from email address (overrides RESEND_FROM_DOMAIN)',
+        'example': 'noreply@courtkiosk.com',
+        'default': 'Auto-generated from domain or testing email'
+    },
     'CORS_ORIGINS': {
         'description': 'Comma-separated list of allowed CORS origins',
         'example': 'http://localhost:3000,https://court-kiosk.vercel.app',

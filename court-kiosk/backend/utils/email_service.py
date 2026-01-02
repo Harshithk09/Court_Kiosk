@@ -10,8 +10,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple, Any
 from config import Config
+from utils.llm_service import LLMService
+from utils.validation import validate_email, validate_phone_number, validate_name
 
 # Initialize Resend with proper error handling
 try:
@@ -28,19 +30,33 @@ class EmailService:
     """Unified email service for Court Kiosk - handles all email functionality"""
     
     def __init__(self):
-        # Email configuration
-        self.from_email = "Court Kiosk <onboarding@resend.dev>"
-        self.support_email = "onboarding@resend.dev"
+        # Email configuration - Check for verified domain first
+        custom_domain = Config.RESEND_FROM_DOMAIN
+        custom_from_email = Config.RESEND_FROM_EMAIL
         
-        # Check for custom domain
-        custom_domain = os.getenv('RESEND_FROM_DOMAIN')
-        if custom_domain:
+        if custom_from_email:
+            # Use explicitly configured from email
+            self.from_email = f"Court Kiosk <{custom_from_email}>"
+            self.support_email = custom_from_email.replace('noreply', 'support').replace('no-reply', 'support')
+        elif custom_domain:
+            # Use verified domain
             self.from_email = f"Court Kiosk <noreply@{custom_domain}>"
             self.support_email = f"support@{custom_domain}"
+            print(f"✅ Using verified domain: {custom_domain}")
+        else:
+            # Fallback to testing email (restricted)
+            self.from_email = "Court Kiosk <onboarding@resend.dev>"
+            self.support_email = "onboarding@resend.dev"
+            print("⚠️ WARNING: Using Resend testing email. Emails can only be sent to your own address.")
+            print("⚠️ To send to all recipients, verify a domain at https://resend.com/domains")
+            print("⚠️ Then set RESEND_FROM_DOMAIN environment variable (e.g., 'yourdomain.com')")
         
         # Setup PDF styles
         self.styles = getSampleStyleSheet()
         self._setup_pdf_styles()
+        
+        # Initialize LLM service for AI-powered summaries (optional)
+        self.llm_service = LLMService(Config.OPENAI_API_KEY) if Config.OPENAI_API_KEY else None
     
     def _setup_pdf_styles(self):
         """Setup custom paragraph styles for court documents"""
@@ -71,7 +87,7 @@ class EmailService:
         ))
     
     def send_case_email(self, case_data: dict, include_queue: bool = False) -> dict:
-        """Main method - sends comprehensive case email with PDFs"""
+        """Main method - sends comprehensive case email with PDFs - FIXED VERSION"""
         try:
             if not resend:
                 return {"success": False, "error": "Email service (resend) not available"}
@@ -103,66 +119,118 @@ class EmailService:
             # Remove duplicates and empty values
             form_codes = list(set([f.strip().upper() for f in form_codes if f and f.strip()]))
             
-            print(f"📋 Found {len(form_codes)} forms to attach: {', '.join(form_codes)}")
+            print(f"📋 Forms to attach: {', '.join(form_codes)}")
             
-            # Generate case summary PDF
+            # Generate case summary PDF (needed for _prepare_attachments)
             case_summary_path = self._generate_case_summary_pdf(case_data)
             
             # Download official forms
             form_attachments = self._download_forms(form_codes)
             
+            # Prepare ALL attachments (case summary + forms) using new method
+            attachments = self._prepare_attachments(case_data, case_summary_path, form_attachments)
+            
             # Generate email content
             subject = f"Your Court Case Summary - {case_data.get('queue_number', 'N/A')}"
             html_content = self._generate_email_html(case_data)
             
-            # Prepare all attachments
-            attachments = []
-            
-            # Add case summary PDF
-            if case_summary_path and os.path.exists(case_summary_path):
-                with open(case_summary_path, 'rb') as f:
-                    attachments.append({
-                        'filename': f"Case_Summary_{case_data.get('queue_number', 'N/A')}.pdf",
-                        'content': base64.b64encode(f.read()).decode('utf-8'),
-                        'type': 'application/pdf'
-                    })
-            
-            # Add form PDFs
-            attached_count = 0
-            for form_attachment in form_attachments:
-                if os.path.exists(form_attachment['path']):
-                    try:
-                        with open(form_attachment['path'], 'rb') as f:
-                            attachments.append({
-                                'filename': form_attachment['filename'],
-                                'content': base64.b64encode(f.read()).decode('utf-8'),
-                                'type': 'application/pdf'
-                            })
-                        attached_count += 1
-                        print(f"✅ Attached form: {form_attachment['filename']}")
-                    except Exception as e:
-                        print(f"⚠️ Error attaching {form_attachment['filename']}: {e}")
-            
-            print(f"📎 Total forms attached: {attached_count} out of {len(form_codes)} requested")
-            
             # Send email
             success = self._send_email_with_attachments(user_email, subject, html_content, attachments)
             
-            # Cleanup
+            # Cleanup temp files
             self._cleanup_temp_files(case_summary_path, form_attachments)
             
             if success:
                 print(f"✅ Email sent successfully to {user_email}")
-                return {"success": True, "id": "email_sent_successfully"}
+                return {"success": True, "id": "email_sent_successfully", "attachments_count": len(attachments)}
             else:
-                return {"success": False, "error": "Failed to send email"}
+                return {"success": False, "error": "Failed to send email", "attachments_prepared": len(attachments)}
                 
         except Exception as e:
-            print(f"❌ Error sending case email: {e}")
+            print(f"❌ Error in send_case_email: {e}")
+            import traceback
+            print(f"❌ Full traceback:\n{traceback.format_exc()}")
             return {"success": False, "error": str(e)}
     
+    def _prepare_attachments(self, case_data: dict, case_summary_path: str, form_attachments: list) -> list:
+        """Prepare and validate all attachments - FIXED VERSION"""
+        attachments = []
+        
+        # 1. Add case summary PDF
+        if case_summary_path and os.path.exists(case_summary_path):
+            try:
+                file_size = os.path.getsize(case_summary_path)
+                
+                if file_size == 0:
+                    print("⚠️ Warning: Case summary PDF is empty, skipping")
+                else:
+                    print(f"📄 Case summary PDF: {file_size} bytes")
+                    with open(case_summary_path, 'rb') as f:
+                        content = f.read()
+                        encoded = base64.b64encode(content).decode('utf-8')
+                        
+                        attachments.append({
+                            'filename': f"Case_Summary_{case_data.get('queue_number', 'N/A')}.pdf",
+                            'content': encoded
+                            # NO 'type' field - Resend infers it from filename/content
+                        })
+                        print(f"✅ Prepared case summary ({len(encoded)} chars base64)")
+            except Exception as e:
+                print(f"⚠️ Error preparing case summary: {e}")
+                import traceback
+                print(f"⚠️ Traceback: {traceback.format_exc()}")
+        else:
+            print("⚠️ Case summary PDF not found or not generated")
+        
+        # 2. Add form PDFs
+        attached_count = 0
+        for form_attachment in form_attachments:
+            form_path = form_attachment.get('path')
+            form_filename = form_attachment.get('filename')
+            
+            if not form_path or not os.path.exists(form_path):
+                print(f"⚠️ Form file not found: {form_filename}")
+                continue
+            
+            try:
+                file_size = os.path.getsize(form_path)
+                
+                if file_size == 0:
+                    print(f"⚠️ Warning: {form_filename} is empty (0 bytes), skipping")
+                    continue
+                
+                print(f"📄 {form_filename}: {file_size} bytes")
+                
+                with open(form_path, 'rb') as f:
+                    content = f.read()
+                    
+                    # Verify content was read
+                    if len(content) == 0:
+                        print(f"⚠️ Warning: Read 0 bytes from {form_filename}, skipping")
+                        continue
+                    
+                    encoded = base64.b64encode(content).decode('utf-8')
+                    
+                    attachments.append({
+                        'filename': form_filename,
+                        'content': encoded
+                        # NO 'type' field
+                    })
+                    
+                    attached_count += 1
+                    print(f"✅ Attached: {form_filename} ({len(encoded)} chars base64)")
+                    
+            except Exception as e:
+                print(f"⚠️ Error attaching {form_filename}: {e}")
+                import traceback
+                print(f"⚠️ Traceback: {traceback.format_exc()}")
+                continue
+        
+        print(f"📎 Total attachments prepared: {len(attachments)}")
+        return attachments
+    
     def _send_email_with_attachments(self, to_email: str, subject: str, html_content: str, attachments: list = None) -> bool:
-        """Send email with attachments using Resend API"""
+        """Send email with attachments using Resend API - FIXED VERSION"""
         if not resend:
             print("❌ Resend package not available. Cannot send email.")
             return False
@@ -172,6 +240,33 @@ class EmailService:
             return False
             
         try:
+            # Validate attachments before sending
+            if attachments:
+                total_size = 0
+                validated_attachments = []
+                
+                for att in attachments:
+                    try:
+                        # Decode to check size (base64 is ~33% larger than original)
+                        decoded_size = len(base64.b64decode(att['content']))
+                        total_size += decoded_size
+                        
+                        print(f"📎 Attachment: {att['filename']} ({decoded_size} bytes)")
+                        validated_attachments.append(att)
+                    except Exception as e:
+                        print(f"⚠️ Invalid attachment {att.get('filename', 'unknown')}: {e}")
+                        continue
+                
+                # Check 25MB limit (Resend's typical limit)
+                max_size = 25 * 1024 * 1024
+                if total_size > max_size:
+                    print(f"❌ Total attachment size ({total_size} bytes) exceeds {max_size} bytes limit")
+                    return False
+                
+                print(f"✅ Total attachment size: {total_size} bytes ({len(validated_attachments)} files)")
+                attachments = validated_attachments
+            
+            # Build email payload - CRITICAL: Resend expects specific format
             email_data = {
                 "from": self.from_email,
                 "to": [to_email],
@@ -179,38 +274,129 @@ class EmailService:
                 "html": html_content
             }
             
+            # Add attachments if present (without 'type' field - Resend infers from content)
             if attachments:
                 email_data["attachments"] = attachments
             
+            print(f"📤 Sending email to {to_email} with {len(attachments) if attachments else 0} attachments...")
+            
+            # Send via Resend API
             response = resend.Emails.send(email_data)
             
-            if response and response.get('id'):
-                return True
-            else:
-                print(f"❌ Failed to send email: {response}")
-                return False
+            # Enhanced response checking
+            print(f"📬 Resend API Response: {response}")
+            print(f"📬 Response type: {type(response)}")
+            
+            if isinstance(response, dict):
+                print(f"📬 Response keys: {list(response.keys())}")
+                
+                # Check for success
+                if response.get('id'):
+                    print(f"✅ Email sent successfully! Resend ID: {response.get('id')}")
+                    return True
+                
+                # Check for errors
+                if 'error' in response or 'message' in response:
+                    error_msg = response.get('error') or response.get('message')
+                    print(f"❌ Resend API Error: {error_msg}")
+                    
+                    # Detect testing mode restriction
+                    if 'testing emails' in str(error_msg).lower() or 'only send' in str(error_msg).lower():
+                        print("\n" + "="*70)
+                        print("⚠️  TESTING MODE DETECTED - Domain Verification Required")
+                        print("="*70)
+                        print("To send emails to all recipients, you need to:")
+                        print("1. Verify a domain at https://resend.com/domains")
+                        print("2. Set RESEND_FROM_DOMAIN environment variable")
+                        print("3. See RESEND_DOMAIN_SETUP.md for detailed instructions")
+                        print("="*70 + "\n")
+                    
+                    return False
+            
+            # If we got here, response format is unexpected
+            print(f"⚠️ Unexpected response format from Resend API")
+            return False
                 
         except Exception as e:
-            print(f"❌ Error sending email: {e}")
-            # Fallback: Send to your email for forwarding
+            print(f"❌ Exception sending email: {e}")
+            print(f"❌ Exception type: {type(e).__name__}")
+            
+            # Enhanced error details
+            if hasattr(e, '__dict__'):
+                print(f"❌ Exception attributes: {e.__dict__}")
+            if hasattr(e, 'response'):
+                print(f"❌ API Response object: {e.response}")
+                if hasattr(e.response, 'text'):
+                    print(f"❌ API Response text: {e.response.text}")
+            if hasattr(e, 'status_code'):
+                print(f"❌ HTTP Status Code: {e.status_code}")
+            
+            import traceback
+            print(f"❌ Full traceback:\n{traceback.format_exc()}")
+            
+            # Fallback: Send to configured fallback email for forwarding
+            # This works in testing mode when domain is not verified
             try:
+                fallback_email = Config.FALLBACK_EMAIL
+                if not fallback_email:
+                    print("❌ FALLBACK_EMAIL not configured. Cannot send fallback email.")
+                    print("💡 TIP: Set FALLBACK_EMAIL in environment variables for email forwarding")
+                    return False
+                    
+                # Enhanced forwarding email with better formatting
                 fallback_data = {
                     "from": self.from_email,
-                    "to": ["karuturiharshith@gmail.com"],
+                    "to": [fallback_email],
                     "subject": f"FORWARD TO: {to_email} - {subject}",
                     "html": f"""
-                    <div style="padding: 20px; border: 2px solid #f59e0b; border-radius: 8px; background-color: #fef3c7;">
-                        <h3 style="color: #92400e;">📧 Email Forward Request</h3>
-                        <p style="color: #92400e;"><strong>Original Recipient:</strong> {to_email}</p>
-                        <p style="color: #92400e;"><strong>Subject:</strong> {subject}</p>
-                        <p style="color: #92400e;"><strong>Please forward this email to the original recipient.</strong></p>
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                            .forward-box {{ 
+                                background-color: #fef3c7; 
+                                border: 2px solid #f59e0b; 
+                                border-radius: 8px; 
+                                padding: 20px; 
+                                margin-bottom: 20px;
+                            }}
+                            .forward-button {{
+                                display: inline-block;
+                                background-color: #f59e0b;
+                                color: white;
+                                padding: 10px 20px;
+                                text-decoration: none;
+                                border-radius: 5px;
+                                margin-top: 10px;
+                            }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="forward-box">
+                            <h3 style="color: #92400e; margin-top: 0;">📧 Email Forward Request</h3>
+                            <p style="color: #92400e;"><strong>Original Recipient:</strong> {to_email}</p>
+                            <p style="color: #92400e;"><strong>Subject:</strong> {subject}</p>
+                            <p style="color: #92400e;"><strong>Action Required:</strong> Please forward this email to the recipient above.</p>
+                            <p style="color: #92400e; font-size: 12px; margin-top: 15px;">
+                                <strong>Quick Forward:</strong> Click "Forward" in your email client and send to: <strong>{to_email}</strong>
+                            </p>
+                            <p style="color: #92400e; font-size: 11px; margin-top: 10px;">
+                                <em>Note: This is a temporary solution. To send directly to all recipients, verify a domain at resend.com/domains</em>
+                            </p>
+                        </div>
                         <hr style="margin: 20px 0; border: 1px solid #f59e0b;">
-                        {html_content}
-                    </div>
+                        <div style="background-color: white; padding: 20px;">
+                            {html_content}
+                        </div>
+                    </body>
+                    </html>
                     """
                 }
                 resend.Emails.send(fallback_data)
-                print(f"✅ Fallback email sent to your address for forwarding to {to_email}")
+                print(f"✅ Fallback email sent to {fallback_email} for forwarding to {to_email}")
+                print(f"💡 TIP: Set up Gmail auto-forward filter to automate forwarding")
                 return True
             except Exception as fallback_error:
                 print(f"❌ Fallback also failed: {fallback_error}")
@@ -824,6 +1010,385 @@ class EmailService:
                     os.remove(form_attachment['path'])
         except Exception as e:
             print(f"⚠️ Error cleaning up temp files: {e}")
+    
+    # ========================================================================
+    # AI-POWERED CASE SUMMARY METHODS (from EnhancedEmailService)
+    # ========================================================================
+    
+    def prepare_case_summary_data(self, user_session_id: str, case_responses: Dict) -> Tuple[Dict, Dict]:
+        """
+        Collect all necessary data for email summary
+        Returns: (user_data, case_data)
+        """
+        # Extract user information
+        user_data = {
+            'name': case_responses.get('user_name') or case_responses.get('name') or 'Court Kiosk User',
+            'email': case_responses.get('user_email') or case_responses.get('email'),
+            'phone': case_responses.get('phone_number') or case_responses.get('phone'),
+            'language': case_responses.get('language', 'en')
+        }
+        
+        # Extract case details
+        case_data = {
+            'case_type': self._determine_case_type(case_responses),
+            'priority': self._assess_priority(case_responses),
+            'key_facts': self._extract_key_facts(case_responses),
+            'forms_needed': [],
+            'next_steps': [],
+            'queue_number': case_responses.get('queue_number')
+        }
+        
+        # Validate required fields
+        if not user_data['email']:
+            raise ValueError("Email address is required")
+        
+        email_result = validate_email(user_data['email'])
+        if not email_result['valid']:
+            raise ValueError(f"Invalid email address: {email_result['error']}")
+        user_data['email'] = email_result['email']
+        
+        # Validate phone if provided
+        if user_data['phone']:
+            phone_result = validate_phone_number(user_data['phone'])
+            if phone_result['valid']:
+                user_data['phone'] = phone_result['formatted']
+        
+        # Validate name if provided
+        if user_data['name']:
+            name_result = validate_name(user_data['name'])
+            if name_result['valid']:
+                user_data['name'] = name_result['sanitized']
+        
+        return user_data, case_data
+    
+    def _determine_case_type(self, responses: Dict) -> str:
+        """Determine case type from responses"""
+        if responses.get('case_type'):
+            return str(responses['case_type']).upper()
+        
+        # Check for DVRO indicators
+        if any(key in responses for key in ['DVCheck1', 'domestic_violence', 'dvro']):
+            return 'DVRO'
+        
+        # Check for Divorce indicators
+        if any(key in responses for key in ['divorce', 'dissolution', 'marriage']):
+            return 'DIVORCE'
+        
+        # Check for CHRO indicators
+        if any(key in responses for key in ['civil_harassment', 'chro', 'harassment']):
+            return 'CHRO'
+        
+        return 'DVRO'  # Default
+    
+    def _assess_priority(self, responses: Dict) -> str:
+        """Assess priority level (A=High, B=Medium, C=Standard)"""
+        # High priority indicators
+        if responses.get('DVCheck1') == 'Yes' or responses.get('emergency') == 'yes':
+            return 'A'
+        
+        # Medium priority
+        if responses.get('children') == 'yes' or responses.get('firearms') == 'yes':
+            return 'B'
+        
+        return 'C'  # Standard
+    
+    def _extract_key_facts(self, responses: Dict) -> List[str]:
+        """Extract key facts from user responses"""
+        facts = []
+        
+        if responses.get('DVCheck1') == 'Yes':
+            facts.append("Requested domestic violence restraining order")
+        
+        if responses.get('children') == 'yes':
+            facts.append("Has children involved in the case")
+        
+        if responses.get('support') and responses['support'] != 'none':
+            support_type = str(responses['support']).replace('_', ' ').title()
+            facts.append(f"Requested {support_type} support")
+        
+        if responses.get('firearms') == 'yes':
+            facts.append("Firearms are involved in the case")
+        
+        if responses.get('abduction_check') == 'yes':
+            facts.append("Requested child abduction prevention measures")
+        
+        return facts
+    
+    def generate_case_summary_with_ai(self, case_data: Dict, case_responses: Dict) -> Dict:
+        """
+        Use OpenAI to analyze case and generate summary
+        Returns structured case summary
+        """
+        if not self.llm_service:
+            # Fallback to rule-based summary if AI not available
+            return self._generate_fallback_summary(case_data, case_responses)
+        
+        try:
+            # Prepare prompt for AI
+            ai_prompt = f"""
+Analyze this {case_data['case_type']} case and provide a comprehensive summary.
+
+CASE DETAILS:
+- Case Type: {case_data['case_type']}
+- Priority Level: {case_data['priority']}
+- Key Facts: {', '.join(case_data['key_facts']) if case_data['key_facts'] else 'Standard case'}
+
+USER RESPONSES:
+{json.dumps(case_responses, indent=2)}
+
+Please provide a JSON response with the following structure:
+{{
+    "summary_text": "2-3 paragraph narrative summary of the case",
+    "forms_list": ["DV-100", "DV-109", "DV-110", ...],
+    "action_items": [
+        {{"action": "Complete form DV-100", "timeline": "Today", "priority": "high"}},
+        ...
+    ],
+    "critical_warnings": ["Warning 1", "Warning 2", ...],
+    "helpful_resources": [
+        {{"name": "Court Clerk", "contact": "(650) 261-5100"}},
+        ...
+    ],
+    "expected_timeline": "Timeline description"
+}}
+
+Be specific about California Judicial Council form codes and provide actionable next steps.
+"""
+            
+            # Call OpenAI API
+            response = self.llm_service.client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a legal information assistant for California courts. Provide accurate, helpful information about court procedures and forms."},
+                    {"role": "user", "content": ai_prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            # Parse AI response
+            ai_response_text = response.choices[0].message.content.strip()
+            
+            # Try to extract JSON from response
+            try:
+                if '```json' in ai_response_text:
+                    json_start = ai_response_text.find('```json') + 7
+                    json_end = ai_response_text.find('```', json_start)
+                    ai_response_text = ai_response_text[json_start:json_end].strip()
+                elif '```' in ai_response_text:
+                    json_start = ai_response_text.find('```') + 3
+                    json_end = ai_response_text.find('```', json_start)
+                    ai_response_text = ai_response_text[json_start:json_end].strip()
+                
+                parsed_summary = json.loads(ai_response_text)
+            except (json.JSONDecodeError, ValueError):
+                parsed_summary = self._parse_ai_response_fallback(ai_response_text, case_data)
+            
+            # Structure the summary
+            case_summary = {
+                'narrative': parsed_summary.get('summary_text', 'Case summary not available.'),
+                'forms_needed': parsed_summary.get('forms_list', []),
+                'next_steps': parsed_summary.get('action_items', []),
+                'warnings': parsed_summary.get('critical_warnings', []),
+                'resources': parsed_summary.get('helpful_resources', []),
+                'timeline': parsed_summary.get('expected_timeline', 'Timeline will be determined by the court.'),
+                'case_type': case_data['case_type'],
+                'priority': case_data['priority']
+            }
+            
+            return case_summary
+            
+        except Exception as e:
+            print(f"⚠️ AI summary generation failed: {e}, using fallback")
+            return self._generate_fallback_summary(case_data, case_responses)
+    
+    def _generate_fallback_summary(self, case_data: Dict, case_responses: Dict) -> Dict:
+        """Generate summary without AI (fallback)"""
+        case_type = case_data['case_type']
+        
+        # Default forms by case type
+        default_forms = {
+            'DVRO': ['DV-100', 'CLETS-001', 'DV-109', 'DV-110', 'DV-200'],
+            'DIVORCE': ['FL-100', 'FL-110', 'FL-115', 'FL-140', 'FL-150'],
+            'CHRO': ['CH-100', 'CLETS-001', 'CH-109', 'CH-110', 'CH-200']
+        }
+        
+        # Default next steps
+        default_steps = [
+            {"action": "Complete all required forms", "timeline": "Today", "priority": "high"},
+            {"action": "File forms with the court clerk", "timeline": "As soon as possible", "priority": "high"},
+            {"action": "Serve the other party", "timeline": "After filing", "priority": "high"},
+            {"action": "Attend your court hearing", "timeline": "On scheduled date", "priority": "critical"}
+        ]
+        
+        return {
+            'narrative': f"This is a {case_type} case. Please complete the required forms and follow the next steps outlined below.",
+            'forms_needed': default_forms.get(case_type, default_forms['DVRO']),
+            'next_steps': default_steps,
+            'warnings': ["Keep copies of all forms", "Bring photo ID when filing", "If in immediate danger, call 911"],
+            'resources': [
+                {"name": "Court Clerk", "contact": "(650) 261-5100"},
+                {"name": "Self-Help Center", "contact": "Room 101, First Floor"}
+            ],
+            'timeline': 'Timeline will be determined by the court after filing.',
+            'case_type': case_type,
+            'priority': case_data['priority']
+        }
+    
+    def _parse_ai_response_fallback(self, text: str, case_data: Dict) -> Dict:
+        """Fallback parser for AI response"""
+        return {
+            'summary_text': text[:500] if text else 'Case summary generated.',
+            'forms_list': ['DV-100', 'DV-109', 'DV-110'],
+            'action_items': [
+                {"action": "Complete required forms", "timeline": "Today", "priority": "high"}
+            ],
+            'critical_warnings': [],
+            'helpful_resources': [],
+            'expected_timeline': 'To be determined'
+        }
+    
+    def prepare_forms_package(self, forms_needed: List[str], case_type: str) -> List[Dict]:
+        """
+        Gather all required forms with official links
+        """
+        forms_package = []
+        
+        # Get forms from database/config
+        for form_code in forms_needed:
+            form_info = self._get_form_details_for_package(form_code)
+            
+            if form_info:
+                forms_package.append({
+                    'form_code': form_code,
+                    'form_name': form_info.get('name', form_code),
+                    'official_url': form_info.get('url', self._get_form_url(form_code)),
+                    'description': form_info.get('description', f'{form_code} form'),
+                    'instructions': form_info.get('instructions', ''),
+                    'is_required': form_info.get('required', True)
+                })
+            else:
+                # Fallback if form details not found
+                forms_package.append({
+                    'form_code': form_code,
+                    'form_name': self._get_form_title(form_code),
+                    'official_url': self._get_form_url(form_code),
+                    'description': f'{form_code} form',
+                    'instructions': '',
+                    'is_required': True
+                })
+        
+        # Add case-type specific essential forms
+        essential_forms = self._get_essential_forms_by_case_type(case_type)
+        for essential_form_code in essential_forms:
+            if not any(f['form_code'] == essential_form_code for f in forms_package):
+                form_info = self._get_form_details_for_package(essential_form_code)
+                if form_info:
+                    forms_package.append({
+                        'form_code': essential_form_code,
+                        'form_name': form_info.get('name', essential_form_code),
+                        'official_url': form_info.get('url', self._get_form_url(essential_form_code)),
+                        'description': form_info.get('description', ''),
+                        'instructions': form_info.get('instructions', ''),
+                        'is_required': True
+                    })
+        
+        # Sort by priority (required first)
+        forms_package.sort(key=lambda x: (not x['is_required'], x['form_code']))
+        
+        return forms_package
+    
+    def _get_form_details_for_package(self, form_code: str) -> Optional[Dict]:
+        """Get form details from database or mapping"""
+        try:
+            from utils.form_utils import FormUtils
+            return FormUtils.get_form_details(form_code)
+        except:
+            return None
+    
+    def _get_essential_forms_by_case_type(self, case_type: str) -> List[str]:
+        """Get essential forms by case type"""
+        try:
+            from utils.form_utils import FormUtils
+            return FormUtils.get_essential_forms(case_type)
+        except:
+            # Fallback defaults
+            defaults = {
+                'DVRO': ['CLETS-001'],
+                'DIVORCE': [],
+                'CHRO': ['CLETS-001']
+            }
+            return defaults.get(case_type, [])
+    
+    def send_complete_case_summary_email(self, user_session_id: str, case_responses: Dict, 
+                                        queue_number: Optional[str] = None) -> Dict:
+        """
+        Main function to orchestrate entire email summary chain with AI-powered summaries
+        Follows the enhanced email process
+        """
+        try:
+            # Prepare data
+            print("Step 1: Gathering user and case data...")
+            user_data, case_data = self.prepare_case_summary_data(user_session_id, case_responses)
+            
+            # Generate AI summary
+            print("Step 2: Generating AI-powered case summary...")
+            case_summary = self.generate_case_summary_with_ai(case_data, case_responses)
+            
+            # Add queue number if provided
+            if queue_number:
+                case_summary['queue_number'] = queue_number
+            
+            # Prepare forms package
+            print("Step 3: Preparing forms package...")
+            forms_package = self.prepare_forms_package(
+                case_summary['forms_needed'], 
+                case_data['case_type']
+            )
+            
+            # Convert to case_data format for existing send_case_email method
+            case_data_for_email = {
+                'user_email': user_data['email'],
+                'user_name': user_data.get('name', 'Court Kiosk User'),
+                'case_type': case_summary.get('case_type', 'DVRO'),
+                'priority_level': case_summary.get('priority', 'C'),
+                'language': user_data.get('language', 'en'),
+                'queue_number': case_summary.get('queue_number', 'N/A'),
+                'phone_number': user_data.get('phone', ''),
+                'documents_needed': case_summary.get('forms_needed', []),
+                'summary_json': json.dumps({
+                    'narrative': case_summary.get('narrative', ''),
+                    'next_steps': case_summary.get('next_steps', []),
+                    'warnings': case_summary.get('warnings', []),
+                    'resources': case_summary.get('resources', []),
+                    'timeline': case_summary.get('timeline', '')
+                })
+            }
+            
+            # Send email using existing method
+            print("Step 4: Sending email with PDF attachments...")
+            result = self.send_case_email(case_data_for_email, include_queue=(queue_number is not None))
+            
+            if result.get('success'):
+                return {
+                    'success': True,
+                    'message': 'Case summary email sent successfully',
+                    'email': user_data['email'],
+                    'id': result.get('id'),
+                    'forms_count': len(forms_package)
+                }
+            else:
+                return result
+                
+        except ValueError as e:
+            print(f"✗ Validation error: {e}")
+            return {'success': False, 'error': 'validation_error', 'message': str(e)}
+            
+        except Exception as e:
+            print(f"✗ Unexpected error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'error': 'unknown_error', 'message': str(e)}
     
     # Legacy methods for backward compatibility
     def send_comprehensive_case_email(self, case_data: dict, include_queue: bool = False) -> dict:

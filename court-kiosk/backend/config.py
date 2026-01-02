@@ -17,6 +17,8 @@ class Config:
     
     # Resend email service
     RESEND_API_KEY = os.getenv('RESEND_API_KEY')
+    RESEND_FROM_DOMAIN = os.getenv('RESEND_FROM_DOMAIN')  # Verified domain (e.g., 'courtkiosk.com')
+    RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL')  # Optional: specific from email (e.g., 'noreply@courtkiosk.com')
     
     # Service endpoints - configurable via environment variables
     SEARCH_SERVICE_URL = os.getenv('SEARCH_SERVICE_URL', 'http://localhost:8000')
