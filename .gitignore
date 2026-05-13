@@ -70,3 +70,8 @@ Thumbs.db
 # Logs
 logs
 *.log
+
+# Local scratch notes (repo root)
+code_example_response.md
+solace_novel_problem_solution.md
+solace_outlier_answer.md
