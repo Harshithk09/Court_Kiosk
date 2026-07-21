@@ -5,6 +5,7 @@ import ModernCard from './ModernCard';
 import ModernButton from './ModernButton';
 import { useToast } from './Toast';
 import { CheckCircle, User, Mail, Phone, ArrowLeft } from 'lucide-react';
+import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
 import './ModernHeader.css';
 import './ModernCard.css';
 import './ModernButton.css';
@@ -46,11 +47,9 @@ const DivorceFlowRunner = () => {
 
     setIsAddingToQueue(true);
     try {
-      const response = await fetch('/api/generate-queue', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.GENERATE_QUEUE), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           case_type: 'DIVORCE',
           priority: 'C',

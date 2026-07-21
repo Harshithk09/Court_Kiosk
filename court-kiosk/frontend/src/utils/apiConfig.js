@@ -51,6 +51,25 @@ export const API_CONFIG = {
   RETRY_DELAY: 1000, // 1 second
 };
 
+// Shared secret for kiosk-facing write/LLM endpoints (must match backend KIOSK_API_KEY)
+export const getKioskApiKey = () => process.env.REACT_APP_KIOSK_API_KEY || '';
+
+/**
+ * Default headers for API calls. Includes X-Kiosk-Key when configured.
+ * Pass additional headers via `extra`; Authorization should be supplied by callers when needed.
+ */
+export const getApiHeaders = (extra = {}) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...extra,
+  };
+  const kioskKey = getKioskApiKey();
+  if (kioskKey) {
+    headers['X-Kiosk-Key'] = kioskKey;
+  }
+  return headers;
+};
+
 // API Endpoints
 export const API_ENDPOINTS = {
   // Queue Management
@@ -90,5 +109,3 @@ export const isProduction = () => {
 export const isDevelopment = () => {
   return process.env.NODE_ENV === 'development' && !process.env.VERCEL;
 };
-
-// API configuration logging removed for production

@@ -1,5 +1,5 @@
 // Authenticated API utility for admin operations
-import { buildApiUrl, isProduction } from './apiConfig';
+import { buildApiUrl, getApiHeaders, isProduction } from './apiConfig';
 
 /**
  * Helper function to make authenticated HTTP requests
@@ -11,10 +11,9 @@ import { buildApiUrl, isProduction } from './apiConfig';
 const makeAuthenticatedRequest = async (endpoint, options = {}, sessionToken = null) => {
   try {
     const url = buildApiUrl(endpoint);
-    const headers = {
-      'Content-Type': 'application/json',
+    const headers = getApiHeaders({
       ...options.headers
-    };
+    });
 
     // Add authentication header if token is provided
     if (sessionToken) {

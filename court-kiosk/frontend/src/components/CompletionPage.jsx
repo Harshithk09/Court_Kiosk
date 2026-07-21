@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { addToQueue } from '../utils/queueAPI';
-import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
+import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
 import { getLocalFormUrl, getOfficialFormUrl } from '../utils/formUtils';
 import { useToast } from './Toast';
 
@@ -536,7 +536,7 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
       
       const response = await fetch(buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders(),
         body: JSON.stringify(emailPayload)
       });
       

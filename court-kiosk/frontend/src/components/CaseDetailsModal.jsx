@@ -16,7 +16,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import CaseProgressTracker from './CaseProgressTracker';
-import { buildApiUrl } from '../utils/apiConfig';
+import { buildApiUrl, getApiHeaders } from '../utils/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
 
 const CaseDetailsModal = ({ 
@@ -35,10 +35,9 @@ const CaseDetailsModal = ({
     
     try {
       const response = await fetch(buildApiUrl(`/api/case-details/${caseData.queue_number}`), {
-        headers: {
+        headers: getApiHeaders({
           'Authorization': `Bearer ${sessionToken}`,
-          'Content-Type': 'application/json'
-        }
+        })
       });
       if (response.ok) {
         const data = await response.json();

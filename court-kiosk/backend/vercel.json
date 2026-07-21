@@ -13,7 +13,6 @@
     }
   ],
   "env": {
-    "CORS_ORIGINS": "*",
     "LOG_LEVEL": "INFO"
   },
   "functions": {

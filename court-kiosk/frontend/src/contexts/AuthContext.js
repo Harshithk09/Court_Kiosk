@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { buildApiUrl } from '../utils/apiConfig';
+import { buildApiUrl, getApiHeaders } from '../utils/apiConfig';
 
 const AuthContext = createContext();
 
@@ -21,10 +21,9 @@ export const AuthProvider = ({ children }) => {
       if (sessionToken) {
         await fetch(buildApiUrl('/api/auth/logout'), {
           method: 'POST',
-          headers: {
+          headers: getApiHeaders({
             'Authorization': `Bearer ${sessionToken}`,
-            'Content-Type': 'application/json'
-          }
+          })
         });
       }
     } catch (error) {
@@ -39,10 +38,9 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = useCallback(async () => {
     try {
       const response = await fetch(buildApiUrl('/api/auth/me'), {
-        headers: {
+        headers: getApiHeaders({
           'Authorization': `Bearer ${sessionToken}`,
-          'Content-Type': 'application/json'
-        }
+        })
       });
 
       if (response.ok) {
@@ -73,9 +71,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await fetch(buildApiUrl('/api/auth/login'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: getApiHeaders(),
         body: JSON.stringify({ username, password })
       });
 
@@ -105,10 +101,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const getAuthHeaders = () => {
-    return {
+    return getApiHeaders({
       'Authorization': `Bearer ${sessionToken}`,
-      'Content-Type': 'application/json'
-    };
+    });
   };
 
   const value = {

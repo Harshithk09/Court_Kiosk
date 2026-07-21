@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
-import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
+import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
 import GuidedQuestionPage from './GuidedQuestionPage';
 
 const CustodyPage = () => {
@@ -16,7 +16,7 @@ const CustodyPage = () => {
       try {
         const response = await fetch(buildApiUrl(API_ENDPOINTS.GENERATE_QUEUE), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getApiHeaders(),
           body: JSON.stringify({
             case_type: 'CUSTODY',
             priority: 'B',

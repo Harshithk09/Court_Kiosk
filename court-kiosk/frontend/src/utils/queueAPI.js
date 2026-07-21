@@ -1,5 +1,5 @@
 // Queue API utility for connecting with backend
-import { API_ENDPOINTS, buildApiUrl, isProduction } from './apiConfig';
+import { API_ENDPOINTS, buildApiUrl, getApiHeaders, isProduction } from './apiConfig';
 
 // Configuration constants
 const CONFIG = {
@@ -26,7 +26,7 @@ const makeRequest = async (endpoint, options = {}) => {
     const url = buildApiUrl(endpoint);
     const response = await fetch(url, {
       headers: {
-        'Content-Type': 'application/json',
+        ...getApiHeaders(),
         ...options.headers
       },
       ...options

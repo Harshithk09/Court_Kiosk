@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
-import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
+import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
 
 const OtherFamilyLawPage = () => {
   const { language } = useLanguage();
@@ -45,7 +45,7 @@ const OtherFamilyLawPage = () => {
     try {
       const response = await fetch(buildApiUrl(API_ENDPOINTS.GENERATE_QUEUE), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           case_type: 'OTHER',
           priority: 'D',

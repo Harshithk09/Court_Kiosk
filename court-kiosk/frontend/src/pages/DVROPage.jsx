@@ -3,7 +3,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
 import GuidedQuestionPage from './GuidedQuestionPage';
-import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
+import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
 
 export default function DVROPage() {
   const { language } = useLanguage();
@@ -33,7 +33,7 @@ export default function DVROPage() {
     try {
       const res = await fetch(buildApiUrl(API_ENDPOINTS.GENERATE_QUEUE), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders(),
         body: JSON.stringify({ case_type: 'DVRO', priority: 'A', language })
       });
       if (res.ok) {
@@ -43,7 +43,7 @@ export default function DVROPage() {
         // send answers and summary to backend for facilitator review
         await fetch(buildApiUrl('/api/process-answers'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getApiHeaders(),
           body: JSON.stringify({
             queue_number: queueNumber,
             answers: {

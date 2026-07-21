@@ -545,7 +545,20 @@ def api_flowchart():
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'OK'})
+    """Liveness plus deploy fingerprint so we can tell what is actually live."""
+    git_sha = (
+        os.getenv('RENDER_GIT_COMMIT')
+        or os.getenv('VERCEL_GIT_COMMIT_SHA')
+        or os.getenv('GIT_SHA')
+        or 'unknown'
+    )
+    return jsonify({
+        'status': 'OK',
+        'service': 'court-kiosk-backend',
+        'git_sha': git_sha[:12] if git_sha != 'unknown' else 'unknown',
+        'kiosk_key_required': bool(Config.KIOSK_API_KEY),
+        'cors_origins': cors_origins if cors_origins != ['*'] else ['*'],
+    })
 
 
 @app.route('/api/documents/<path:filename>', methods=['GET'])

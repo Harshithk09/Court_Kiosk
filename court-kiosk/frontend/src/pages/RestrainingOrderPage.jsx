@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
-import { buildApiUrl, API_ENDPOINTS } from '../utils/apiConfig';
+import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
 
 export default function RestrainingOrderPage() {
   const { language } = useLanguage();
@@ -137,7 +137,7 @@ export default function RestrainingOrderPage() {
     try {
       const res = await fetch(buildApiUrl(API_ENDPOINTS.GENERATE_QUEUE), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders(),
         body: JSON.stringify({ 
           case_type: getCaseType(answers), 
           priority: 'A', 
@@ -152,7 +152,7 @@ export default function RestrainingOrderPage() {
         // Send answers and summary to backend for facilitator review
         await fetch(buildApiUrl('/api/process-answers'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getApiHeaders(),
           body: JSON.stringify({
             queue_number: queueNumber,
             answers: {
