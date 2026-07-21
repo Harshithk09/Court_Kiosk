@@ -108,13 +108,11 @@ const FormsManagement = () => {
 
   const handleUploadPDF = (formCode) => {
     // This would integrate with your file upload system
-    console.log(`Uploading PDF for form ${formCode}`);
     // You can implement file upload logic here
   };
 
   const handleDownloadPDF = (formCode) => {
     // This would integrate with your file download system
-    console.log(`Downloading PDF for form ${formCode}`);
     // You can implement file download logic here
   };
 

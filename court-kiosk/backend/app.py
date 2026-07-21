@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room, leave_room  # pyright: ignore[reportMissingModuleSource]
 from datetime import datetime
 import json
 import os
@@ -24,12 +24,18 @@ from validation_schemas import (
 )
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = Config.SECRET_KEY
+
+cors_origins = Config.CORS_ORIGINS
+# Never combine credentials with wildcard origin
+_cors_credentials = cors_origins != ['*']
+
 # Use eventlet for better async performance (falls back to threading if eventlet not available)
 try:
-    import eventlet
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+    import eventlet  # pyright: ignore[reportUnusedImport]
+    socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode='eventlet')
 except ImportError:
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+    socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode='threading')
 
 COURT_DOCUMENTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'court_documents'))
 
@@ -37,12 +43,10 @@ COURT_DOCUMENTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '.
 logging.basicConfig(level=getattr(logging, Config.LOG_LEVEL, 'INFO'))
 logger = logging.getLogger(__name__)
 
-# Configure CORS with environment-based origins - Allow all origins for global access
-cors_origins = Config.CORS_ORIGINS if hasattr(Config, 'CORS_ORIGINS') else ['*']
-CORS(app, origins=cors_origins, 
-     allow_headers=['Content-Type', 'Authorization'], 
+CORS(app, origins=cors_origins,
+     allow_headers=['Content-Type', 'Authorization', 'X-Kiosk-Key'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-     supports_credentials=True)
+     supports_credentials=_cors_credentials)
 
 # Configure rate limiting
 # For production: Use Redis or PostgreSQL storage
@@ -303,6 +307,7 @@ def send_summary_email(to_address, subject, body):
 
 @app.route('/api/ask', methods=['POST'])
 @limiter.limit("10 per minute")
+@AuthService.require_kiosk_or_auth
 def api_ask():
     try:
         # Validate request data
@@ -329,6 +334,7 @@ def api_ask():
 
 @app.route('/api/submit-session', methods=['POST'])
 @limiter.limit("5 per minute")
+@AuthService.require_kiosk_or_auth
 def api_submit_session():
     try:
         # Validate request data
@@ -406,6 +412,8 @@ def api_submit_session():
         return ErrorResponse.internal_error("An error occurred processing your session")
 
 @app.route('/api/qna', methods=['POST'])
+@limiter.limit("10 per minute")
+@AuthService.require_kiosk_or_auth
 def api_qna():
     data = request.json
     question = data.get('question')
@@ -459,8 +467,10 @@ def get_forms():
     return jsonify([{'id': f.id, 'title': f.title, 'description': f.description, 'url_link': f.url_link, 'required_for': f.required_for} for f in forms])
 
 @app.route('/api/dvro_rag', methods=['POST'])
+@limiter.limit("10 per minute")
+@AuthService.require_kiosk_or_auth
 def dvro_rag():
-    data = request.json
+    data = request.json or {}
     user_question = data.get('question', '')
     language = data.get('language', 'en')
 
@@ -548,7 +558,9 @@ def get_court_document(filename):
     if safe_path.startswith('..') or os.path.isabs(safe_path):
         return jsonify({'error': 'Invalid document path'}), 400
 
-    document_path = os.path.join(COURT_DOCUMENTS_DIR, safe_path)
+    document_path = os.path.abspath(os.path.join(COURT_DOCUMENTS_DIR, safe_path))
+    if not document_path.startswith(COURT_DOCUMENTS_DIR + os.sep):
+        return jsonify({'error': 'Invalid document path'}), 400
 
     if not os.path.isfile(document_path):
         return jsonify({'error': 'Document not found'}), 404
@@ -561,6 +573,7 @@ def get_court_document(filename):
 
 @app.route('/api/generate-queue', methods=['POST'])
 @limiter.limit("20 per minute")
+@AuthService.require_kiosk_or_auth
 def generate_queue():
     try:
         # Validate request data
@@ -664,6 +677,18 @@ def generate_queue():
         )
         return ErrorResponse.internal_error("Failed to generate queue number. Please try again.")
 
+def _public_queue_item(item):
+    """Public queue payload — no PII."""
+    return {
+        'queue_number': item.queue_number,
+        'case_type': item.case_type,
+        'priority': item.priority_level,
+        'timestamp': item.created_at.isoformat() if item.created_at else None,
+        'language': item.language,
+        'status': item.status,
+    }
+
+
 @app.route('/api/queue', methods=['GET'])
 def get_queue():
     try:
@@ -677,25 +702,8 @@ def get_queue():
         current = QueueEntry.query.filter_by(status='in_progress').order_by(QueueEntry.created_at.desc()).first()
         
         return jsonify({
-            'queue': [{
-                'queue_number': item.queue_number,
-                'case_type': item.case_type,
-                'priority': item.priority_level,
-                'timestamp': item.created_at.isoformat(),
-                'language': item.language,
-                'user_name': item.user_name,
-                'user_email': item.user_email,
-                'phone_number': item.phone_number
-            } for item in queue],
-            'current_number': {
-                'queue_number': current.queue_number,
-                'case_type': current.case_type,
-                'priority': current.priority_level,
-                'timestamp': current.created_at.isoformat(),
-                'user_name': current.user_name,
-                'user_email': current.user_email,
-                'phone_number': current.phone_number
-            } if current else None
+            'queue': [_public_queue_item(item) for item in queue],
+            'current_number': _public_queue_item(current) if current else None
         })
     except Exception as e:
         log_error_detailed(
@@ -706,6 +714,7 @@ def get_queue():
         return ErrorResponse.internal_error("Failed to retrieve queue. Please try again.")
 
 @app.route('/api/call-next', methods=['POST'])
+@AuthService.require_auth
 def call_next():
     try:
         # Get next person in queue
@@ -750,6 +759,7 @@ def call_next():
         return ErrorResponse.internal_error("An error occurred calling the next case")
 
 @app.route('/api/complete-case', methods=['POST'])
+@AuthService.require_auth
 def complete_case():
     try:
         data = request.json
@@ -804,6 +814,8 @@ def complete_case():
         return ErrorResponse.internal_error("An error occurred completing the case")
 
 @app.route('/api/guided-questions', methods=['POST'])
+@limiter.limit("30 per minute")
+@AuthService.require_kiosk_or_auth
 def guided_questions():
     data = request.json
     case_type = data.get('case_type')
@@ -827,6 +839,8 @@ def guided_questions():
     })
 
 @app.route('/api/process-answers', methods=['POST'])
+@limiter.limit("30 per minute")
+@AuthService.require_kiosk_or_auth
 def process_answers():
     data = request.json
     queue_number = data.get('queue_number')
@@ -853,8 +867,9 @@ def process_answers():
     
     # Update entry with proper transaction handling
     try:
-        entry.summary = enhanced_summary
-        entry.next_steps = enhanced_next_steps
+        # QueueEntry doesn't have summary/next_steps columns; keep data in existing fields
+        entry.conversation_summary = enhanced_summary
+        entry.facilitator_notes = json.dumps(enhanced_next_steps) if enhanced_next_steps else None
         db.session.commit()
         
         return jsonify({
@@ -963,6 +978,8 @@ def generate_enhanced_next_steps(case_type, current_step, existing_steps, langua
 # - /api/send-case-summary-email - DEPRECATED: Sends email by summary_id (not actively used)
 
 @app.route('/api/generate-case-summary', methods=['POST'])
+@limiter.limit("10 per minute")
+@AuthService.require_kiosk_or_auth
 def generate_case_summary():
     """Generate and save case summary, optionally add to queue"""
     try:
@@ -1022,6 +1039,8 @@ def generate_case_summary():
         return ErrorResponse.internal_error("Failed to generate case summary")
 
 @app.route('/api/send-case-summary-email', methods=['POST'])
+@limiter.limit("5 per minute")
+@AuthService.require_auth
 def send_case_summary_email():
     """
     DEPRECATED: Send email for a specific case summary by summary_id
@@ -1079,6 +1098,8 @@ def send_case_summary_email():
         return ErrorResponse.internal_error("Failed to send case summary email")
 
 @app.route('/api/send-comprehensive-email', methods=['POST'])
+@limiter.limit("5 per minute")
+@AuthService.require_kiosk_or_auth
 def send_comprehensive_email():
     """Send comprehensive email with case summary and PDF attachments - main endpoint"""
     try:
@@ -1178,6 +1199,8 @@ def send_comprehensive_email():
         return jsonify({'success': False, 'error': f'Internal server error: {str(e)}'}), 500
 
 @app.route('/api/send-summary', methods=['POST'])
+@limiter.limit("5 per minute")
+@AuthService.require_kiosk_or_auth
 def send_summary_email_endpoint():
     """
     DEPRECATED: Legacy endpoint - use /api/email/send-case-summary instead
@@ -1234,6 +1257,8 @@ def send_summary_email_endpoint():
 
 # --- Simple SMS endpoints (mock/dev) ---
 @app.route('/api/sms/send-queue-number', methods=['POST'])
+@limiter.limit("5 per minute")
+@AuthService.require_kiosk_or_auth
 def send_queue_number_sms():
     """Mock endpoint to send queue number via SMS.
     In development, we just log and return success so the frontend can proceed.
@@ -1675,72 +1700,16 @@ def admin_complete_case():
 # =============================================================================
 
 def broadcast_queue_update():
-    """Broadcast queue updates to all connected WebSocket clients"""
+    """Broadcast public (non-PII) queue updates to WebSocket clients."""
     try:
-        # Get current queue state
-        queue_entries = QueueEntry.query.filter_by(status='waiting').order_by(QueueEntry.priority_level, QueueEntry.created_at).all()
+        queue_entries = QueueEntry.query.filter_by(status='waiting').order_by(
+            QueueEntry.priority_level, QueueEntry.created_at
+        ).all()
         current_entry = QueueEntry.query.filter_by(status='in_progress').first()
+
+        queue_data = [_public_queue_item(entry) for entry in queue_entries]
+        current_number = _public_queue_item(current_entry) if current_entry else None
         
-        queue_data = []
-        for entry in queue_entries:
-            documents_needed = []
-            if entry.documents_needed:
-                try:
-                    if isinstance(entry.documents_needed, str):
-                        documents_needed = json.loads(entry.documents_needed)
-                    else:
-                        documents_needed = entry.documents_needed
-                except:
-                    documents_needed = []
-            
-            queue_data.append({
-                'queue_number': entry.queue_number,
-                'priority': entry.priority_level,
-                'priority_level': entry.priority_level,
-                'case_type': entry.case_type,
-                'user_name': entry.user_name,
-                'user_email': entry.user_email,
-                'phone_number': entry.phone_number,
-                'language': entry.language,
-                'status': entry.status,
-                'created_at': entry.created_at.isoformat() if entry.created_at else None,
-                'arrived_at': entry.created_at.isoformat() if entry.created_at else None,
-                'timestamp': entry.created_at.isoformat() if entry.created_at else None,
-                'conversation_summary': entry.conversation_summary,
-                'documents_needed': documents_needed,
-                'current_node': entry.current_node,
-            })
-        
-        current_number = None
-        if current_entry:
-            documents_needed = []
-            if current_entry.documents_needed:
-                try:
-                    if isinstance(current_entry.documents_needed, str):
-                        documents_needed = json.loads(current_entry.documents_needed)
-                    else:
-                        documents_needed = current_entry.documents_needed
-                except:
-                    documents_needed = []
-            
-            current_number = {
-                'queue_number': current_entry.queue_number,
-                'priority': current_entry.priority_level,
-                'priority_level': current_entry.priority_level,
-                'case_type': current_entry.case_type,
-                'user_name': current_entry.user_name,
-                'user_email': current_entry.user_email,
-                'phone_number': current_entry.phone_number,
-                'language': current_entry.language,
-                'conversation_summary': current_entry.conversation_summary,
-                'documents_needed': documents_needed,
-                'current_node': current_entry.current_node,
-                'created_at': current_entry.created_at.isoformat() if current_entry.created_at else None,
-                'arrived_at': current_entry.created_at.isoformat() if current_entry.created_at else None,
-                'timestamp': current_entry.created_at.isoformat() if current_entry.created_at else None
-            }
-        
-        # Broadcast to all clients in the 'queue' room
         socketio.emit('queue_update', {
             'type': 'queue_update',
             'queue': queue_data,
@@ -1793,31 +1762,42 @@ def handle_request_update():
             extra={'error_type': type(e).__name__}
         )
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        
-        # Create default admin user if none exists
-        if not User.query.filter_by(username='admin').first():
-            try:
-                admin_user = User(
-                    username='admin',
-                    email='admin@court.gov',
-                    role='admin'
-                )
-                admin_user.set_password('admin123')  # Change this in production!
-                db.session.add(admin_user)
-                db.session.commit()
-                print("Created default admin user: admin/admin123")
-            except Exception as e:
-                db.session.rollback()
-                app.logger.error(
-                    f"Failed to create default admin user: {str(e)}",
-                    exc_info=True,
-                    extra={'error_type': type(e).__name__}
-                )
+def ensure_bootstrap_admin():
+    """Create bootstrap admin only when ADMIN_PASSWORD is set in the environment."""
+    if not Config.ADMIN_PASSWORD:
+        if not User.query.filter_by(role='admin').first():
+            logger.warning(
+                "No admin users exist and ADMIN_PASSWORD is unset. "
+                "Set ADMIN_USERNAME / ADMIN_EMAIL / ADMIN_PASSWORD to bootstrap an admin."
+            )
+        return
+
+    existing = User.query.filter_by(username=Config.ADMIN_USERNAME).first()
+    if existing:
+        return
+
+    try:
+        admin_user = User(
+            username=Config.ADMIN_USERNAME,
+            email=Config.ADMIN_EMAIL,
+            role='admin'
+        )
+        admin_user.set_password(Config.ADMIN_PASSWORD)
+        db.session.add(admin_user)
+        db.session.commit()
+        logger.info(f"Created bootstrap admin user: {Config.ADMIN_USERNAME}")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to create bootstrap admin user: {e}", exc_info=True)
+
+
+with app.app_context():
+    db.create_all()
+    ensure_bootstrap_admin()
+
 
 @app.route('/api/case-summary/<int:summary_id>', methods=['GET'])
+@AuthService.require_auth
 def get_case_summary(summary_id):
     """Get case summary by ID with enhanced details"""
     try:
@@ -1833,7 +1813,7 @@ def get_case_summary(summary_id):
             try:
                 enhanced_data = json.loads(summary.summary_json)
                 summary_data.update(enhanced_data)
-            except:
+            except Exception:
                 pass
         
         return jsonify(summary_data)
@@ -1846,6 +1826,7 @@ def get_case_summary(summary_id):
         return ErrorResponse.internal_error("Failed to retrieve case summary")
 
 @app.route('/api/case-details/<int:queue_number>', methods=['GET'])
+@AuthService.require_auth
 def get_case_details(queue_number):
     """Get comprehensive case details by queue number"""
     try:
@@ -1870,7 +1851,7 @@ def get_case_details(queue_number):
                     documents_needed = json.loads(queue_entry.documents_needed)
                 else:
                     documents_needed = queue_entry.documents_needed
-            except:
+            except Exception:
                 documents_needed = []
         
         # Build comprehensive case details
@@ -1897,7 +1878,7 @@ def get_case_details(queue_number):
             try:
                 enhanced_data = json.loads(case_summary.summary_json)
                 case_details['enhanced_summary'] = enhanced_data
-            except:
+            except Exception:
                 pass
         
         return jsonify(case_details)
@@ -1964,4 +1945,4 @@ def handle_unexpected_error(error):
 
 # Run with SocketIO support
 if __name__ == '__main__':
-    socketio.run(app, debug=False, port=5001, host='0.0.0.0')
+    socketio.run(app, debug=Config.DEBUG, port=Config.PORT or 5001, host='0.0.0.0')

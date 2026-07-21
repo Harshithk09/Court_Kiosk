@@ -30,7 +30,6 @@ export default function WorkplaceViolencePage() {
   }, []);
 
   const handleFinish = async ({ answers, forms }) => {
-    console.log('Workplace Violence flow completed', { answers, forms });
     navigate('/');
   };
 

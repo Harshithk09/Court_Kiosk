@@ -16,6 +16,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import CaseProgressTracker from './CaseProgressTracker';
+import { buildApiUrl } from '../utils/apiConfig';
+import { useAuth } from '../contexts/AuthContext';
 
 const CaseDetailsModal = ({ 
   caseData, 
@@ -26,12 +28,18 @@ const CaseDetailsModal = ({
   language = 'en' 
 }) => {
   const [caseSummary, setCaseSummary] = useState(null);
+  const { sessionToken } = useAuth();
 
   const fetchCaseSummary = useCallback(async () => {
-    if (!caseData?.queue_number) return;
+    if (!caseData?.queue_number || !sessionToken) return;
     
     try {
-      const response = await fetch(`/api/case-details/${caseData.queue_number}`);
+      const response = await fetch(buildApiUrl(`/api/case-details/${caseData.queue_number}`), {
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setCaseSummary(data);
@@ -41,7 +49,7 @@ const CaseDetailsModal = ({
     } catch (err) {
       console.error('Error fetching case details:', err);
     }
-  }, [caseData?.queue_number]);
+  }, [caseData?.queue_number, sessionToken]);
 
   useEffect(() => {
     if (isOpen && caseData) {

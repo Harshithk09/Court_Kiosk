@@ -1,19 +1,17 @@
 from datetime import datetime, timedelta
 import json
 from models import db, QueueEntry, FlowProgress, FacilitatorCase, CaseType
-import openai
+from openai import OpenAI
 from config import Config
 
 class QueueManager:
     def __init__(self, openai_client=None):
         if openai_client is not None:
             self.client = openai_client
+        elif Config.OPENAI_API_KEY:
+            self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
         else:
-            if Config.OPENAI_API_KEY:
-                openai.api_key = Config.OPENAI_API_KEY
-                self.client = openai
-            else:
-                self.client = None
+            self.client = None
         
     def generate_queue_number(self, priority_level, case_type):
         """Generate a queue number in format: A001, B002, etc."""

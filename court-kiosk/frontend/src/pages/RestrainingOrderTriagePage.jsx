@@ -17,7 +17,7 @@ export default function RestrainingOrderTriagePage() {
     'EA_Start': '/elder-abuse',
     'GVRO_Start': '/gvro',
     'WV_Start': '/workplace-violence',
-    'CRO': '/chro'
+    'CHRO': '/chro'
   };
 
   useEffect(() => {

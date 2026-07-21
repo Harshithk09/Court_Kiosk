@@ -23,7 +23,9 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
-import { getQueue, callNext, completeCase, sendComprehensiveEmail } from '../utils/queueAPI';
+import { sendComprehensiveEmail } from '../utils/queueAPI';
+import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
+import { useAuth } from '../contexts/AuthContext';
 import ModernCard from './ModernCard';
 import ModernButton from './ModernButton';
 import './ModernCard.css';
@@ -31,6 +33,7 @@ import './ModernButton.css';
 
 const AttorneyDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
+  const { sessionToken } = useAuth();
   const toast = useToast();
   const [queue, setQueue] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
@@ -45,12 +48,19 @@ const AttorneyDashboard = () => {
     fetchQueue();
     const interval = setInterval(fetchQueue, 3000); // Refresh every 3 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [sessionToken]);
 
   const fetchQueue = async () => {
     try {
       setError(null);
-      const data = await getQueue();
+      if (!sessionToken) {
+        setError(language === 'en' ? 'Please sign in to view cases' : 'Inicie sesión para ver los casos');
+        setQueue([]);
+        setCurrentNumber(null);
+        setLoading(false);
+        return;
+      }
+      const data = await getAdminQueue(sessionToken);
       const queueArray = data.queue || [];
       setQueue(queueArray);
       setCurrentNumber(data.current_number || null);
@@ -68,7 +78,10 @@ const AttorneyDashboard = () => {
 
   const handleCallNext = async () => {
     try {
-      await callNext();
+      if (!sessionToken) {
+        throw new Error('Authentication required');
+      }
+      await callNextAuthenticated(sessionToken);
       fetchQueue();
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -81,7 +94,10 @@ const AttorneyDashboard = () => {
 
   const handleCompleteCase = async (queueNumber) => {
     try {
-      await completeCase(queueNumber);
+      if (!sessionToken) {
+        throw new Error('Authentication required');
+      }
+      await completeCaseAuthenticated(queueNumber, sessionToken);
       fetchQueue();
       if (selectedCase?.queue_number === queueNumber) {
         setSelectedCase(null);

@@ -30,8 +30,6 @@ export default function GVROPage() {
   }, []);
 
   const handleFinish = async ({ answers, forms }) => {
-    // Handle completion
-    console.log('GVRO flow completed', { answers, forms });
     navigate('/');
   };
 

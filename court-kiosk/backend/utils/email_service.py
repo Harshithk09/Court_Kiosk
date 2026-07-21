@@ -327,15 +327,15 @@ class EmailService:
                     print(f"❌ Resend API Error: {error_msg}")
                     
                     # Detect testing mode restriction
-                    if 'testing emails' in str(error_msg).lower() or 'only send' in str(error_msg).lower():
-                        print("\n" + "="*70)
-                        print("⚠️  TESTING MODE DETECTED - Domain Verification Required")
-                        print("="*70)
-                        print("To send emails to all recipients, you need to:")
-                        print("1. Verify a domain at https://resend.com/domains")
-                        print("2. Set RESEND_FROM_DOMAIN environment variable")
-                        print("3. See RESEND_DOMAIN_SETUP.md for detailed instructions")
-                        print("="*70 + "\n")
+                    # if 'testing emails' in str(error_msg).lower() or 'only send' in str(error_msg).lower():
+                    #     print("\n" + "="*70)
+                    #     print("⚠️  TESTING MODE DETECTED - Domain Verification Required")
+                    #     print("="*70)
+                    #     print("To send emails to all recipients, you need to:")
+                    #     print("1. Verify a domain at https://resend.com/domains")
+                    #     print("2. Set RESEND_FROM_DOMAIN environment variable")
+                    #     print("3. See RESEND_DOMAIN_SETUP.md for detailed instructions")
+                    #     print("="*70 + "\n")
                     
                     return False
             

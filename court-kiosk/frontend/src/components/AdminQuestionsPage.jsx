@@ -154,11 +154,11 @@ const AdminQuestionsPage = ({
       timestamp: new Date().toISOString(),
       sessionId: `K${Math.floor(Math.random() * 90000) + 10000}`
     };
-
-    console.log('Admin Questions Data:', adminData);
     
-    // Store admin data in localStorage for now (could be sent to backend)
-    localStorage.setItem('adminQuestionsData', JSON.stringify(adminData));
+    // Prefer in-memory handoff; avoid writing session data to shared kiosk localStorage in production
+    if (process.env.NODE_ENV !== 'production') {
+      localStorage.setItem('adminQuestionsData', JSON.stringify(adminData));
+    }
     
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 1000));

@@ -5,7 +5,7 @@ import { useKioskMode } from '../contexts/KioskModeContext';
 import { useToast } from '../components/Toast';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { Users, CheckCircle, RefreshCw, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon, Monitor, MonitorOff } from 'lucide-react';
-import { getQueue, callNext, completeCase, addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
+import { addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
 import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
 import FormsManagement from '../components/FormsManagement';
 import FormsSummary from '../components/FormsSummary';
@@ -61,13 +61,15 @@ const AdminDashboard = () => {
       setError(null);
       debugLog('Fetching queue data...');
       
-      // Use authenticated API if available, fallback to regular API
-      let data;
-      if (sessionToken) {
-        data = await getAdminQueue(sessionToken);
-      } else {
-        data = await getQueue();
+      if (!sessionToken) {
+        setError(language === 'en' ? 'Please sign in to view the queue' : 'Inicie sesión para ver la cola');
+        setQueue([]);
+        setCurrentNumber(null);
+        setLoading(false);
+        return;
       }
+
+      const data = await getAdminQueue(sessionToken);
       
       debugLog('Received queue data:', data);
       
@@ -107,7 +109,7 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [sessionToken, debugLog, getPriority]);
+  }, [sessionToken, debugLog, getPriority, language]);
 
   // Calculate polling interval with exponential backoff
   const getPollingInterval = useCallback(() => {
@@ -203,12 +205,10 @@ const AdminDashboard = () => {
 
   const handleCallNext = async () => {
     await handleActionWithDebounce(async () => {
-      let result;
-      if (sessionToken) {
-        result = await callNextAuthenticated(sessionToken);
-      } else {
-        result = await callNext();
+      if (!sessionToken) {
+        throw new Error(language === 'en' ? 'Authentication required' : 'Se requiere autenticación');
       }
+      const result = await callNextAuthenticated(sessionToken);
       
       // If we got comprehensive case information, update current number display
       if (result && result.queue_entry) {
@@ -233,11 +233,10 @@ const AdminDashboard = () => {
 
   const handleCompleteCase = async (queueNumber) => {
     await handleActionWithDebounce(async () => {
-      if (sessionToken) {
-        await completeCaseAuthenticated(queueNumber, sessionToken);
-      } else {
-        await completeCase(queueNumber);
+      if (!sessionToken) {
+        throw new Error(language === 'en' ? 'Authentication required' : 'Se requiere autenticación');
       }
+      await completeCaseAuthenticated(queueNumber, sessionToken);
       if (selectedCase?.queue_number === queueNumber) {
         setSelectedCase(null);
       }

@@ -30,7 +30,6 @@ export default function ElderAbusePage() {
   }, []);
 
   const handleFinish = async ({ answers, forms }) => {
-    console.log('Elder Abuse flow completed', { answers, forms });
     navigate('/');
   };
 

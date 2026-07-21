@@ -64,7 +64,7 @@ export default function RestrainingOrderPage() {
     }
     
     // Check for Civil Harassment
-    if (answers['CRO'] || answers['CROInfo'] === 'Yes' || answers['Starting']) {
+    if (answers['CHRO'] || answers['CRO'] || answers['CROInfo'] === 'Yes' || answers['Starting']) {
       if (answers['Renew']) {
         return 'Renewal of Civil Harassment Restraining Order';
       }

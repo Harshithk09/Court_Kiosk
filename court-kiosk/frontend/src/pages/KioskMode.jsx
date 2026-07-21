@@ -36,8 +36,7 @@ const KioskMode = () => {
   };
 
   const handleFinish = async ({ answers, forms }) => {
-    console.log('Flow completed:', { answers, forms });
-    // In a real app, you might want to save this data or redirect
+    // Flow completion handled by parent component
   };
 
   if (loading) {

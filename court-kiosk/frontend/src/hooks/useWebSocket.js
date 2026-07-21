@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { io } from 'socket.io-client';
+import { API_CONFIG } from '../utils/apiConfig';
 
 /**
- * Custom hook for WebSocket connections with automatic reconnection
- * Falls back to polling if WebSocket is not available
+ * Socket.IO hook aligned with Flask-SocketIO backend (/api/ws/queue namespace).
+ * Falls back to polling when the connection is unavailable.
  */
 export const useWebSocket = (endpoint, options = {}) => {
   const {
@@ -12,99 +14,72 @@ export const useWebSocket = (endpoint, options = {}) => {
     onClose,
     enabled = true,
     reconnectInterval = 5000,
-    maxReconnectAttempts = 10,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const wsRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
+  const socketRef = useRef(null);
   const isMountedRef = useRef(true);
+  const handlersRef = useRef({ onMessage, onError, onOpen, onClose });
+
+  useEffect(() => {
+    handlersRef.current = { onMessage, onError, onOpen, onClose };
+  }, [onMessage, onError, onOpen, onClose]);
+
+  const disconnect = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    setIsConnected(false);
+  }, []);
 
   const connect = useCallback(() => {
     if (!enabled || !isMountedRef.current) return;
 
     try {
-      // Get WebSocket URL from API config
-      // Use the same base URL logic as apiConfig.js
-      const getApiBaseUrl = () => {
-        if (process.env.REACT_APP_API_URL) {
-          return process.env.REACT_APP_API_URL;
-        }
-        if (typeof window !== 'undefined' && window.location) {
-          const { hostname } = window.location;
-          if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return `http://localhost:${process.env.REACT_APP_BACKEND_PORT || '5001'}`;
-          }
-          return 'https://court-kiosk.onrender.com';
-        }
-        return 'https://court-kiosk.onrender.com';
-      };
-      
-      const apiBaseUrl = getApiBaseUrl();
-      // Convert http/https to ws/wss for WebSocket
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = apiBaseUrl.replace(/^https?:/, wsProtocol);
-      
-      // Create WebSocket connection (native WebSocket for now, can be upgraded to Socket.IO client)
-      const ws = new WebSocket(`${wsUrl}${endpoint}`);
-      wsRef.current = ws;
+      const apiBaseUrl = API_CONFIG.BASE_URL;
+      const namespace = endpoint || '/api/ws/queue';
 
-      ws.onopen = () => {
+      const socket = io(`${apiBaseUrl}${namespace}`, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: reconnectInterval,
+        withCredentials: true,
+      });
+      socketRef.current = socket;
+
+      socket.on('connect', () => {
+        if (!isMountedRef.current) return;
         setIsConnected(true);
-        setReconnectAttempts(0);
-        if (onOpen) onOpen();
-      };
+        handlersRef.current.onOpen?.();
+      });
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (onMessage) onMessage(data);
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
+      socket.on('queue_update', (data) => {
+        handlersRef.current.onMessage?.(data);
+      });
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        if (onError) onError(error);
-      };
-
-      ws.onclose = () => {
+      socket.on('disconnect', () => {
+        if (!isMountedRef.current) return;
         setIsConnected(false);
-        if (onClose) onClose();
+        handlersRef.current.onClose?.();
+      });
 
-        // Attempt to reconnect
-        if (isMountedRef.current && reconnectAttempts < maxReconnectAttempts) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            setReconnectAttempts(prev => prev + 1);
-            connect();
-          }, reconnectInterval);
-        }
-      };
+      socket.on('connect_error', (error) => {
+        handlersRef.current.onError?.(error);
+      });
     } catch (error) {
-      console.error('WebSocket connection failed:', error);
+      console.error('Socket.IO connection failed:', error);
       setIsConnected(false);
+      handlersRef.current.onError?.(error);
     }
-  }, [endpoint, enabled, reconnectAttempts, maxReconnectAttempts, reconnectInterval, onMessage, onError, onOpen, onClose]);
+  }, [endpoint, enabled, reconnectInterval]);
 
-  const send = useCallback((data) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data));
+  const send = useCallback((event, data) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(event || 'request_update', data || {});
       return true;
     }
     return false;
-  }, []);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setIsConnected(false);
   }, []);
 
   useEffect(() => {
@@ -128,4 +103,3 @@ export const useWebSocket = (endpoint, options = {}) => {
 };
 
 export default useWebSocket;
-

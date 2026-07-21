@@ -89,10 +89,6 @@ const DivorceFlowRunner = () => {
   };
 
   const handleFlowFinish = ({ answers, forms }) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('divorce answers', answers);
-      console.log('divorce forms', forms);
-    }
     setFlowResults({ answers, forms });
     setShowQueueForm(true);
   };

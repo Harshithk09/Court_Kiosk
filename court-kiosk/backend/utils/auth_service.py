@@ -8,10 +8,14 @@ import hashlib
 import json
 import logging
 from datetime import datetime, timedelta
-from flask import request
+from flask import request, jsonify
 from models import db, User, UserSession, AuditLog
 
 logger = logging.getLogger(__name__)
+
+# In-memory login lockout tracker: key -> {count, locked_until}
+_login_attempts = {}
+
 
 class AuthService:
     """Service for handling authentication and authorization"""
@@ -19,6 +23,38 @@ class AuthService:
     SESSION_DURATION = timedelta(hours=8)  # 8 hour sessions
     MAX_LOGIN_ATTEMPTS = 5
     LOCKOUT_DURATION = timedelta(minutes=15)
+
+    @staticmethod
+    def _lockout_key(username):
+        ip = request.remote_addr if request else 'unknown'
+        return f"{username.lower()}|{ip}"
+
+    @staticmethod
+    def _is_locked_out(username):
+        key = AuthService._lockout_key(username)
+        entry = _login_attempts.get(key)
+        if not entry:
+            return False
+        locked_until = entry.get('locked_until')
+        if locked_until and datetime.utcnow() < locked_until:
+            return True
+        if locked_until and datetime.utcnow() >= locked_until:
+            _login_attempts.pop(key, None)
+        return False
+
+    @staticmethod
+    def _record_failed_login(username):
+        key = AuthService._lockout_key(username)
+        entry = _login_attempts.get(key, {'count': 0, 'locked_until': None})
+        entry['count'] = entry.get('count', 0) + 1
+        if entry['count'] >= AuthService.MAX_LOGIN_ATTEMPTS:
+            entry['locked_until'] = datetime.utcnow() + AuthService.LOCKOUT_DURATION
+            entry['count'] = 0
+        _login_attempts[key] = entry
+
+    @staticmethod
+    def _clear_failed_logins(username):
+        _login_attempts.pop(AuthService._lockout_key(username), None)
     
     @staticmethod
     def create_user(username, email, password, role='admin'):
@@ -59,9 +95,20 @@ class AuthService:
     @staticmethod
     def authenticate_user(username, password):
         """Authenticate user with username and password"""
+        if AuthService._is_locked_out(username):
+            AuthService.log_action(
+                action='login_locked',
+                details={'username': username, 'reason': 'too_many_attempts'}
+            )
+            return {
+                'success': False,
+                'error': 'Too many failed attempts. Please try again later.'
+            }
+
         user = User.query.filter_by(username=username, is_active=True).first()
         
         if not user:
+            AuthService._record_failed_login(username)
             AuthService.log_action(
                 action='login_failed',
                 details={'username': username, 'reason': 'user_not_found'}
@@ -69,12 +116,15 @@ class AuthService:
             return {'success': False, 'error': 'Invalid credentials'}
         
         if not user.check_password(password):
+            AuthService._record_failed_login(username)
             AuthService.log_action(
                 user_id=user.id,
                 action='login_failed',
                 details={'username': username, 'reason': 'invalid_password'}
             )
             return {'success': False, 'error': 'Invalid credentials'}
+
+        AuthService._clear_failed_logins(username)
         
         # Update last login with proper transaction handling
         try:
@@ -242,16 +292,47 @@ class AuthService:
         def decorated_function(*args, **kwargs):
             session_token = request.headers.get('Authorization')
             if session_token and session_token.startswith('Bearer '):
-                session_token = session_token[7:]  # Remove 'Bearer ' prefix
+                session_token = session_token[7:]
             
             user = AuthService.validate_session(session_token)
             if not user:
-                return {'error': 'Authentication required'}, 401
+                return jsonify({'error': 'Authentication required'}), 401
             
-            # Add user to request context
             request.current_user = user
             return f(*args, **kwargs)
         
+        return decorated_function
+
+    @staticmethod
+    def require_kiosk_or_auth(f):
+        """Allow admin session, or X-Kiosk-Key when KIOSK_API_KEY is set.
+
+        If KIOSK_API_KEY is unset, public kiosk traffic is allowed (still rate-limited).
+        """
+        from functools import wraps
+        from config import Config
+
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            session_token = request.headers.get('Authorization')
+            if session_token and session_token.startswith('Bearer '):
+                session_token = session_token[7:]
+            user = AuthService.validate_session(session_token)
+            if user:
+                request.current_user = user
+                return f(*args, **kwargs)
+
+            kiosk_key = Config.KIOSK_API_KEY
+            provided = request.headers.get('X-Kiosk-Key')
+            if kiosk_key:
+                if provided and secrets.compare_digest(provided, kiosk_key):
+                    request.current_user = None
+                    return f(*args, **kwargs)
+                return jsonify({'error': 'Authentication required'}), 401
+
+            request.current_user = None
+            return f(*args, **kwargs)
+
         return decorated_function
     
     @staticmethod
@@ -262,12 +343,12 @@ class AuthService:
         def decorator(f):
             @wraps(f)
             def decorated_function(*args, **kwargs):
-                if not hasattr(request, 'current_user'):
-                    return {'error': 'Authentication required'}, 401
+                if not hasattr(request, 'current_user') or not request.current_user:
+                    return jsonify({'error': 'Authentication required'}), 401
                 
                 user = request.current_user
                 if user.role != required_role and user.role != 'admin':
-                    return {'error': 'Insufficient permissions'}, 403
+                    return jsonify({'error': 'Insufficient permissions'}), 403
                 
                 return f(*args, **kwargs)
             return decorated_function
@@ -282,20 +363,17 @@ class AuthService:
         def decorator(f):
             @wraps(f)
             def decorated_function(*args, **kwargs):
-                if not hasattr(request, 'current_user'):
-                    return {'error': 'Authentication required'}, 401
+                if not hasattr(request, 'current_user') or not request.current_user:
+                    return jsonify({'error': 'Authentication required'}), 401
                 
                 user = request.current_user
                 
-                # Get whitelist from environment or use defaults
                 env_whitelist = os.getenv('ADMIN_WHITELIST', '')
                 env_whitelist_emails = os.getenv('ADMIN_WHITELIST_EMAILS', '')
                 
-                # Combine provided lists with environment variables
                 username_list = (allowed_usernames or []) + ([u.strip() for u in env_whitelist.split(',') if u.strip()] if env_whitelist else [])
                 email_list = (allowed_emails or []) + ([e.strip() for e in env_whitelist_emails.split(',') if e.strip()] if env_whitelist_emails else [])
                 
-                # If whitelist is configured, check against it
                 if username_list or email_list:
                     username_allowed = user.username in username_list if username_list else False
                     email_allowed = user.email in email_list if email_list else False
@@ -306,11 +384,10 @@ class AuthService:
                             action='access_denied',
                             details={'username': user.username, 'email': user.email, 'reason': 'not_in_whitelist'}
                         )
-                        return {'error': 'Access denied. This account is not authorized to access the admin dashboard.'}, 403
+                        return jsonify({'error': 'Access denied. This account is not authorized to access the admin dashboard.'}), 403
                 
-                # Also require admin role
                 if user.role != 'admin':
-                    return {'error': 'Insufficient permissions'}, 403
+                    return jsonify({'error': 'Insufficient permissions'}), 403
                 
                 return f(*args, **kwargs)
             return decorated_function

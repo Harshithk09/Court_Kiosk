@@ -91,16 +91,4 @@ export const isDevelopment = () => {
   return process.env.NODE_ENV === 'development' && !process.env.VERCEL;
 };
 
-// Log API configuration (only in development)
-if (isDevelopment() && typeof window !== 'undefined') {
-  // Use setTimeout to ensure window.location is available
-  setTimeout(() => {
-    console.log('API Configuration:', {
-      baseUrl: API_CONFIG.BASE_URL,
-      environment: process.env.NODE_ENV,
-      isVercel: process.env.VERCEL === '1',
-      vercelUrl: process.env.VERCEL_URL,
-      hostname: window.location?.hostname,
-    });
-  }, 100);
-}
+// API configuration logging removed for production

@@ -1,24 +1,24 @@
-import os
 import json
-import openai
+import logging
 from typing import List, Dict, Any, Optional
+from openai import OpenAI
 from config import Config
+
+logger = logging.getLogger(__name__)
+
 
 class LLMService:
     def __init__(self, api_key: Optional[str] = None):
-        if api_key or Config.OPENAI_API_KEY:
-            openai.api_key = api_key or Config.OPENAI_API_KEY
-        self.client = openai
+        key = api_key or Config.OPENAI_API_KEY
+        self.client = OpenAI(api_key=key) if key else None
         
     def analyze_progress(self, flow_data: Dict, user_progress: List[Dict], case_type: str, language: str = 'en') -> Dict[str, Any]:
         """
         Analyze user progress through the flowchart and provide insights
         """
-        # Load the flowchart structure
         nodes = flow_data.get('nodes', {})
         edges = flow_data.get('edges', [])
         
-        # Create a map of node connections
         node_connections = {}
         for edge in edges:
             from_node = edge['from']
@@ -30,11 +30,9 @@ class LLMService:
                 'condition': edge.get('when')
             })
         
-        # Analyze the user's path
         user_path = [step['node_id'] for step in user_progress]
         current_node = user_path[-1] if user_path else None
         
-        # Determine next possible steps
         next_steps = []
         if current_node and current_node in node_connections:
             for connection in node_connections[current_node]:
@@ -47,7 +45,6 @@ class LLMService:
                     'condition': connection.get('condition')
                 })
         
-        # Generate LLM analysis
         analysis = self._generate_progress_analysis(
             flow_data, user_progress, next_steps, case_type, language
         )
@@ -61,11 +58,10 @@ class LLMService:
         }
     
     def _generate_progress_analysis(self, flow_data: Dict, user_progress: List[Dict], 
-                                  next_steps: List[Dict], case_type: str, language: str) -> Dict[str, Any]:
+                                   next_steps: List[Dict], case_type: str, language: str) -> Dict[str, Any]:
         """
         Use LLM to analyze user progress and provide insights
         """
-        # Prepare context for LLM
         progress_summary = "\n".join([
             f"Step {i+1}: {step['node_text']}" + (f" (Response: {step['user_response']})" if step.get('user_response') else "")
             for i, step in enumerate(user_progress)
@@ -108,6 +104,17 @@ class LLMService:
         - priority_level: High/Medium/Low based on urgency
         """
         
+        if not self.client:
+            return {
+                'summary': 'AI assistant unavailable',
+                'forms_needed': [],
+                'next_steps': [],
+                'concerns': [],
+                'time_estimate': 30,
+                'guidance': 'Continue with next step in flowchart',
+                'priority_level': 'Medium'
+            }
+
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4",
@@ -118,7 +125,6 @@ class LLMService:
             
             analysis_text = response.choices[0].message.content
             
-            # Try to parse as JSON, fallback to structured text
             try:
                 analysis = json.loads(analysis_text)
             except json.JSONDecodeError:
@@ -133,6 +139,7 @@ class LLMService:
                 }
                 
         except Exception as e:
+            logger.error(f"LLM progress analysis failed: {e}")
             analysis = {
                 'summary': f"Error analyzing progress: {str(e)}",
                 'forms_needed': [],
@@ -146,29 +153,22 @@ class LLMService:
         return analysis
     
     def _calculate_progress_percentage(self, user_path: List[str], nodes: Dict) -> float:
-        """
-        Calculate approximate progress percentage through the flowchart
-        """
         if not user_path:
             return 0.0
         
-        # Count total nodes (excluding FAQ branches for main progress)
         main_nodes = [node_id for node_id, node in nodes.items() 
                      if node.get('type') in ['start', 'process', 'decision', 'end']]
         
-        # Count nodes in user path that are main nodes
+        if not main_nodes:
+            return 0.0
+
         completed_main_nodes = len([node for node in user_path if node in main_nodes])
-        
         return min(100.0, (completed_main_nodes / len(main_nodes)) * 100)
     
     def _estimate_time_remaining(self, user_path: List[str], nodes: Dict) -> int:
-        """
-        Estimate time remaining based on user's progress
-        """
         if not user_path:
-            return 45  # Default estimate for new cases
+            return 45
         
-        # Base time estimates for different node types
         time_estimates = {
             'start': 2,
             'process': 5,
@@ -176,20 +176,16 @@ class LLMService:
             'end': 1
         }
         
-        # Calculate remaining time based on node types
         remaining_time = 0
         for node_id, node in nodes.items():
             if node_id not in user_path:
                 node_type = node.get('type', 'process')
                 remaining_time += time_estimates.get(node_type, 5)
         
-        return max(5, remaining_time)  # Minimum 5 minutes
+        return max(5, remaining_time)
     
     def generate_facilitator_summary(self, queue_entry: Dict, user_progress: List[Dict], 
                                    case_type: str, language: str = 'en') -> str:
-        """
-        Generate a comprehensive summary for facilitators
-        """
         progress_text = "\n".join([
             f"• {step['node_text']}" + (f" (User said: {step['user_response']})" if step.get('user_response') else "")
             for step in user_progress
@@ -219,6 +215,9 @@ class LLMService:
         Keep it professional and actionable for court staff.
         """
         
+        if not self.client:
+            return "AI assistant unavailable. Please review the case manually."
+
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4",
@@ -232,13 +231,9 @@ class LLMService:
     
     def answer_user_question(self, question: str, current_context: Dict, 
                            flow_data: Dict, language: str = 'en') -> str:
-        """
-        Answer user questions based on their current position in the flowchart
-        """
         current_node = current_context.get('current_node', '')
         user_progress = current_context.get('user_progress', [])
         
-        # Get relevant context from the flowchart
         nodes = flow_data.get('nodes', {})
         current_node_info = nodes.get(current_node, {})
         
@@ -265,6 +260,9 @@ class LLMService:
         Keep your response concise and practical.
         """
         
+        if not self.client:
+            return "I'm sorry, the AI assistant is currently unavailable. Please ask a facilitator for assistance."
+
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4",
@@ -274,4 +272,5 @@ class LLMService:
             )
             return response.choices[0].message.content
         except Exception as e:
-            return f"I'm sorry, I'm having trouble answering your question right now. Please ask a facilitator for assistance."
+            logger.error(f"LLM question answering failed: {e}")
+            return "I'm sorry, I'm having trouble answering your question right now. Please ask a facilitator for assistance."

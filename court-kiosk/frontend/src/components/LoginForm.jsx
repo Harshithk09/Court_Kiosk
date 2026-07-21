@@ -143,10 +143,9 @@ const LoginForm = ({ onLoginSuccess }) => {
 
           <div className="text-center">
             <div className="text-sm text-gray-600">
-              {language === 'en' ? 'Default credentials:' : 'Credenciales por defecto:'}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {language === 'en' ? 'Username: admin | Password: admin123' : 'Usuario: admin | Contraseña: admin123'}
+              {language === 'en'
+                ? 'Contact court IT if you need an admin account.'
+                : 'Contacte al personal de TI del tribunal si necesita una cuenta de administrador.'}
             </div>
           </div>
         </form>

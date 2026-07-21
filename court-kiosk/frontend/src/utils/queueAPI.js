@@ -38,7 +38,6 @@ const makeRequest = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
-    console.log(`API request failed for ${endpoint}:`, error.message);
     if (isProduction()) {
       console.error('Production API error:', error);
     }
@@ -47,37 +46,35 @@ const makeRequest = async (endpoint, options = {}) => {
 };
 
 /**
- * Helper function to handle backend fallback logic
- * @param {Function} backendCall - Function that calls the backend
- * @param {Function} fallbackCall - Function to call if backend fails
- * @returns {Promise<Object>} Result from backend or fallback
+ * Helper function to handle backend fallback logic.
+ * Mock/localStorage fallbacks are development-only — never hide prod outages.
  */
 const withFallback = async (backendCall, fallbackCall) => {
   try {
     return await backendCall();
   } catch (error) {
-    console.log('Backend not available, using fallback:', error.message);
+    if (isProduction()) {
+      throw error;
+    }
+    console.warn('Backend unavailable; using local mock fallback (dev only).', error.message);
     return await fallbackCall();
   }
 };
 
 /**
- * Generate a queue number for mock queue
- * @param {string} existingNumber - Existing queue number if any
- * @returns {string} Generated queue number
+ * Persist mock queue only in development (shared kiosk browsers must not store PII).
  */
+const saveMockQueue = () => {
+  if (isProduction() || typeof localStorage === 'undefined') return;
+  localStorage.setItem('mockQueue', JSON.stringify(mockQueue));
+  localStorage.setItem('queueCounter', queueCounter.toString());
+};
+
 const generateQueueNumber = (existingNumber) => {
   if (existingNumber) return existingNumber;
-  
   return `${CONFIG.QUEUE_NUMBER_PREFIX}${String(queueCounter).padStart(CONFIG.QUEUE_NUMBER_PADDING, '0')}`;
 };
 
-/**
- * Create a queue item object
- * @param {Object} queueData - Queue data
- * @param {string} queueNumber - Queue number
- * @returns {Object} Queue item
- */
 const createQueueItem = (queueData, queueNumber) => ({
   queue_number: queueNumber,
   priority: queueData.priority || CONFIG.DEFAULT_PRIORITY,
@@ -91,17 +88,10 @@ const createQueueItem = (queueData, queueNumber) => ({
 });
 
 /**
- * Save mock queue to localStorage
- */
-const saveMockQueue = () => {
-  localStorage.setItem('mockQueue', JSON.stringify(mockQueue));
-  localStorage.setItem('queueCounter', queueCounter.toString());
-};
-
-/**
- * Load mock queue from localStorage
+ * Load mock queue from localStorage (dev only)
  */
 const loadMockQueue = () => {
+  if (isProduction() || typeof localStorage === 'undefined') return;
   const storedQueue = localStorage.getItem('mockQueue');
   const storedCounter = localStorage.getItem('queueCounter');
   
@@ -278,8 +268,6 @@ export const addTestData = async () => {
 
   // Save to localStorage
   saveMockQueue();
-
-  console.log('Test data added to mock queue:', mockQueue);
   
   return {
     success: true,
@@ -294,27 +282,20 @@ export const addTestData = async () => {
  */
 export const getQueue = async () => {
   const backendCall = async () => {
-    console.log('Fetching queue data from backend...');
     // Align with Flask backend: /api/queue
     const data = await makeRequest(API_ENDPOINTS.QUEUE);
-    console.log('Backend queue data received:', data);
-    
     // Flask already returns { queue: [...], current_number: {...} }
-    console.log('Final queue result:', data);
     return data;
   };
 
   const fallbackCall = async () => {
-    console.log('Using fallback mock queue...');
     loadMockQueue();
-    console.log('Mock queue loaded:', mockQueue);
     
     const result = {
       queue: mockQueue,
       current_number: mockQueue.length > 0 ? mockQueue[0] : null
     };
     
-    console.log('Fallback queue result:', result);
     return result;
   };
 
@@ -395,21 +376,24 @@ export const sendQueueNumberSMS = async (queueNumber, phoneNumber) => {
     
     return result.success;
   } catch (error) {
-    console.log('SMS service not available:', error.message);
+    if (isProduction()) {
+      throw error;
+    }
   }
   
-  // Fallback: store in localStorage for demo purposes
-  const smsHistory = JSON.parse(localStorage.getItem('smsHistory') || '[]');
-  smsHistory.push({
-    queue_number: queueNumber,
-    phone_number: phoneNumber,
-    timestamp: new Date().toISOString(),
-    message: `Your queue number is ${queueNumber}. Please wait in the waiting area.`
-  });
-  localStorage.setItem('smsHistory', JSON.stringify(smsHistory));
+  // Dev-only fallback: do not persist phone numbers on shared kiosks
+  if (!isProduction()) {
+    const smsHistory = JSON.parse(localStorage.getItem('smsHistory') || '[]');
+    smsHistory.push({
+      queue_number: queueNumber,
+      phone_number: phoneNumber,
+      timestamp: new Date().toISOString(),
+      message: `Your queue number is ${queueNumber}. Please wait in the waiting area.`
+    });
+    localStorage.setItem('smsHistory', JSON.stringify(smsHistory));
+  }
   
-  console.log(`SMS would be sent to ${phoneNumber}: Your queue number is ${queueNumber}`);
-  return true;
+  return !isProduction();
 };
 
 /**

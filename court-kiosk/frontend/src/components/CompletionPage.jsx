@@ -464,20 +464,11 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
       if (data.success) {
         setQueueNumber(data.queue_number);
         setIsInQueue(true);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Added to queue:', data);
-        }
         toast.success('Successfully added to queue!');
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Failed to add to queue:', data);
-        }
         toast.error('Failed to add to queue. Please try again.');
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error adding to queue:', error);
-      }
       toast.error('Error adding to queue. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -501,10 +492,6 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
     
     setIsSubmitting(true);
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Sending email request...');
-      }
-
       // Prepare forms list - extract form codes from summary.forms
       const documentsNeeded = summary.forms.map(form => {
         if (typeof form === 'string') return form;
@@ -547,10 +534,6 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
         case_data: caseData
       };
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Sending email payload:', emailPayload);
-      }
-      
       const response = await fetch(buildApiUrl(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -570,9 +553,6 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
         toast.error('Failed to send email: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('❌ Error sending email:', error);
-      }
       toast.error('Error sending email: ' + error.message);
     } finally {
       setIsSubmitting(false);

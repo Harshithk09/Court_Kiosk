@@ -27,9 +27,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
     }
   }, [currentNodeId, currentNode, onRoute]);
 
-  // Debug logging
-  console.log('Current node:', currentNodeId, currentNode);
-  console.log('Outgoing edges:', outgoingEdges);
+  // Debug logging removed for production
 
   const handleNext = (nextNodeId) => {
     setCurrentNodeId(nextNodeId);
@@ -83,7 +81,6 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
 
   const handleChoice = (edgeIndex) => {
     const edge = outgoingEdges[edgeIndex];
-    console.log('Handling choice:', edgeIndex, edge);
     if (edge) {
       handleNext(edge.to);
     }
