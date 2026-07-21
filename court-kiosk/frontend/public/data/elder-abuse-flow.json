@@ -165,6 +165,10 @@
     "EA_RenewCourt": {
       "type": "process",
       "text": "Step 4: Go to court on the date listed in EA-710.\n    The judge decides whether to renew the restraining order."
+    },
+    "EA_RenewEnd": {
+      "type": "terminal",
+      "text": "You have completed the renewal overview. Keep copies of all filed orders and proof of service. If the judge renews your order, follow any new orders on the signed form. For questions, contact the Probate Clerk or Self-Help."
     }
   },
   "edges": [
@@ -190,11 +194,11 @@
     },
     {
       "from": "EA6",
-      "to": "EA_Start"
+      "to": "EA_Step1"
     },
     {
       "from": "EA_Start",
-      "to": "EA_Step1"
+      "to": "EA1"
     },
     {
       "from": "EA_Step1",
@@ -319,6 +323,10 @@
     {
       "from": "EA_RenewServe",
       "to": "EA_RenewCourt"
+    },
+    {
+      "from": "EA_RenewCourt",
+      "to": "EA_RenewEnd"
     }
   ]
 }

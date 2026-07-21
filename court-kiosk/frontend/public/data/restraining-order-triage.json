@@ -74,7 +74,7 @@
       "type": "decision",
       "text": "Is the harm done by someone you are NOT closely related to, for example, a neighbor, roommate, or stranger?"
     },
-    "CRO": {
+    "CHRO": {
       "type": "process",
       "text": "You may qualify for a Civil Harassment Restraining Order"
     },
@@ -171,7 +171,7 @@
     },
     {
       "from": "CROInfo",
-      "to": "CRO",
+      "to": "CHRO",
       "when": "Yes"
     },
     {
