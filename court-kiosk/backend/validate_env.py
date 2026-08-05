@@ -109,6 +109,11 @@ OPTIONAL_VARS = {
         'example': 'noreply@courtkiosk.com',
         'default': 'Auto-generated from domain or testing email'
     },
+    'FALLBACK_EMAIL': {
+        'description': 'Address to forward to when a direct send fails',
+        'example': 'staff@courtkiosk.com',
+        'default': 'Unset — failed sends just report failure, no forwarding attempt'
+    },
     'CORS_ORIGINS': {
         'description': 'Comma-separated list of allowed CORS origins',
         'example': 'http://localhost:3000,https://court-kiosk.vercel.app',

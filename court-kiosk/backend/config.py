@@ -26,6 +26,9 @@ class Config:
     RESEND_API_KEY = os.getenv('RESEND_API_KEY')
     RESEND_FROM_DOMAIN = os.getenv('RESEND_FROM_DOMAIN')
     RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL')
+    # Address to forward to when a direct send fails (e.g. testing-mode domain
+    # restriction) — optional. Leave unset to skip the fallback attempt entirely.
+    FALLBACK_EMAIL = os.getenv('FALLBACK_EMAIL')
 
     # Twilio SMS service (optional — SMS is a no-op with a clear error until these are set)
     TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
