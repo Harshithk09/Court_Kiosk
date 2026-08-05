@@ -2,10 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
+import FlowRoadmap from '../components/FlowRoadmap';
+import { WORKPLACE_VIOLENCE_ROADMAP_STAGES } from '../data/workplaceViolenceRoadmapStages';
+
+const WORKPLACE_VIOLENCE_TITLE = {
+  en: 'Workplace Violence Restraining Order',
+  es: 'Orden de Restricción por Violencia en el Trabajo'
+};
 
 export default function WorkplaceViolencePage() {
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState('roadmap');
   const [flowData, setFlowData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,6 +40,17 @@ export default function WorkplaceViolencePage() {
   const handleFinish = async ({ answers, forms }) => {
     navigate('/');
   };
+
+  if (currentStep === 'roadmap') {
+    return (
+      <FlowRoadmap
+        stages={WORKPLACE_VIOLENCE_ROADMAP_STAGES}
+        title={WORKPLACE_VIOLENCE_TITLE}
+        onStart={() => setCurrentStep('flow')}
+        onHome={() => navigate('/')}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -61,8 +80,9 @@ export default function WorkplaceViolencePage() {
     <SimpleFlowRunner
       flow={flowData}
       onFinish={handleFinish}
-      onBack={() => navigate('/restraining-order')}
+      onBack={() => setCurrentStep('roadmap')}
       onHome={() => navigate('/')}
+      roadmapStages={WORKPLACE_VIOLENCE_ROADMAP_STAGES}
     />
   );
 }

@@ -2,10 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
+import FlowRoadmap from '../components/FlowRoadmap';
+import { GVRO_ROADMAP_STAGES } from '../data/gvroRoadmapStages';
+
+const GVRO_TITLE = {
+  en: 'Gun Violence Restraining Order',
+  es: 'Orden de Restricción por Violencia Armada'
+};
 
 export default function GVROPage() {
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState('roadmap');
   const [flowData, setFlowData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,6 +40,17 @@ export default function GVROPage() {
   const handleFinish = async ({ answers, forms }) => {
     navigate('/');
   };
+
+  if (currentStep === 'roadmap') {
+    return (
+      <FlowRoadmap
+        stages={GVRO_ROADMAP_STAGES}
+        title={GVRO_TITLE}
+        onStart={() => setCurrentStep('flow')}
+        onHome={() => navigate('/')}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -61,8 +80,9 @@ export default function GVROPage() {
     <SimpleFlowRunner
       flow={flowData}
       onFinish={handleFinish}
-      onBack={() => navigate('/restraining-order')}
+      onBack={() => setCurrentStep('roadmap')}
       onHome={() => navigate('/')}
+      roadmapStages={GVRO_ROADMAP_STAGES}
     />
   );
 }

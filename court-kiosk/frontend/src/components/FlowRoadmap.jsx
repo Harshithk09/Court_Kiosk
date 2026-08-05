@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { Shield, FileText, Scale, Clock, Send, Calendar, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
+import { FileText, PlayCircle, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { DVRO_ROADMAP_STAGES } from '../data/dvroRoadmapStages';
+import { STAGE_ICONS } from '../data/stageIcons';
 
-const STAGE_ICONS = { Shield, FileText, Scale, Clock, Send, Calendar, CheckCircle };
-
-const DVRORoadmap = ({ onStart, onHome }) => {
+const FlowRoadmap = ({ stages, title, onStart, onHome }) => {
   const { language, toggleLanguage } = useLanguage();
-  const [selectedStageId, setSelectedStageId] = useState(DVRO_ROADMAP_STAGES[0].id);
+  const [selectedStageId, setSelectedStageId] = useState(stages[0].id);
 
-  const selectedStage = DVRO_ROADMAP_STAGES.find((stage) => stage.id === selectedStageId);
+  const selectedStage = stages.find((stage) => stage.id === selectedStageId);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -25,7 +23,7 @@ const DVRORoadmap = ({ onStart, onHome }) => {
               </button>
             )}
             <h1 className="text-xl font-bold text-gray-900">
-              {language === 'es' ? 'Orden de Restricción por Violencia Doméstica' : 'Domestic Violence Restraining Order'}
+              {title[language]}
             </h1>
           </div>
           <button
@@ -52,10 +50,10 @@ const DVRORoadmap = ({ onStart, onHome }) => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 mb-6">
           <div className="overflow-x-auto">
             <div className="flex items-start gap-1 min-w-max px-2 pb-2">
-              {DVRO_ROADMAP_STAGES.map((stage, index) => {
+              {stages.map((stage, index) => {
                 const Icon = STAGE_ICONS[stage.icon] || FileText;
                 const isSelected = stage.id === selectedStageId;
-                const isLast = index === DVRO_ROADMAP_STAGES.length - 1;
+                const isLast = index === stages.length - 1;
 
                 return (
                   <React.Fragment key={stage.id}>
@@ -118,13 +116,11 @@ const DVRORoadmap = ({ onStart, onHome }) => {
                   </button>
                 )}
 
-                {selectedStage.id === 'get-started' && (
+                {selectedStage.eligibilityNote && (
                   <div className="mt-4 flex items-start space-x-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
                     <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-amber-800">
-                      {language === 'es'
-                        ? 'Si esto no se ajusta a su situación (por ejemplo, no califica, o su caso encaja mejor en otro tipo de orden), le mostraremos otras opciones antes de continuar.'
-                        : "If this doesn't fit your situation (for example, you don't qualify, or your case fits a different order type better), we'll point you to other options before you continue."}
+                      {selectedStage.eligibilityNote[language]}
                     </p>
                   </div>
                 )}
@@ -151,4 +147,4 @@ const DVRORoadmap = ({ onStart, onHome }) => {
   );
 };
 
-export default DVRORoadmap;
+export default FlowRoadmap;

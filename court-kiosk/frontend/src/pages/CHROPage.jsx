@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
 import GuidedQuestionPage from './GuidedQuestionPage';
+import FlowRoadmap from '../components/FlowRoadmap';
+import { CHRO_ROADMAP_STAGES } from '../data/chroRoadmapStages';
+
+const CHRO_TITLE = {
+  en: 'Civil Harassment Restraining Order',
+  es: 'Orden de Restricción por Acoso Civil'
+};
 
 const CHROPage = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState('question');
+  const [currentStep, setCurrentStep] = useState('roadmap');
   const [flowData, setFlowData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +41,17 @@ const CHROPage = () => {
     }
   };
 
+  if (currentStep === 'roadmap') {
+    return (
+      <FlowRoadmap
+        stages={CHRO_ROADMAP_STAGES}
+        title={CHRO_TITLE}
+        onStart={() => setCurrentStep('question')}
+        onHome={() => navigate('/')}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -48,7 +66,7 @@ const CHROPage = () => {
   if (currentStep === 'question') {
     return (
       <GuidedQuestionPage
-        question={language === 'es' 
+        question={language === 'es'
           ? '¿Se trata de una relación con un cónyuge, pareja o co-padre?'
           : 'Is this about a relationship with a spouse, partner, or co-parent?'
         }
@@ -57,7 +75,7 @@ const CHROPage = () => {
           : 'Civil harassment restraining orders are for people who are NOT in a close relationship (like neighbors, coworkers, or strangers).'
         }
         onAnswer={handleFirstQuestionAnswer}
-        onBack={() => navigate('/')}
+        onBack={() => setCurrentStep('roadmap')}
         stepNumber={1}
         totalSteps={2}
       />
@@ -71,6 +89,7 @@ const CHROPage = () => {
         onFinish={() => navigate('/')}
         onBack={() => setCurrentStep('question')}
         onHome={() => navigate('/')}
+        roadmapStages={CHRO_ROADMAP_STAGES}
       />
     );
   }

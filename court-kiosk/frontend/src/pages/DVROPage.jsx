@@ -3,8 +3,14 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
 import GuidedQuestionPage from './GuidedQuestionPage';
-import DVRORoadmap from '../components/DVRORoadmap';
+import FlowRoadmap from '../components/FlowRoadmap';
+import { DVRO_ROADMAP_STAGES } from '../data/dvroRoadmapStages';
 import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
+
+const DVRO_TITLE = {
+  en: 'Domestic Violence Restraining Order',
+  es: 'Orden de Restricción por Violencia Doméstica'
+};
 
 export default function DVROPage() {
   const { language } = useLanguage();
@@ -148,7 +154,9 @@ export default function DVROPage() {
   // renders immediately instead of waiting on the flow JSON fetch.
   if (currentStep === 'roadmap') {
     return (
-      <DVRORoadmap
+      <FlowRoadmap
+        stages={DVRO_ROADMAP_STAGES}
+        title={DVRO_TITLE}
         onStart={() => setCurrentStep('question')}
         onHome={() => navigate('/')}
       />
@@ -212,6 +220,7 @@ export default function DVROPage() {
         onFinish={handleFinish}
         onBack={() => setCurrentStep('question')}
         onHome={() => navigate('/')}
+        roadmapStages={DVRO_ROADMAP_STAGES}
       />
     );
   }

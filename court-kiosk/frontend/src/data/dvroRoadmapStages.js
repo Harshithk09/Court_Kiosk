@@ -15,7 +15,11 @@ export const DVRO_ROADMAP_STAGES = [
       es: 'Primero, verificamos que una orden de restricción sea adecuada para su situación — por ejemplo, que tenga el tipo de relación con la otra persona (cónyuge, pareja, co-padre, familiar cercano) que cubre este tipo de orden. Si otro tipo se ajusta mejor, le mostraremos cuál.'
     },
     nodeIds: ['DVROStart', 'Note', 'DV0', 'DV1', 'DVCheck1', 'DVCheck2', 'DVCheck3', 'DVStart', 'DVTiming'],
-    videoUrl: null
+    videoUrl: null,
+    eligibilityNote: {
+      en: "If this doesn't fit your situation (for example, you don't qualify, or your case fits a different order type better), we'll point you to other options before you continue.",
+      es: 'Si esto no se ajusta a su situación (por ejemplo, no califica, o su caso encaja mejor en otro tipo de orden), le mostraremos otras opciones antes de continuar.'
+    }
   },
   {
     id: 'fill-out-forms',

@@ -2,25 +2,105 @@ import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'rea
 import ErrorBoundary from './ErrorBoundary';
 import { getLocalFormUrl, getOfficialFormUrl } from '../utils/formUtils';
 import { FileText, ExternalLink, Eye } from 'lucide-react';
+import { STAGE_ICONS } from '../data/stageIcons';
 
 const CompletionPage = lazy(() => import('./CompletionPage'));
 const AdminQuestionsPage = lazy(() => import('./AdminQuestionsPage'));
 
 const FORM_CODE_RE = /\b(?:[A-Z]{2,3}-\d{3,4}|CLETS-001|SER-001|POS-040)\b/g;
 
-const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
+const CHAIN_MAX_LENGTH = 8;
+const CHAIN_MIN_LENGTH = 3;
+
+// Renders node text with any form codes (DV-100, SER-001, ...) pulled out as
+// inline badges. Uses matchAll (not FORM_CODE_RE.exec in a loop) because
+// FORM_CODE_RE is a shared module-level /g regex also used by sidebarForms —
+// matchAll clones it internally, so this can't corrupt that other consumer's
+// lastIndex.
+const renderTextWithFormBadges = (text) => {
+  if (!text) return text;
+  const matches = Array.from(text.matchAll(FORM_CODE_RE));
+  if (matches.length === 0) return text;
+
+  const parts = [];
+  let cursor = 0;
+  matches.forEach((match, i) => {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (start > cursor) parts.push(text.slice(cursor, start));
+    parts.push(
+      <span
+        key={`badge-${i}-${match[0]}`}
+        className="inline-block px-1.5 py-0.5 mx-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-[0.85em] font-semibold align-baseline"
+      >
+        {match[0]}
+      </span>
+    );
+    cursor = end;
+  });
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return parts;
+};
+
+const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute, roadmapStages }) => {
   const [currentNodeId, setCurrentNodeId] = useState(flow?.start || 'DVROStart');
   const [history, setHistory] = useState([flow?.start || 'DVROStart']);
+  const [screenBoundaries, setScreenBoundaries] = useState([1]);
   const [showSummary, setShowSummary] = useState(false);
   const [showAdminQuestions, setShowAdminQuestions] = useState(false);
   const [adminData, setAdminData] = useState(null);
   const progressScrollRef = useRef(null);
 
   const currentNode = flow?.nodes?.[currentNodeId];
+
+  // from-node-id -> outgoing edges lookup, built once per flow/edges change.
+  const edgesByFrom = useMemo(() => {
+    const map = new Map();
+    (flow?.edges || []).forEach(edge => {
+      if (!map.has(edge.from)) map.set(edge.from, []);
+      map.get(edge.from).push(edge);
+    });
+    return map;
+  }, [flow?.edges]);
+
   const outgoingEdges = useMemo(
-    () => flow?.edges?.filter(edge => edge.from === currentNodeId) || [],
-    [flow?.edges, currentNodeId]
+    () => edgesByFrom.get(currentNodeId) || [],
+    [edgesByFrom, currentNodeId]
   );
+
+  // Detect a run of forced single-path "Continue" nodes starting at currentNodeId,
+  // so it can be shown as one checklist screen instead of one click per node.
+  const chainScreen = useMemo(() => {
+    const isChainStopper = (node) => (
+      !node || node.type === 'decision' || node.type === 'end' ||
+      node.type === 'terminal' || !!node.routeTarget
+    );
+
+    if (isChainStopper(flow?.nodes?.[currentNodeId])) return null;
+
+    const chainNodeIds = [currentNodeId];
+    let cursor = currentNodeId;
+    while (chainNodeIds.length < CHAIN_MAX_LENGTH) {
+      const edges = edgesByFrom.get(cursor) || [];
+      if (edges.length !== 1) break;
+      const nextId = edges[0].to;
+      if (isChainStopper(flow?.nodes?.[nextId])) break;
+      // Only absorb the candidate if IT also has exactly one path forward —
+      // some nodes are real forks (multiple outgoing edges) without being
+      // tagged type: 'decision' in the data, so type alone isn't reliable.
+      const nextEdges = edgesByFrom.get(nextId) || [];
+      if (nextEdges.length !== 1) break;
+      chainNodeIds.push(nextId);
+      cursor = nextId;
+    }
+
+    if (chainNodeIds.length < CHAIN_MIN_LENGTH) return null;
+
+    const lastEdges = edgesByFrom.get(chainNodeIds[chainNodeIds.length - 1]) || [];
+    if (lastEdges.length !== 1) return null;
+
+    return { chainNodeIds, landingNodeId: lastEdges[0].to };
+  }, [flow?.nodes, edgesByFrom, currentNodeId]);
 
   // Check if current node has a routeTarget and handle navigation
   useEffect(() => {
@@ -36,8 +116,20 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
   // Debug logging removed for production
 
   const handleNext = (nextNodeId) => {
+    const newHistory = [...history, nextNodeId];
+    setHistory(newHistory);
+    setScreenBoundaries(prev => [...prev, newHistory.length]);
     setCurrentNodeId(nextNodeId);
-    setHistory(prev => [...prev, nextNodeId]);
+  };
+
+  // Commits a whole collapsed checklist screen at once: every chain node after
+  // the already-current one, plus the node the chain lands on, in a single
+  // history/boundary update — so "Back" undoes the whole screen, not one node.
+  const handleChainContinue = (chainTailIds, landingNodeId) => {
+    const newHistory = [...history, ...chainTailIds, landingNodeId];
+    setHistory(newHistory);
+    setScreenBoundaries(prev => [...prev, newHistory.length]);
+    setCurrentNodeId(landingNodeId);
   };
 
   // Auto-scroll to current step when it changes
@@ -71,11 +163,13 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
   }, [currentNodeId, history]);
 
   const handleBack = () => {
-    if (history.length > 1) {
-      const newHistory = history.slice(0, -1);
-      const previousNode = newHistory[newHistory.length - 1];
+    if (screenBoundaries.length > 1) {
+      const newBoundaries = screenBoundaries.slice(0, -1);
+      const targetLength = newBoundaries[newBoundaries.length - 1];
+      const newHistory = history.slice(0, targetLength);
+      setScreenBoundaries(newBoundaries);
       setHistory(newHistory);
-      setCurrentNodeId(previousNode);
+      setCurrentNodeId(newHistory[newHistory.length - 1]);
     } else {
       onBack?.();
     }
@@ -96,6 +190,14 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
       const newHistory = history.slice(0, nodeIndex + 1);
       setHistory(newHistory);
       setCurrentNodeId(nodeId);
+      // A manual jump can land mid-chain (a node that was never its own screen),
+      // so re-anchor screenBoundaries to the click target instead of leaving
+      // stale boundaries past the new (shorter) history around for handleBack.
+      setScreenBoundaries(prev => {
+        const kept = prev.filter(b => b <= newHistory.length);
+        if (kept[kept.length - 1] !== newHistory.length) kept.push(newHistory.length);
+        return kept;
+      });
     }
   };
 
@@ -210,7 +312,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
                 Home
               </button>
               <div className="text-sm text-gray-600">
-                Step {history.length}
+                Step {screenBoundaries.length}
               </div>
             </div>
           </div>
@@ -221,63 +323,94 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
           {/* Progress Sidebar */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Progress</h3>
-              
-              <div ref={progressScrollRef} className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg overflow-hidden">
-                {allSteps.map((nodeId, index) => {
-                  const node = flow?.nodes?.[nodeId];
-                  const isCurrent = nodeId === currentNodeId;
-                  const isClickable = index < history.length - 1; // Can't click current node
-                  const isLast = index === allSteps.length - 1;
-                  
-                  return (
-                    <div
-                      key={nodeId}
-                      className={`p-6 cursor-pointer transition-all duration-200 progress-step ${
-                        isCurrent 
-                          ? 'bg-blue-100 text-blue-900 current shadow-md border-l-4 border-blue-500' 
-                          : isClickable
-                            ? 'bg-white hover:bg-blue-50 hover:shadow-sm border-l-4 border-transparent hover:border-blue-300'
-                            : 'bg-gray-50 border-l-4 border-gray-300'
-                      } ${!isLast ? 'border-b border-gray-200' : ''}`}
-                      onClick={isClickable ? () => handleHistoryClick(nodeId) : undefined}
-                    >
-                      <div className="flex items-start space-x-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm ${
-                          isCurrent 
-                            ? 'bg-blue-600 text-white shadow-lg' 
-                            : isClickable
-                              ? 'bg-white text-gray-600 border-2 border-gray-300 hover:border-blue-400'
-                              : 'bg-gray-300 text-gray-600'
-                        }`}>
-                          {index + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-base leading-relaxed ${
-                            isCurrent ? 'font-semibold' : isClickable ? 'font-medium' : 'font-normal'
+              {roadmapStages ? (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Path</h3>
+                  <div className="space-y-1">
+                    {roadmapStages.map((stage) => {
+                      const isCurrent = stage.nodeIds?.includes(currentNodeId);
+                      const Icon = STAGE_ICONS[stage.icon] || FileText;
+                      return (
+                        <div
+                          key={stage.id}
+                          className={`flex items-center space-x-3 p-2 rounded-lg ${
+                            isCurrent ? 'bg-blue-100' : ''
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            isCurrent ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
                           }`}>
-                            {node?.text?.substring(0, 60)}...
-                          </p>
-                          {isClickable && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Tap to go back
-                            </p>
-                          )}
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <span className={`text-sm ${isCurrent ? 'font-semibold text-blue-900' : 'text-gray-600'}`}>
+                            {stage.label?.en || stage.label}
+                          </span>
                         </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Progress</h3>
+
+                  <div ref={progressScrollRef} className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg overflow-hidden">
+                    {allSteps.map((nodeId, index) => {
+                      const node = flow?.nodes?.[nodeId];
+                      const isCurrent = nodeId === currentNodeId;
+                      const isClickable = index < history.length - 1; // Can't click current node
+                      const isLast = index === allSteps.length - 1;
+
+                      return (
+                        <div
+                          key={nodeId}
+                          className={`p-6 cursor-pointer transition-all duration-200 progress-step ${
+                            isCurrent
+                              ? 'bg-blue-100 text-blue-900 current shadow-md border-l-4 border-blue-500'
+                              : isClickable
+                                ? 'bg-white hover:bg-blue-50 hover:shadow-sm border-l-4 border-transparent hover:border-blue-300'
+                                : 'bg-gray-50 border-l-4 border-gray-300'
+                          } ${!isLast ? 'border-b border-gray-200' : ''}`}
+                          onClick={isClickable ? () => handleHistoryClick(nodeId) : undefined}
+                        >
+                          <div className="flex items-start space-x-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm ${
+                              isCurrent
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : isClickable
+                                  ? 'bg-white text-gray-600 border-2 border-gray-300 hover:border-blue-400'
+                                  : 'bg-gray-300 text-gray-600'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-base leading-relaxed ${
+                                isCurrent ? 'font-semibold' : isClickable ? 'font-medium' : 'font-normal'
+                              }`}>
+                                {node?.text?.substring(0, 60)}...
+                              </p>
+                              {isClickable && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Tap to go back
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600">
+                      <div className="flex justify-between">
+                        <span>Progress:</span>
+                        <span>{history.length} steps</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600">
-                  <div className="flex justify-between">
-                    <span>Progress:</span>
-                    <span>{history.length} steps</span>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -285,16 +418,59 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
           <div className="lg:col-span-6">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
               {/* Node Content */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  {currentNode.text}
-                </h2>
-              </div>
+              {!chainScreen && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                    {renderTextWithFormBadges(currentNode.text)}
+                  </h2>
+                </div>
+              )}
 
               {/* Navigation Options */}
               {!isEndNode && (
                 <div className="space-y-6">
-                  {hasMultipleChoices ? (
+                  {chainScreen ? (
+                    // Forced-continue chain: show every node's text as one checklist
+                    // instead of one full-screen click per node.
+                    <div>
+                      <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                        Complete these steps
+                      </h2>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                        {chainScreen.chainNodeIds.map((nodeId, index) => {
+                          const node = flow?.nodes?.[nodeId];
+                          const isLast = index === chainScreen.chainNodeIds.length - 1;
+                          return (
+                            <div
+                              key={nodeId}
+                              className={`p-6 bg-white flex items-start space-x-4 ${!isLast ? 'border-b border-gray-200' : ''}`}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                {index + 1}
+                              </div>
+                              <p className="text-base leading-relaxed text-gray-800">
+                                {renderTextWithFormBadges(node?.text)}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => handleChainContinue(
+                          chainScreen.chainNodeIds.slice(1),
+                          chainScreen.landingNodeId
+                        )}
+                        className="w-full p-8 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-semibold text-xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+                      >
+                        <div className="flex items-center justify-center space-x-3">
+                          <span>Continue</span>
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </button>
+                    </div>
+                  ) : hasMultipleChoices ? (
                     // Multiple choices - show all outgoing edges as buttons with clear dividers
                     <div className="border border-gray-300 rounded-lg overflow-hidden">
                       {outgoingEdges.map((edge, index) => {

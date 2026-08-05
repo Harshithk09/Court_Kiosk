@@ -2,10 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
+import FlowRoadmap from '../components/FlowRoadmap';
+import { ELDER_ABUSE_ROADMAP_STAGES } from '../data/elderAbuseRoadmapStages';
+
+const ELDER_ABUSE_TITLE = {
+  en: 'Elder or Dependent Adult Abuse Restraining Order',
+  es: 'Orden de Restricción por Abuso de Persona Mayor o Adulto Dependiente'
+};
 
 export default function ElderAbusePage() {
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState('roadmap');
   const [flowData, setFlowData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,6 +40,17 @@ export default function ElderAbusePage() {
   const handleFinish = async ({ answers, forms }) => {
     navigate('/');
   };
+
+  if (currentStep === 'roadmap') {
+    return (
+      <FlowRoadmap
+        stages={ELDER_ABUSE_ROADMAP_STAGES}
+        title={ELDER_ABUSE_TITLE}
+        onStart={() => setCurrentStep('flow')}
+        onHome={() => navigate('/')}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -61,8 +80,9 @@ export default function ElderAbusePage() {
     <SimpleFlowRunner
       flow={flowData}
       onFinish={handleFinish}
-      onBack={() => navigate('/restraining-order')}
+      onBack={() => setCurrentStep('roadmap')}
       onHome={() => navigate('/')}
+      roadmapStages={ELDER_ABUSE_ROADMAP_STAGES}
     />
   );
 }
