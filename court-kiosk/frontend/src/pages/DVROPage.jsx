@@ -3,12 +3,13 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import SimpleFlowRunner from '../components/SimpleFlowRunner';
 import GuidedQuestionPage from './GuidedQuestionPage';
+import DVRORoadmap from '../components/DVRORoadmap';
 import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
 
 export default function DVROPage() {
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState('question');
+  const [currentStep, setCurrentStep] = useState('roadmap');
   const [answers, setAnswers] = useState({});
   const [flowData, setFlowData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -143,6 +144,17 @@ export default function DVROPage() {
     }
   };
 
+  // Show the roadmap overview first — it has no dependency on flowData, so it
+  // renders immediately instead of waiting on the flow JSON fetch.
+  if (currentStep === 'roadmap') {
+    return (
+      <DVRORoadmap
+        onStart={() => setCurrentStep('question')}
+        onHome={() => navigate('/')}
+      />
+    );
+  }
+
   // Show loading state
   if (loading) {
     return (
@@ -185,7 +197,7 @@ export default function DVROPage() {
           : 'This helps us understand if your situation falls under family law, which covers things like divorce, separation, and child custody. It does not include issues like neighbor disputes.'
         }
         onAnswer={handleFirstQuestionAnswer}
-        onBack={() => navigate('/')}
+        onBack={() => setCurrentStep('roadmap')}
         stepNumber={1}
         totalSteps={2}
       />
