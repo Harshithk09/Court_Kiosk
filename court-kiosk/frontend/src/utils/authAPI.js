@@ -37,7 +37,9 @@ const makeAuthenticatedRequest = async (endpoint, options = {}, sessionToken = n
 
     return await response.json();
   } catch (error) {
-    console.log(`Authenticated API request failed for ${endpoint}:`, error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Authenticated API request failed for ${endpoint}:`, error.message);
+    }
     if (isProduction()) {
       console.error('Production API error:', error);
     }

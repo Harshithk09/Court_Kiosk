@@ -26,6 +26,11 @@ class Config:
     RESEND_API_KEY = os.getenv('RESEND_API_KEY')
     RESEND_FROM_DOMAIN = os.getenv('RESEND_FROM_DOMAIN')
     RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL')
+
+    # Twilio SMS service (optional — SMS is a no-op with a clear error until these are set)
+    TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+    TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
+    TWILIO_FROM_NUMBER = os.getenv('TWILIO_FROM_NUMBER')
     
     # Service endpoints
     SEARCH_SERVICE_URL = os.getenv('SEARCH_SERVICE_URL', 'http://localhost:8000')

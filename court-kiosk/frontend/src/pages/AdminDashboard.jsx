@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, Suspense, lazy } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useKioskMode } from '../contexts/KioskModeContext';
 import { useToast } from '../components/Toast';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useQueueSync } from '../hooks/useQueueSync';
 import { Users, CheckCircle, RefreshCw, FileText, Globe, Phone, Mail, Clock, AlertTriangle, Send, Eye, X, LogOut, User as UserIcon, Monitor, MonitorOff } from 'lucide-react';
 import { addTestData, sendComprehensiveEmail } from '../utils/queueAPI';
 import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
-import FormsManagement from '../components/FormsManagement';
-import FormsSummary from '../components/FormsSummary';
 import CaseDetailsModal from '../components/CaseDetailsModal';
+
+const FormsManagement = lazy(() => import('../components/FormsManagement'));
+const FormsSummary = lazy(() => import('../components/FormsSummary'));
 
 const AdminDashboard = () => {
   const { language, toggleLanguage } = useLanguage();
@@ -28,12 +29,6 @@ const AdminDashboard = () => {
   const [caseSummaryData, setCaseSummaryData] = useState(null);
   const [showCaseDetailsModal, setShowCaseDetailsModal] = useState(false);
   const [selectedCaseForDetails, setSelectedCaseForDetails] = useState(null);
-  const [isTabActive, setIsTabActive] = useState(true);
-  
-  // Refs for polling management
-  const pollIntervalRef = useRef(null);
-  const pollCountRef = useRef(0);
-  const lastFetchTimeRef = useRef(Date.now());
 
   // Helper function for debug logging (only in development)
   const debugLog = useCallback((...args) => {
@@ -45,15 +40,6 @@ const AdminDashboard = () => {
   // Helper function to get priority consistently
   const getPriority = useCallback((item) => {
     return item?.priority || item?.priority_level || 'C';
-  }, []);
-
-  // Track tab visibility for intelligent polling
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsTabActive(!document.hidden);
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const fetchQueue = useCallback(async () => {
@@ -70,113 +56,29 @@ const AdminDashboard = () => {
       }
 
       const data = await getAdminQueue(sessionToken);
-      
-      debugLog('Received queue data:', data);
-      
-      // Ensure queue is always an array
       const queueArray = data.queue || [];
-      debugLog('Setting queue array:', queueArray);
       setQueue(queueArray);
       setCurrentNumber(data.current_number || null);
-      
-      // Log queue statistics (development only)
-      if (process.env.NODE_ENV === 'development') {
-        debugLog('Queue statistics:');
-        debugLog('- Total cases:', queueArray.length);
-        debugLog('- Cases by priority:', queueArray.reduce((acc, item) => {
-          acc[getPriority(item)] = (acc[getPriority(item)] || 0) + 1;
-          return acc;
-        }, {}));
-        debugLog('- Cases by status:', queueArray.reduce((acc, item) => {
-          acc[item.status] = (acc[item.status] || 0) + 1;
-          return acc;
-        }, {}));
-      }
-      
-      // Reset poll count on successful fetch
-      pollCountRef.current = 0;
-      lastFetchTimeRef.current = Date.now();
-      
     } catch (error) {
       debugLog('Error fetching queue:', error);
       setError('Failed to fetch queue data');
-      // Set empty arrays to prevent undefined errors
       setQueue([]);
       setCurrentNumber(null);
-      
-      // Increment error count for backoff
-      pollCountRef.current += 1;
     } finally {
       setLoading(false);
     }
-  }, [sessionToken, debugLog, getPriority, language]);
+  }, [sessionToken, debugLog, language]);
 
-  // Calculate polling interval with exponential backoff
-  const getPollingInterval = useCallback(() => {
-    const baseInterval = 5000; // 5 seconds
-    const maxInterval = 60000; // 60 seconds
-    const inactiveMultiplier = 4; // Poll 4x slower when tab inactive
-    
-    // Exponential backoff on errors
-    const backoffInterval = Math.min(
-      baseInterval * Math.pow(2, pollCountRef.current),
-      maxInterval
-    );
-    
-    // Reduce polling when tab is inactive
-    return isTabActive ? backoffInterval : backoffInterval * inactiveMultiplier;
-  }, [isTabActive]);
+  const handleQueueUpdate = useCallback((data) => {
+    debugLog('WebSocket queue update:', data);
+    setQueue(data.queue || []);
+    setCurrentNumber(data.current_number || null);
+  }, [debugLog]);
 
-  // Setup polling with intelligent intervals
-  useEffect(() => {
-    // Initial fetch
-    fetchQueue();
-    
-    // Setup polling
-    const startPolling = () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      const interval = getPollingInterval();
-      debugLog(`Setting poll interval to ${interval}ms (active: ${isTabActive})`);
-      pollIntervalRef.current = setInterval(fetchQueue, interval);
-    };
-    
-    startPolling();
-    
-    // Restart polling when interval changes
-    const restartInterval = setInterval(() => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      startPolling();
-    }, getPollingInterval());
-    
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      if (restartInterval) {
-        clearInterval(restartInterval);
-      }
-    };
-  }, [fetchQueue, getPollingInterval, isTabActive, debugLog]);
-
-  // WebSocket connection for real-time updates (falls back to polling if unavailable)
-  const { isConnected: wsConnected } = useWebSocket('/api/ws/queue', {
-    enabled: !!sessionToken, // Only enable if authenticated
-    onMessage: (data) => {
-      debugLog('WebSocket message received:', data);
-      if (data.type === 'queue_update') {
-        setQueue(data.queue || []);
-        setCurrentNumber(data.current_number || null);
-        pollCountRef.current = 0; // Reset error count on successful update
-      }
-    },
-    onError: (error) => {
-      debugLog('WebSocket error:', error);
-      // Falls back to polling automatically
-    },
+  const { isConnected: wsConnected } = useQueueSync({
+    sessionToken,
+    fetchQueue,
+    onQueueUpdate: handleQueueUpdate,
   });
 
   // Debounced action handler to prevent spam
@@ -297,7 +199,7 @@ const AdminDashboard = () => {
         summary: caseItem.conversation_summary || '',
         phone_number: caseItem.phone_number,
         include_queue: true // Always include queue info in admin emails
-      });
+      }, sessionToken);
       
       if (result.success) {
         setError(null);
@@ -1242,8 +1144,16 @@ const AdminDashboard = () => {
       {/* Forms Management Tab Content */}
       {activeTab === 'forms' && (
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <FormsSummary />
-          <FormsManagement />
+          <Suspense
+            fallback={
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+              </div>
+            }
+          >
+            <FormsSummary />
+            <FormsManagement />
+          </Suspense>
         </div>
       )}
 

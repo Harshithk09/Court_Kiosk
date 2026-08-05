@@ -63,7 +63,14 @@ function App() {
                             </ProtectedRoute>
                           } 
                         />
-                        <Route path="/attorney" element={<AttorneyDashboard />} />
+                        <Route
+                          path="/attorney"
+                          element={
+                            <ProtectedRoute>
+                              <AttorneyDashboard />
+                            </ProtectedRoute>
+                          }
+                        />
                         <Route path="/dvro" element={<DVROPage />} />
                         <Route path="/chro" element={<CHROPage />} />
                         <Route path="/restraining-order" element={<RestrainingOrderTriagePage />} />

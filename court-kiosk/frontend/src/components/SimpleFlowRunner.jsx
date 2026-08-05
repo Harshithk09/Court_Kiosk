@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import CompletionPage from './CompletionPage';
-import AdminQuestionsPage from './AdminQuestionsPage';
+import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import ErrorBoundary from './ErrorBoundary';
 import { getLocalFormUrl, getOfficialFormUrl } from '../utils/formUtils';
 import { FileText, ExternalLink, Eye } from 'lucide-react';
+
+const CompletionPage = lazy(() => import('./CompletionPage'));
+const AdminQuestionsPage = lazy(() => import('./AdminQuestionsPage'));
+
+const FORM_CODE_RE = /\b(?:[A-Z]{2,3}-\d{3,4}|CLETS-001|SER-001|POS-040)\b/g;
 
 const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
   const [currentNodeId, setCurrentNodeId] = useState(flow?.start || 'DVROStart');
@@ -14,7 +17,10 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
   const progressScrollRef = useRef(null);
 
   const currentNode = flow?.nodes?.[currentNodeId];
-  const outgoingEdges = flow?.edges?.filter(edge => edge.from === currentNodeId) || [];
+  const outgoingEdges = useMemo(
+    () => flow?.edges?.filter(edge => edge.from === currentNodeId) || [],
+    [flow?.edges, currentNodeId]
+  );
 
   // Check if current node has a routeTarget and handle navigation
   useEffect(() => {
@@ -61,9 +67,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
     }
     
     // Cleanup function to prevent memory leaks
-    return () => {
-      // Any cleanup needed when component unmounts or dependencies change
-    };
+    return undefined;
   }, [currentNodeId, history]);
 
   const handleBack = () => {
@@ -95,10 +99,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
     }
   };
 
-  // Get all steps for display
-  const getAllSteps = () => {
-    return history;
-  };
+  const allSteps = history;
 
   const handleComplete = () => {
     setShowAdminQuestions(true);
@@ -119,55 +120,50 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
     setShowAdminQuestions(true);
   };
 
-  // Get forms for the sidebar based on user's progress
-  const getFormsForSidebar = () => {
+  // Extract form codes from history once per history/flow change
+  const sidebarForms = useMemo(() => {
     const forms = new Set();
-    
-    // Extract forms from all nodes in the user's history
     history.forEach(nodeId => {
-      const node = flow?.nodes?.[nodeId];
-      if (node?.text) {
-        // Look for form codes in the text using regex
-        const formMatches = node.text.match(/\b[A-Z]{2,3}-\d{3,4}\b/g);
-        if (formMatches) {
-          formMatches.forEach(form => forms.add(form));
-        }
-        
-        // Also look for specific form patterns
-        const specificForms = node.text.match(/\b(DV-\d+|CLETS-001|SER-001|POS-040|CH-\d+|FL-\d+|FW-\d+|CM-\d+|EPO-\d+|JV-\d+|MC-\d+|EA-\d+|GV-\d+|WV-\d+)\b/g);
-        if (specificForms) {
-          specificForms.forEach(form => forms.add(form));
-        }
-      }
+      const text = flow?.nodes?.[nodeId]?.text;
+      if (!text) return;
+      const matches = text.match(FORM_CODE_RE);
+      if (matches) matches.forEach(form => forms.add(form));
     });
-    
     return Array.from(forms).sort();
-  };
+  }, [history, flow?.nodes]);
 
-
+  const pageFallback = (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+    </div>
+  );
 
   if (showAdminQuestions) {
     return (
-      <AdminQuestionsPage
-        history={history}
-        flow={flow}
-        onBack={handleAdminQuestionsBack}
-        onComplete={handleAdminQuestionsComplete}
-        onHome={onHome}
-      />
+      <Suspense fallback={pageFallback}>
+        <AdminQuestionsPage
+          history={history}
+          flow={flow}
+          onBack={handleAdminQuestionsBack}
+          onComplete={handleAdminQuestionsComplete}
+          onHome={onHome}
+        />
+      </Suspense>
     );
   }
 
   if (showSummary) {
     return (
-      <CompletionPage
-        answers={{}}
-        history={history}
-        flow={flow}
-        adminData={adminData}
-        onBack={handleSummaryBack}
-        onHome={onHome}
-      />
+      <Suspense fallback={pageFallback}>
+        <CompletionPage
+          answers={{}}
+          history={history}
+          flow={flow}
+          adminData={adminData}
+          onBack={handleSummaryBack}
+          onHome={onHome}
+        />
+      </Suspense>
     );
   }
 
@@ -228,11 +224,11 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Progress</h3>
               
               <div ref={progressScrollRef} className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg overflow-hidden">
-                {getAllSteps().map((nodeId, index) => {
+                {allSteps.map((nodeId, index) => {
                   const node = flow?.nodes?.[nodeId];
                   const isCurrent = nodeId === currentNodeId;
                   const isClickable = index < history.length - 1; // Can't click current node
-                  const isLast = index === getAllSteps().length - 1;
+                  const isLast = index === allSteps.length - 1;
                   
                   return (
                     <div
@@ -490,11 +486,11 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
               </div>
               
               <div className="space-y-3">
-                {getFormsForSidebar().map((formCode, index) => {
+                {sidebarForms.map((formCode, index) => {
                   const localFormUrl = getLocalFormUrl(formCode);
                   const officialFormUrl = getOfficialFormUrl(formCode);
                   return (
-                    <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div key={formCode} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="flex items-center space-x-3">
                         <FileText className="w-4 h-4 text-blue-600" />
                         <span className="font-medium text-gray-900">{formCode}</span>
@@ -533,7 +529,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
                   );
                 })}
                 
-                {getFormsForSidebar().length === 0 && (
+                {sidebarForms.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                     <p className="text-sm">No forms detected yet</p>
@@ -546,7 +542,7 @@ const SimpleFlowRunner = ({ flow, onFinish, onBack, onHome, onRoute }) => {
                 <div className="text-sm text-gray-600">
                   <div className="flex justify-between">
                     <span>Forms Found:</span>
-                    <span>{getFormsForSidebar().length}</span>
+                    <span>{sidebarForms.length}</span>
                   </div>
                 </div>
               </div>

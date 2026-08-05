@@ -81,6 +81,24 @@ RECOMMENDED_VARS = {
         'example': 'facilitator@court.gov',
         'required_for': 'Staff notifications',
         'validate': lambda v: '@' in v if v else False
+    },
+    'TWILIO_ACCOUNT_SID': {
+        'description': 'Twilio account SID for SMS delivery',
+        'example': 'AC...',
+        'required_for': 'Sending queue-number text messages',
+        'validate': lambda v: v.startswith('AC') if v else False
+    },
+    'TWILIO_AUTH_TOKEN': {
+        'description': 'Twilio auth token for SMS delivery',
+        'example': '...',
+        'required_for': 'Sending queue-number text messages',
+        'validate': lambda v: len(v) > 0 if v else False
+    },
+    'TWILIO_FROM_NUMBER': {
+        'description': 'Twilio phone number to send SMS from (E.164 format)',
+        'example': '+15551234567',
+        'required_for': 'Sending queue-number text messages',
+        'validate': lambda v: v.startswith('+') if v else False
     }
 }
 

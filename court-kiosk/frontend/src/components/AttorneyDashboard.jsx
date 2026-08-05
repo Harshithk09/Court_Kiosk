@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from './Toast';
 import { 
@@ -26,6 +26,7 @@ import {
 import { sendComprehensiveEmail } from '../utils/queueAPI';
 import { getAdminQueue, callNextAuthenticated, completeCaseAuthenticated } from '../utils/authAPI';
 import { useAuth } from '../contexts/AuthContext';
+import { useQueueSync } from '../hooks/useQueueSync';
 import ModernCard from './ModernCard';
 import ModernButton from './ModernButton';
 import './ModernCard.css';
@@ -44,13 +45,7 @@ const AttorneyDashboard = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
-  useEffect(() => {
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 3000); // Refresh every 3 seconds
-    return () => clearInterval(interval);
-  }, [sessionToken]);
-
-  const fetchQueue = async () => {
+  const fetchQueue = useCallback(async () => {
     try {
       setError(null);
       if (!sessionToken) {
@@ -61,8 +56,7 @@ const AttorneyDashboard = () => {
         return;
       }
       const data = await getAdminQueue(sessionToken);
-      const queueArray = data.queue || [];
-      setQueue(queueArray);
+      setQueue(data.queue || []);
       setCurrentNumber(data.current_number || null);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -74,7 +68,18 @@ const AttorneyDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionToken, language]);
+
+  const handleQueueUpdate = useCallback((data) => {
+    setQueue(data.queue || []);
+    setCurrentNumber(data.current_number || null);
+  }, []);
+
+  useQueueSync({
+    sessionToken,
+    fetchQueue,
+    onQueueUpdate: handleQueueUpdate,
+  });
 
   const handleCallNext = async () => {
     try {
@@ -204,7 +209,7 @@ const AttorneyDashboard = () => {
         summary: caseItem.conversation_summary || '',
         phone_number: caseItem.phone_number,
         include_queue: true
-      });
+      }, sessionToken);
       
       if (result.success) {
         setError(null);

@@ -397,63 +397,80 @@ export const sendQueueNumberSMS = async (queueNumber, phoneNumber) => {
 };
 
 /**
- * Get available facilitators
+ * Get available facilitators. Backend requires an admin session (require_auth).
+ * @param {string} sessionToken - Admin/attorney session token
  * @returns {Promise<Array>} List of facilitators
  */
-export const getFacilitators = async () => {
+export const getFacilitators = async (sessionToken) => {
   try {
-    return await makeRequest(API_ENDPOINTS.FACILITATORS);
+    const headers = sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
+    return await makeRequest(API_ENDPOINTS.FACILITATORS, { headers });
   } catch (error) {
-    console.log('Failed to fetch facilitators:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Failed to fetch facilitators:', error.message);
+    }
     return [];
   }
 };
 
 /**
- * Get cases for a specific facilitator
+ * Get cases for a specific facilitator. Backend requires an admin session (require_auth).
  * @param {string} facilitatorId - Facilitator ID (optional)
+ * @param {string} sessionToken - Admin/attorney session token
  * @returns {Promise<Array>} List of facilitator cases
  */
-export const getFacilitatorCases = async (facilitatorId = null) => {
+export const getFacilitatorCases = async (facilitatorId = null, sessionToken) => {
   try {
-    const url = facilitatorId 
+    const url = facilitatorId
       ? `${API_ENDPOINTS.FACILITATOR_CASES}?facilitator_id=${facilitatorId}`
       : API_ENDPOINTS.FACILITATOR_CASES;
-    return await makeRequest(url);
+    const headers = sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
+    return await makeRequest(url, { headers });
   } catch (error) {
-    console.log('Failed to fetch facilitator cases:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Failed to fetch facilitator cases:', error.message);
+    }
     return [];
   }
 };
 
 /**
- * Assign a case to a facilitator
+ * Assign a case to a facilitator. Backend requires an admin session (require_auth).
  * @param {string} queueNumber - Queue number to assign
  * @param {string} facilitatorId - Facilitator ID
+ * @param {string} sessionToken - Admin/attorney session token
  * @returns {Promise<Object>} Assignment result
  */
-export const assignCase = async (queueNumber, facilitatorId) => {
+export const assignCase = async (queueNumber, facilitatorId, sessionToken) => {
   try {
+    const headers = sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
     return await makeRequest(`${API_ENDPOINTS.ASSIGN_CASE}/${queueNumber}/assign`, {
       method: 'POST',
+      headers,
       body: JSON.stringify({ facilitator_id: facilitatorId })
     });
   } catch (error) {
-    console.log('Failed to assign case:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Failed to assign case:', error.message);
+    }
     return { success: false };
   }
 };
 
 /**
- * Get case summary for a queue number
+ * Get case summary for a queue number. Backend requires an admin session (require_auth).
  * @param {string} queueNumber - Queue number to get summary for
+ * @param {string} sessionToken - Admin/attorney session token
  * @returns {Promise<Object>} Case summary
  */
-export const getCaseSummary = async (queueNumber) => {
+export const getCaseSummary = async (queueNumber, sessionToken) => {
   try {
-    return await makeRequest(`${API_ENDPOINTS.ASSIGN_CASE}/${queueNumber}/summary`);
+    const headers = sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
+    return await makeRequest(`${API_ENDPOINTS.ASSIGN_CASE}/${queueNumber}/summary`, { headers });
   } catch (error) {
-    console.log('Failed to get case summary:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Failed to get case summary:', error.message);
+    }
     return { success: false };
   }
 };
@@ -461,16 +478,23 @@ export const getCaseSummary = async (queueNumber) => {
 /**
  * Send comprehensive email with case summary and PDF attachments
  * @param {Object} emailData - Email data including case information
+ * @param {string} [sessionToken] - Admin/attorney session token. The backend requires either a
+ *   valid session or a matching X-Kiosk-Key; dashboards are logged in, not kiosk clients, so this
+ *   must be passed whenever called from an authenticated dashboard.
  * @returns {Promise<Object>} Email sending result
  */
-export const sendComprehensiveEmail = async (emailData) => {
+export const sendComprehensiveEmail = async (emailData, sessionToken = null) => {
   try {
+    const headers = sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
     return await makeRequest(API_ENDPOINTS.SEND_EMAIL, {
       method: 'POST',
+      headers,
       body: JSON.stringify(emailData)
     });
   } catch (error) {
-    console.log('Failed to send comprehensive email:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Failed to send comprehensive email:', error.message);
+    }
     return { success: false, error: error.message };
   }
 };
@@ -487,28 +511,9 @@ export const generateCaseSummary = async (summaryData) => {
       body: JSON.stringify(summaryData)
     });
   } catch (error) {
-    console.log('Failed to generate case summary:', error.message);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Send email for a specific case summary
- * @param {number} summaryId - Case summary ID
- * @param {boolean} includeQueue - Whether to include queue information
- * @returns {Promise<Object>} Email sending result
- */
-export const sendCaseSummaryEmail = async (summaryId, includeQueue = false) => {
-  try {
-    return await makeRequest(API_ENDPOINTS.SEND_CASE_SUMMARY_EMAIL, {
-      method: 'POST',
-      body: JSON.stringify({
-        summary_id: summaryId,
-        include_queue: includeQueue
-      })
-    });
-  } catch (error) {
-    console.log('Failed to send case summary email:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Failed to generate case summary:', error.message);
+    }
     return { success: false, error: error.message };
   }
 };

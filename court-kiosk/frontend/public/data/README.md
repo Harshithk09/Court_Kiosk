@@ -16,11 +16,11 @@ CRA copies `public/` → `build/` on deploy. Nothing under `src/data/` is loaded
 | `divorce_flow.json` | `DivorceFlowRunner.jsx` | `/divorce-flow` |
 | `other-family-law-flow.json` | `OtherFamilyLawPage.jsx` | `/other` |
 
-## Not live (do not edit for production copy)
+## Not live (removed)
 
 | File | Why |
 |------|-----|
-| `Restraining-order.json` | Megamerge archive. `RestrainingOrderPage.jsx` fetches it but is **not routed** in `App.js`. Prefer per-type files above. |
+| `Restraining-order.json` | Megamerge archive — removed. Use per-type files above. |
 | `build/data/*` | Build artifact only; never commit; rebuild after public edits. |
 
 ## Rules

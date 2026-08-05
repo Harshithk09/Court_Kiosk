@@ -16,7 +16,15 @@ from utils.validation import validate_email, validate_phone_number, validate_nam
 from utils.error_handling import ErrorResponse, log_error_detailed, handle_database_error, handle_email_error
 from email_api import email_bp
 from config import Config
-from models import db, QueueEntry, User, UserSession, AuditLog, CaseSummary, CaseType
+
+# Twilio is optional — SMS falls back to a clear "not configured" response when absent
+try:
+    from twilio.rest import Client as TwilioClient
+    from twilio.base.exceptions import TwilioRestException
+except ImportError:
+    TwilioClient = None
+    TwilioRestException = Exception
+from models import db, QueueEntry, User, UserSession, AuditLog, CaseSummary, CaseType, Facilitator, FacilitatorCase
 from validation_schemas import (
     validate_request_data, AskQuestionSchema, SubmitSessionSchema, 
     GenerateQueueSchema, DVRORAGSchema, CallNextSchema, CompleteCaseSchema,
@@ -826,6 +834,103 @@ def complete_case():
         )
         return ErrorResponse.internal_error("An error occurred completing the case")
 
+@app.route('/api/facilitators', methods=['GET'])
+@AuthService.require_auth
+def get_facilitators():
+    try:
+        facilitators = Facilitator.query.filter_by(is_active=True).order_by(Facilitator.name.asc()).all()
+        return jsonify([f.to_dict() for f in facilitators])
+    except Exception as e:
+        log_error_detailed(
+            error=e,
+            context="Error in /api/facilitators",
+            extra_data={'endpoint': '/api/facilitators'}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve facilitators")
+
+@app.route('/api/facilitator/cases', methods=['GET'])
+@AuthService.require_auth
+def get_facilitator_cases():
+    try:
+        facilitator_id = request.args.get('facilitator_id', type=int)
+        query = FacilitatorCase.query
+        if facilitator_id:
+            query = query.filter_by(facilitator_id=facilitator_id)
+        cases = query.order_by(FacilitatorCase.created_at.desc()).all()
+
+        results = []
+        for case in cases:
+            case_dict = case.to_dict()
+            entry = QueueEntry.query.get(case.queue_entry_id)
+            if entry:
+                case_dict['queue_number'] = entry.queue_number
+                case_dict['user_name'] = entry.user_name
+                case_dict['case_type'] = entry.case_type
+            results.append(case_dict)
+
+        return jsonify(results)
+    except Exception as e:
+        log_error_detailed(
+            error=e,
+            context="Error in /api/facilitator/cases",
+            extra_data={'endpoint': '/api/facilitator/cases'}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve facilitator cases")
+
+@app.route('/api/queue/<queue_number>/assign', methods=['POST'])
+@AuthService.require_auth
+def assign_case_to_facilitator(queue_number):
+    try:
+        entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
+        if not entry:
+            return jsonify({'error': 'Queue entry not found'}), 404
+
+        data = request.json or {}
+        facilitator_id = data.get('facilitator_id')
+
+        facilitator_case = FacilitatorCase.query.filter_by(queue_entry_id=entry.id).first()
+        if not facilitator_case:
+            facilitator_case = FacilitatorCase(queue_entry_id=entry.id)
+            db.session.add(facilitator_case)
+
+        facilitator_case.facilitator_id = facilitator_id
+        facilitator_case.status = 'assigned' if facilitator_id else 'pending'
+
+        try:
+            db.session.commit()
+            return jsonify({'success': True, 'case': facilitator_case.to_dict()})
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(
+                f"Database error in /api/queue/<queue_number>/assign: {str(db_error)}",
+                exc_info=True,
+                extra={'queue_number': queue_number, 'error_type': type(db_error).__name__}
+            )
+            return ErrorResponse.internal_error("Failed to assign case")
+    except Exception as e:
+        log_error_detailed(
+            error=e,
+            context="Error in /api/queue/<queue_number>/assign",
+            extra_data={'endpoint': '/api/queue/<queue_number>/assign', 'queue_number': queue_number}
+        )
+        return ErrorResponse.internal_error("An error occurred assigning the case")
+
+@app.route('/api/queue/<queue_number>/summary', methods=['GET'])
+@AuthService.require_auth
+def get_queue_case_summary(queue_number):
+    try:
+        entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
+        if not entry:
+            return jsonify({'error': 'Queue entry not found'}), 404
+        return jsonify({'success': True, 'case': entry.to_dict()})
+    except Exception as e:
+        log_error_detailed(
+            error=e,
+            context="Error in /api/queue/<queue_number>/summary",
+            extra_data={'endpoint': '/api/queue/<queue_number>/summary', 'queue_number': queue_number}
+        )
+        return ErrorResponse.internal_error("Failed to retrieve case summary")
+
 @app.route('/api/guided-questions', methods=['POST'])
 @limiter.limit("30 per minute")
 @AuthService.require_kiosk_or_auth
@@ -1268,13 +1373,20 @@ def send_summary_email_endpoint():
         )
         return ErrorResponse.internal_error("Failed to send summary email")
 
-# --- Simple SMS endpoints (mock/dev) ---
+# --- SMS endpoints ---
+_twilio_client = None
+if TwilioClient and Config.TWILIO_ACCOUNT_SID and Config.TWILIO_AUTH_TOKEN:
+    _twilio_client = TwilioClient(Config.TWILIO_ACCOUNT_SID, Config.TWILIO_AUTH_TOKEN)
+
+
 @app.route('/api/sms/send-queue-number', methods=['POST'])
 @limiter.limit("5 per minute")
 @AuthService.require_kiosk_or_auth
 def send_queue_number_sms():
-    """Mock endpoint to send queue number via SMS.
-    In development, we just log and return success so the frontend can proceed.
+    """Send the queue number via SMS through Twilio.
+
+    Falls back to a logged no-op (success: false) when Twilio isn't configured,
+    so callers can tell a real text was never sent instead of assuming it was.
     """
     try:
         data = request.get_json() or {}
@@ -1282,8 +1394,39 @@ def send_queue_number_sms():
         phone_number = data.get('phone_number')
         if not queue_number or not phone_number:
             return jsonify({'success': False, 'error': 'Missing queue_number or phone_number'}), 400
-        app.logger.info(f"[SMS] Would send queue number {queue_number} to {phone_number}")
-        return jsonify({'success': True})
+
+        phone_result = validate_phone_number(phone_number)
+        if not phone_result['valid']:
+            return jsonify({'success': False, 'error': f"Invalid phone number: {phone_result['error']}"}), 400
+        phone_number = phone_result['formatted']
+
+        message_body = f"Your court kiosk queue number is {queue_number}. Please wait in the waiting area."
+
+        if not _twilio_client or not Config.TWILIO_FROM_NUMBER:
+            app.logger.warning(
+                f"[SMS] Twilio not configured — would send queue number {queue_number} to {phone_number}"
+            )
+            return jsonify({
+                'success': False,
+                'error': 'SMS is not configured on the server',
+                'simulated': True
+            })
+
+        try:
+            message = _twilio_client.messages.create(
+                body=message_body,
+                from_=Config.TWILIO_FROM_NUMBER,
+                to=phone_number
+            )
+            app.logger.info(f"[SMS] Sent queue number {queue_number} to {phone_number} (sid={message.sid})")
+            return jsonify({'success': True, 'sid': message.sid})
+        except TwilioRestException as sms_error:
+            log_error_detailed(
+                error=sms_error,
+                context="Twilio API error sending SMS",
+                extra_data={'endpoint': '/api/sms/send-queue-number', 'queue_number': queue_number}
+            )
+            return jsonify({'success': False, 'error': 'Failed to send SMS'}), 502
     except Exception as e:
         log_error_detailed(
             error=e,
