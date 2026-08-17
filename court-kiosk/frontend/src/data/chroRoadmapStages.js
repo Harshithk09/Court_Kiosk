@@ -1,7 +1,8 @@
 // Stage groupings for the CHRO "ask for a new civil harassment restraining order"
 // roadmap overview. Node IDs map into
-// frontend/public/data/civil-harassment-flow.json (the CH1 branch only —
-// Respond/Modify/Renew are separate stub branches in that file, not built out).
+// frontend/public/data/civil-harassment-flow.json (CH1 / new-request branch).
+// Respond (CH2), Change/End (CH3), and Renew (CH5) are separate guided branches
+// in that same file with their own end nodes.
 
 export const CHRO_ROADMAP_STAGES = [
   {
@@ -56,7 +57,7 @@ export const CHRO_ROADMAP_STAGES = [
       en: 'After filing, someone else — not you — has to formally give the other person a copy of your papers. We’ll help you figure out who can do this for you before you get to the clerk’s window.',
       es: 'Después de presentar, otra persona — no usted — debe entregar formalmente una copia de sus documentos a la otra persona. Le ayudaremos a determinar quién puede hacer esto por usted antes de llegar a la ventanilla del secretario.'
     },
-    nodeIds: ['CHServePrep', 'ServeWho', 'SERStart', 'SER1', 'SER2', 'SER3', 'SERSoon', 'SERGather'],
+    nodeIds: ['CHServePrep', 'ServeWho', 'SERStart', 'SER1', 'SER2', 'SER3', 'SERSoon', 'SERGather', 'AltStart'],
     videoUrl: null
   },
   {
@@ -92,7 +93,7 @@ export const CHRO_ROADMAP_STAGES = [
       en: 'The signed order still needs to be served on the other person, with proof filed with the court. If they violate the order afterward, call 911 right away and keep a record of every violation.',
       es: 'La orden firmada todavía debe notificarse a la otra persona, con prueba presentada ante el tribunal. Si la viola después, llame al 911 de inmediato y mantenga un registro de cada violación.'
     },
-    nodeIds: ['CHServeOrder', 'CHViolation'],
+    nodeIds: ['CHServeOrder', 'CHViolation', 'CHNewEnd'],
     videoUrl: null
   }
 ];

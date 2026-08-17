@@ -277,3 +277,25 @@ class CaseType(db.Model):
             'flowchart_file': self.flowchart_file,
             'is_active': self.is_active
         }
+
+
+class ProductEvent(db.Model):
+    """Anonymous product analytics for completion, drop-off, and usefulness."""
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(64), nullable=False, index=True)
+    event_name = db.Column(db.String(64), nullable=False, index=True)
+    flow_type = db.Column(db.String(50), nullable=True, index=True)
+    node_id = db.Column(db.String(100), nullable=True)
+    properties_json = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'event_name': self.event_name,
+            'flow_type': self.flow_type,
+            'node_id': self.node_id,
+            'properties': json.loads(self.properties_json) if self.properties_json else {},
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

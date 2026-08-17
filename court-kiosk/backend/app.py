@@ -12,6 +12,7 @@ from utils.llm_service import LLMService
 from utils.email_service import EmailService
 from utils.case_summary_service import CaseSummaryService
 from utils.auth_service import AuthService
+from utils.rag_service import get_family_court_rag
 from utils.validation import validate_email, validate_phone_number, validate_name, validate_queue_request, validate_email_request
 from utils.error_handling import ErrorResponse, log_error_detailed, handle_database_error, handle_email_error
 from email_api import email_bp
@@ -24,7 +25,7 @@ try:
 except ImportError:
     TwilioClient = None
     TwilioRestException = Exception
-from models import db, QueueEntry, User, UserSession, AuditLog, CaseSummary, CaseType, Facilitator, FacilitatorCase
+from models import db, QueueEntry, User, UserSession, AuditLog, CaseSummary, CaseType, Facilitator, FacilitatorCase, ProductEvent
 from validation_schemas import (
     validate_request_data, AskQuestionSchema, SubmitSessionSchema, 
     GenerateQueueSchema, DVRORAGSchema, CallNextSchema, CompleteCaseSchema,
@@ -115,11 +116,13 @@ SYSTEM_PROMPTS = {
     'en': """You are a helpful legal information assistant for a court kiosk. \
     Provide accurate, helpful information about court procedures, forms, and legal processes.\
     Always remind users that this is general information and they should consult with court staff or an attorney for specific legal advice.\
-    Keep responses clear, concise but informative.""",
+    Keep responses clear, concise but informative.\
+    Never predict case outcomes, give personal legal advice, or assist with hiding information.""",
     'es': """Eres un asistente útil de información legal para un quiosco de la corte.\
     Proporciona información precisa y útil sobre procedimientos de la corte, formularios y procesos legales.\
     Siempre recuerda a los usuarios que esta es información general y deben consultar con el personal de la corte o un abogado para consejos legales específicos.\
-    Mantén las respuestas claras, concisas pero informativas.""",
+    Mantén las respuestas claras, concisas pero informativas.\
+    Nunca predigas resultados, des asesoramiento legal personal, ni ayudes a ocultar información.""",
     'zh': """您是法庭服务台的法律信息助手。\
     提供有关法庭程序、表格和法律程序的准确有用信息。\
     始终提醒用户这是一般信息，他们应该咨询法庭工作人员或律师以获得具体的法律建议。\
@@ -129,6 +132,9 @@ SYSTEM_PROMPTS = {
     Luôn nhắc nhở người dùng rằng đây là thông tin chung và họ nên tham khảo ý kiến nhân viên tòa án hoặc luật sư để được tư vấn pháp lý cụ thể.\
     Giữ câu trả lời rõ ràng, súc tích nhưng đầy đủ thông tin."""
 }
+
+# Family-court RAG (curated FAQ + flow snippets)
+family_court_rag = get_family_court_rag(llm_service.client if llm_service else None)
 
 class KioskSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -327,14 +333,22 @@ def api_ask():
         user_message = validated_data['question']
         language = validated_data.get('language', 'en')
         case_number = validated_data.get('case_number', '')
-        conversation_history = validated_data.get('history', '')
+        case_type = (request.json or {}).get('case_type')
         
         logger.info(f"API request received: /api/ask, language: {language}, case: {case_number}")
-        
-        answer = generate_llm_response(user_message, conversation_history, language)
+
+        # Prefer family-court RAG (curated common issues + flow snippets)
+        rag = get_family_court_rag(llm_service.client if llm_service else None)
+        result = rag.answer(user_message, language=language, case_type=case_type)
         docs = get_document_suggestions(user_message, language)
         
-        return jsonify({'answer': answer, 'documents': docs})
+        return jsonify({
+            'answer': result.get('answer'),
+            'documents': docs,
+            'sources': result.get('sources', []),
+            'refused': result.get('refused', False),
+            'disclaimer': result.get('disclaimer'),
+        })
     
     except Exception as e:
         logger.error(f"Error in /api/ask: {str(e)}")
@@ -478,66 +492,174 @@ def get_forms():
 @limiter.limit("10 per minute")
 @AuthService.require_kiosk_or_auth
 def dvro_rag():
+    """Backward-compatible alias — now uses family-court RAG (not stale flowchart.json). """
     data = request.json or {}
     user_question = data.get('question', '')
     language = data.get('language', 'en')
+    case_type = data.get('case_type', 'DVRO')
+    if not user_question:
+        return jsonify({'error': 'Missing question'}), 400
 
-    # Load flowchart data with error handling
+    rag = get_family_court_rag(llm_service.client if llm_service else None)
+    result = rag.answer(user_question, language=language, case_type=case_type)
+    return jsonify({
+        'answer': result.get('answer'),
+        'sources': result.get('sources', []),
+        'refused': result.get('refused', False),
+        'disclaimer': result.get('disclaimer'),
+        'steps': [s.get('title') for s in result.get('sources', [])],
+        'documents': [],
+    })
+
+
+@app.route('/api/family-court-rag', methods=['POST'])
+@limiter.limit("10 per minute")
+@AuthService.require_kiosk_or_auth
+def family_court_rag_endpoint():
+    """Retrieve + answer for common family court issues (DVRO, CHRO, divorce, filing, service, etc.)."""
+    data = request.json or {}
+    user_question = data.get('question', '')
+    language = data.get('language', 'en')
+    case_type = data.get('case_type')
+    if not user_question or not isinstance(user_question, str):
+        return jsonify({'error': 'Missing question'}), 400
+    if len(user_question) > 1000:
+        return jsonify({'error': 'Question too long'}), 400
+
+    rag = get_family_court_rag(llm_service.client if llm_service else None)
+    result = rag.answer(user_question, language=language, case_type=case_type)
+    return jsonify(result)
+
+
+@app.route('/api/analytics/event', methods=['POST'])
+@limiter.limit("120 per minute")
+def analytics_event():
+    """Anonymous product analytics (completion, drop-off, ask use, usefulness)."""
+    data = request.get_json(silent=True, force=True) or {}
+    event_name = (data.get('event_name') or '')[:64]
+    session_id = (data.get('session_id') or '')[:64]
+    if not event_name or not session_id:
+        return jsonify({'error': 'session_id and event_name required'}), 400
+    allowed = {
+        'flow_start', 'stage_enter', 'node_view', 'flow_complete',
+        'ask_used', 'usefulness', 'drop_off'
+    }
+    if event_name not in allowed:
+        return jsonify({'error': 'Unsupported event_name'}), 400
     try:
-        flowchart_path = os.path.join(app.root_path, 'flowchart.json')
-        with open(flowchart_path, 'r') as f:
-            flowchart = json.load(f)
-    except (OSError, json.JSONDecodeError) as e:
-        return jsonify({'error': f'Error loading flowchart data: {str(e)}'}), 500
+        props = data.get('properties') or {}
+        if not isinstance(props, dict):
+            props = {}
+        for key in list(props.keys()):
+            if key.lower() in ('email', 'phone', 'name', 'user_email', 'user_name', 'phone_number'):
+                props.pop(key, None)
+        event = ProductEvent(
+            session_id=session_id,
+            event_name=event_name,
+            flow_type=(data.get('flow_type') or None),
+            node_id=(data.get('node_id') or None),
+            properties_json=json.dumps(props)[:4000],
+        )
+        db.session.add(event)
+        db.session.commit()
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"analytics_event failed: {e}")
+        return jsonify({'error': 'Failed to record event'}), 500
 
-    # Validate basic JSON structure before proceeding
-    if not isinstance(flowchart, dict) or not isinstance(flowchart.get('flowchart'), dict):
-        return jsonify({'error': 'Invalid flowchart structure'}), 500
 
-    # Simple retrieval: collect all steps and documents for DVRO
-    steps = []
-    documents = set()
-    for node_id, node in flowchart.get('flowchart', {}).items():
-        # Check title and description for DVRO content
-        title = node.get('title', {}).get(language, '') if isinstance(node.get('title'), dict) else node.get('title', '')
-        description = node.get('description', {}).get(language, '') if isinstance(node.get('description'), dict) else node.get('description', '')
-        
-        if 'restraining order' in title.lower() or 'dvro' in title.lower() or 'domestic violence' in title.lower():
-            steps.append(title)
-            if description:
-                steps.append(description)
-            
-            # Check forms in the node
-            for form in node.get('forms', []):
-                form_name = form.get('name', {}).get(language, '') if isinstance(form.get('name'), dict) else form.get('name', '')
-                if form_name:
-                    documents.add(form_name)
-            
-            # Check next_steps
-            next_steps = node.get('next_steps', {}).get(language, []) if isinstance(node.get('next_steps'), dict) else node.get('next_steps', [])
-            if next_steps:
-                steps.extend(next_steps)
-
-    # Compose context for LLM
-    context = (
-        "Here are the main steps for a Domestic Violence Restraining Order (DVRO):\n"
-        + "\n".join(f"- {step}" for step in steps)
-        + "\n\nRequired documents:\n"
-        + "\n".join(f"- {doc}" for doc in documents)
-    )
-
-    # Call LLM with context
-    system_prompt = (
-        "You are a legal information assistant. Use the following DVRO process and document list to answer the user's question.\n"
-        + context
-    )
-    # If generate_llm_response does not support system_prompt, fall back to SYSTEM_PROMPTS
+@app.route('/api/analytics/summary', methods=['GET'])
+@AuthService.require_auth
+def analytics_summary():
+    """Staff view of outcome metrics (last N days)."""
     try:
-        answer = generate_llm_response(user_question, '', language=language, system_prompt=system_prompt)
-    except TypeError:
-        # Fallback for old signature
-        answer = generate_llm_response(user_question + "\n" + context, '', language=language)
-    return jsonify({'answer': answer, 'steps': steps, 'documents': list(documents)})
+        from datetime import timedelta
+        from sqlalchemy import func
+        days = min(int(request.args.get('days', 14)), 90)
+        since = datetime.utcnow() - timedelta(days=days)
+        rows = (
+            db.session.query(ProductEvent.event_name, ProductEvent.flow_type, func.count(ProductEvent.id))
+            .filter(ProductEvent.created_at >= since)
+            .group_by(ProductEvent.event_name, ProductEvent.flow_type)
+            .all()
+        )
+        usefulness = (
+            ProductEvent.query.filter(
+                ProductEvent.created_at >= since,
+                ProductEvent.event_name == 'usefulness'
+            ).order_by(ProductEvent.created_at.desc()).limit(200).all()
+        )
+        useful_yes = 0
+        useful_no = 0
+        for u in usefulness:
+            props = json.loads(u.properties_json) if u.properties_json else {}
+            if props.get('helpful') is True or props.get('rating') == 'yes':
+                useful_yes += 1
+            elif props.get('helpful') is False or props.get('rating') == 'no':
+                useful_no += 1
+        drop_nodes = (
+            db.session.query(ProductEvent.node_id, func.count(ProductEvent.id))
+            .filter(
+                ProductEvent.created_at >= since,
+                ProductEvent.event_name.in_(['drop_off', 'node_view']),
+            )
+            .group_by(ProductEvent.node_id)
+            .order_by(func.count(ProductEvent.id).desc())
+            .limit(20)
+            .all()
+        )
+        return jsonify({
+            'days': days,
+            'counts': [{'event_name': e, 'flow_type': f, 'count': c} for e, f, c in rows],
+            'usefulness': {'yes': useful_yes, 'no': useful_no},
+            'top_nodes': [{'node_id': n, 'count': c} for n, c in drop_nodes if n],
+        })
+    except Exception as e:
+        log_error_detailed(error=e, context='analytics_summary')
+        return ErrorResponse.internal_error('Failed to load analytics summary')
+
+
+@app.route('/api/admin/case-analysis', methods=['POST'])
+@AuthService.require_auth
+@AuthService.require_admin_whitelist()
+def admin_case_analysis():
+    """Real staff-facing case brief from intake (not mock)."""
+    data = request.json or {}
+    case_item = data.get('case') or data
+    if not case_item.get('case_type') and not case_item.get('queue_number'):
+        return jsonify({'error': 'case payload required'}), 400
+
+    queue_number = case_item.get('queue_number')
+    if queue_number:
+        entry = QueueEntry.query.filter_by(queue_number=queue_number).first()
+        if entry:
+            docs = []
+            if entry.documents_needed:
+                try:
+                    docs = json.loads(entry.documents_needed) if isinstance(entry.documents_needed, str) else entry.documents_needed
+                except Exception:
+                    docs = []
+            case_item = {
+                **case_item,
+                'case_type': entry.case_type,
+                'priority': entry.priority_level,
+                'priority_level': entry.priority_level,
+                'conversation_summary': entry.conversation_summary,
+                'documents_needed': docs or case_item.get('documents_needed') or [],
+                'language': entry.language,
+                'current_node': entry.current_node,
+            }
+
+    AuthService.log_action(
+        user_id=request.current_user.id,
+        action='case_analysis',
+        resource_type='queue',
+        resource_id=str(queue_number or ''),
+    )
+    analysis = llm_service.generate_attorney_case_analysis(case_item)
+    return jsonify({'success': True, 'analysis': analysis})
+
 
 @app.route('/api/flowchart', methods=['GET'])
 def api_flowchart():

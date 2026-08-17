@@ -139,54 +139,12 @@ const AttorneyDashboard = () => {
   };
 
   const generateCaseAnalysis = async (caseItem) => {
-    // Simulate enhanced analysis - in real implementation, this would call the backend
-    const mockAnalysis = {
-      case_overview: `Client is working through a ${caseItem.case_type} case. They have completed the initial intake process and are ready for legal guidance.`,
-      immediate_concerns: caseItem.priority === 'A' ? ['High priority case - immediate attention needed'] : [],
-      required_documents: [
-        { form_code: 'DV-100', description: 'Request for Domestic Violence Restraining Order', priority: 'High' },
-        { form_code: 'DV-109', description: 'Information Sheet for Domestic Violence Restraining Order', priority: 'Medium' },
-        { form_code: 'DV-110', description: 'Response to Request for Domestic Violence Restraining Order', priority: 'Low' }
-      ],
-      legal_guidance: [
-        'Ensure client understands the legal process and their rights',
-        'Review evidence requirements and documentation needed',
-        'Discuss safety planning and emergency contacts',
-        'Explain court procedures and timeline expectations'
-      ],
-      next_steps: [
-        { action: 'Complete DV-100 form with client assistance', priority: 'High', estimated_time: '20 minutes' },
-        { action: 'Review evidence and documentation', priority: 'High', estimated_time: '15 minutes' },
-        { action: 'Discuss service requirements', priority: 'Medium', estimated_time: '10 minutes' },
-        { action: 'Schedule court hearing', priority: 'Medium', estimated_time: '5 minutes' }
-      ],
-      attorney_actions: [
-        'Review client\'s situation and provide legal guidance',
-        'Assist with form completion and accuracy',
-        'Explain court procedures and timeline',
-        'Provide safety planning resources',
-        'Schedule follow-up if needed'
-      ],
-      timeline: [
-        { deadline: 'Today', action: 'Complete initial forms', importance: 'High' },
-        { deadline: 'Within 24 hours', action: 'File forms with court', importance: 'High' },
-        { deadline: '5 days before hearing', action: 'Serve other party', importance: 'High' },
-        { deadline: 'Court hearing date', action: 'Attend hearing', importance: 'High' }
-      ],
-      red_flags: caseItem.priority === 'A' ? ['Immediate safety concerns', 'Urgent legal protection needed'] : [],
-      client_support: [
-        'Provide clear, step-by-step guidance',
-        'Use simple language and avoid legal jargon',
-        'Be patient and allow time for questions',
-        'Offer emotional support and reassurance',
-        'Provide written materials for reference'
-      ],
-      confidence_level: 'High',
-      estimated_completion_time: '45-60 minutes',
-      generated_at: new Date().toISOString()
-    };
-    
-    return mockAnalysis;
+    if (!sessionToken) {
+      throw new Error('Authentication required');
+    }
+    const { analyzeCaseAuthenticated } = await import('../utils/authAPI');
+    const data = await analyzeCaseAuthenticated(caseItem, sessionToken);
+    return data.analysis;
   };
 
   const handleSendEmail = async (caseItem) => {
@@ -596,7 +554,7 @@ const AttorneyDashboard = () => {
                         <p className="text-gray-700 leading-relaxed">
                           {caseAnalysis.case_overview}
                         </p>
-                        <div className="mt-3 flex items-center space-x-4 text-sm">
+                        <div className="mt-3 flex items-center space-x-4 text-sm flex-wrap gap-2">
                           <span className="flex items-center">
                             <Timer className="w-4 h-4 mr-1 text-gray-500" />
                             Est. Time: {caseAnalysis.estimated_completion_time}
@@ -605,7 +563,17 @@ const AttorneyDashboard = () => {
                             <Target className="w-4 h-4 mr-1 text-gray-500" />
                             Confidence: {caseAnalysis.confidence_level}
                           </span>
+                          {caseAnalysis.source && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                              {caseAnalysis.source === 'llm' ? 'AI brief' : 'Intake brief'}
+                            </span>
+                          )}
                         </div>
+                        {caseAnalysis.disclaimer && (
+                          <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded p-2">
+                            {caseAnalysis.disclaimer}
+                          </p>
+                        )}
                       </div>
 
                       {/* Immediate Concerns */}
@@ -633,7 +601,7 @@ const AttorneyDashboard = () => {
                           {language === 'en' ? 'Required Documents' : 'Documentos Requeridos'}
                         </h4>
                         <div className="space-y-2">
-                          {caseAnalysis.required_documents.map((doc, index) => (
+                          {(caseAnalysis.required_documents || []).map((doc, index) => (
                             <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                               <div className="flex items-center">
                                 <span className={`w-2 h-2 rounded-full mr-3 ${
@@ -663,7 +631,7 @@ const AttorneyDashboard = () => {
                           {language === 'en' ? 'Next Steps' : 'Próximos Pasos'}
                         </h4>
                         <div className="space-y-3">
-                          {caseAnalysis.next_steps.map((step, index) => (
+                          {(caseAnalysis.next_steps || []).map((step, index) => (
                             <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded">
                               <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
                                 step.priority === 'High' ? 'bg-red-500' : 
@@ -689,7 +657,7 @@ const AttorneyDashboard = () => {
                           {language === 'en' ? 'Your Action Items' : 'Sus Tareas'}
                         </h4>
                         <ul className="space-y-2">
-                          {caseAnalysis.attorney_actions.map((action, index) => (
+                          {(caseAnalysis.attorney_actions || []).map((action, index) => (
                             <li key={index} className="flex items-start">
                               <CheckCircle className="w-4 h-4 text-blue-500 mt-1 mr-3 flex-shrink-0" />
                               <span className="text-gray-700">{action}</span>
@@ -705,7 +673,7 @@ const AttorneyDashboard = () => {
                           {language === 'en' ? 'Important Timeline' : 'Cronograma Importante'}
                         </h4>
                         <div className="space-y-2">
-                          {caseAnalysis.timeline.map((item, index) => (
+                          {(caseAnalysis.timeline || []).map((item, index) => (
                             <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 rounded">
                               <span className={`w-2 h-2 rounded-full ${
                                 item.importance === 'High' ? 'bg-red-500' : 
@@ -727,7 +695,7 @@ const AttorneyDashboard = () => {
                           {language === 'en' ? 'Client Support Tips' : 'Consejos de Apoyo al Cliente'}
                         </h4>
                         <ul className="space-y-2">
-                          {caseAnalysis.client_support.map((tip, index) => (
+                          {(caseAnalysis.client_support || []).map((tip, index) => (
                             <li key={index} className="flex items-start">
                               <span className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                               <span className="text-gray-700">{tip}</span>

@@ -1,3 +1,6 @@
+# Local packet PDFs not stored in repo — use official Judicial Council URLs via getOfficialFormUrl()
+# Forms listed below should fall back to courts.ca.gov until Self-Help provides local packets.
+
 EA-100
 EA-109
 EA-110

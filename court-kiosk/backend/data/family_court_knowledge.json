@@ -1,0 +1,408 @@
+{
+  "version": "1.1",
+  "title": "San Mateo Family Court — common issues knowledge base",
+  "chunks": [
+    {
+      "id": "emergency-911",
+      "topics": [
+        "emergency",
+        "safety",
+        "danger"
+      ],
+      "case_types": [
+        "ALL"
+      ],
+      "title": "Immediate danger",
+      "content": "If you are in immediate danger, call 911. This kiosk and Self-Help Center cannot respond to emergencies. After you are safe, domestic violence advocates and court Self-Help staff can help with restraining order options. National Domestic Violence Hotline: 1-800-799-7233.",
+      "content_es": "Si está en peligro inmediato, llame al 911. Este quiosco y el Centro de Autoayuda no pueden responder a emergencias. Cuando esté a salvo, defensores y el personal de Autoayuda pueden ayudar con opciones de órdenes de restricción. Línea Nacional: 1-800-799-7233."
+    },
+    {
+      "id": "what-is-dvro",
+      "topics": [
+        "dvro",
+        "restraining order",
+        "domestic violence",
+        "qualify"
+      ],
+      "case_types": [
+        "DVRO"
+      ],
+      "title": "What is a DVRO?",
+      "content": "A Domestic Violence Restraining Order (DVRO) is a court order that can protect you from someone you have a close relationship with — for example a spouse, partner, co-parent, or close relative. It can order the other person to stay away, not contact you, and may include temporary child custody or support. Core forms often include DV-100, CLETS-001, DV-109, and DV-110. This is general information, not legal advice.",
+      "content_es": "Una Orden de Restricción por Violencia Doméstica (DVRO) puede protegerle de alguien con quien tiene una relación cercana — cónyuge, pareja, co-padre o familiar cercano. Puede ordenar que se mantenga lejos y no contacte, y a veces incluye custodia o manutención temporal. Formularios comunes: DV-100, CLETS-001, DV-109, DV-110. Información general, no asesoramiento legal."
+    },
+    {
+      "id": "dvro-vs-chro",
+      "topics": [
+        "dvro",
+        "chro",
+        "civil harassment",
+        "which order",
+        "neighbor",
+        "stranger"
+      ],
+      "case_types": [
+        "DVRO",
+        "CHRO"
+      ],
+      "title": "DVRO vs Civil Harassment (CHRO)",
+      "content": "Use a DVRO when the other person is a spouse, dating partner, co-parent, or certain close relatives. Use a Civil Harassment Restraining Order (CHRO) for neighbors, coworkers (in many personal filings), acquaintances, or strangers. CHRO core forms often include CH-100, CLETS-001, CH-109, and CH-110. If unsure, start with the restraining-order triage questions on this kiosk.",
+      "content_es": "Use DVRO si la otra persona es cónyuge, pareja, co-padre o ciertos familiares cercanos. Use orden por acoso civil (CHRO) para vecinos, conocidos o extraños. Formularios CHRO: CH-100, CLETS-001, CH-109, CH-110. Si no está seguro, use las preguntas de clasificación de este quiosco."
+    },
+    {
+      "id": "chro-basics",
+      "topics": [
+        "chro",
+        "civil harassment",
+        "harassment",
+        "stalking"
+      ],
+      "case_types": [
+        "CHRO"
+      ],
+      "title": "Civil harassment restraining order basics",
+      "content": "A civil harassment restraining order can protect you from harassment, stalking, or threats by someone who is not in a domestic relationship covered by DVRO. You typically file CH-100 and related forms, ask for a temporary order, serve the other person, and attend a hearing. Self-Help can review forms before filing.",
+      "content_es": "Una orden por acoso civil puede protegerle de acoso, acecho o amenazas de alguien que no está cubierto por DVRO. Por lo general presenta CH-100 y formularios relacionados, pide una orden temporal, notifica a la otra persona y asiste a una audiencia."
+    },
+    {
+      "id": "elder-abuse",
+      "topics": [
+        "elder",
+        "dependent adult",
+        "abuse",
+        "ea"
+      ],
+      "case_types": [
+        "EA"
+      ],
+      "title": "Elder or dependent adult abuse orders",
+      "content": "Elder or dependent adult abuse restraining orders are for adults 65+ or certain dependent adults facing abuse, neglect, or financial abuse. Filing often goes through Probate / the clerk process described in the elder-abuse guided flow. Bring identification and any evidence of abuse. Ask Self-Help which forms apply to your situation.",
+      "content_es": "Las órdenes por abuso de adultos mayores o dependientes son para personas de 65+ o ciertos adultos dependientes frente a abuso, negligencia o abuso financiero. El proceso guiado de este quiosco explica los pasos. Lleve identificación y evidencia. Pregunte en Autoayuda qué formularios aplican."
+    },
+    {
+      "id": "gvro",
+      "topics": [
+        "gun",
+        "firearm",
+        "gvro",
+        "weapon"
+      ],
+      "case_types": [
+        "GVRO"
+      ],
+      "title": "Gun Violence Restraining Order (GVRO)",
+      "content": "A Gun Violence Restraining Order can temporarily prevent someone from having guns or ammunition when there is a risk of gun violence. Family members and certain others may petition. Follow the GVRO guided flow for forms and steps, then have Self-Help or an attorney review before filing.",
+      "content_es": "Una Orden de Restricción por Violencia con Armas (GVRO) puede impedir temporalmente que alguien tenga armas o municiones cuando hay riesgo de violencia con armas. Siga el flujo guiado GVRO y revise con Autoayuda antes de presentar."
+    },
+    {
+      "id": "workplace-violence",
+      "topics": [
+        "workplace",
+        "employer",
+        "wvro",
+        "work"
+      ],
+      "case_types": [
+        "WVRO"
+      ],
+      "title": "Workplace violence restraining orders",
+      "content": "Workplace violence restraining orders are typically filed by an employer to protect employees from violence or threats at work. Individuals who need personal protection may instead need DVRO or CHRO depending on the relationship. Use the workplace-violence flow if you are filing as/for an employer, or triage for personal orders.",
+      "content_es": "Las órdenes por violencia en el lugar de trabajo suelen ser presentadas por un empleador. Si necesita protección personal, puede necesitar DVRO o CHRO según la relación. Use el flujo de violencia laboral o la clasificación del quiosco."
+    },
+    {
+      "id": "filing-clerk",
+      "topics": [
+        "file",
+        "clerk",
+        "filing",
+        "where to file",
+        "san mateo"
+      ],
+      "case_types": [
+        "ALL"
+      ],
+      "title": "Filing with the clerk",
+      "content": "After forms are complete, you usually file at the court clerk's office (Family Court / appropriate division for your case type). Bring photo ID, originals, and copies. There may be filing fees; fee waivers (FW-001) may be available if you cannot afford fees. Self-Help Center staff can often review paperwork before you file. Hours and locations are posted by San Mateo Superior Court.",
+      "content_es": "Después de completar formularios, generalmente presenta en la oficina del secretario. Lleve identificación, originales y copias. Puede haber cuotas; exención de cuotas (FW-001) si no puede pagar. Autoayuda puede revisar documentos. Consulte horarios del Tribunal Superior de San Mateo."
+    },
+    {
+      "id": "service-proof",
+      "topics": [
+        "serve",
+        "service",
+        "sheriff",
+        "proof of service",
+        "dv-200",
+        "ch-200"
+      ],
+      "case_types": [
+        "DVRO",
+        "CHRO",
+        "EA",
+        "GVRO",
+        "WVRO"
+      ],
+      "title": "Serving the other party",
+      "content": "Most restraining orders require personal service: someone 18+ who is not you (or the sheriff) delivers papers to the other person. You generally cannot serve the papers yourself. After service, a Proof of Service form (for example DV-200 or CH-200) must be filed. Deadlines before the hearing are important — ask the clerk or Self-Help about timing.",
+      "content_es": "La mayoría de las órdenes requieren notificación personal: alguien mayor de 18 que no sea usted (o el sheriff) entrega los papeles. Usted generalmente no puede notificar. Luego se presenta un formulario de Prueba de Notificación (por ejemplo DV-200 o CH-200)."
+    },
+    {
+      "id": "temporary-order",
+      "topics": [
+        "temporary",
+        "tro",
+        "hearing",
+        "dv-110",
+        "ch-110"
+      ],
+      "case_types": [
+        "DVRO",
+        "CHRO"
+      ],
+      "title": "Temporary orders and hearings",
+      "content": "A judge may grant a Temporary Restraining Order (TRO) soon after filing, then set a hearing for a longer order. Keep copies of any order with you. Attend your hearing on time with evidence and witnesses if any. If you miss the hearing, your temporary order may end. Ask Self-Help what to bring.",
+      "content_es": "Un juez puede otorgar una orden temporal (TRO) y luego fijar una audiencia. Guarde copias. Asista a tiempo con evidencia. Si falta a la audiencia, la orden temporal puede terminar."
+    },
+    {
+      "id": "divorce-start",
+      "topics": [
+        "divorce",
+        "dissolution",
+        "legal separation",
+        "fl-100"
+      ],
+      "case_types": [
+        "DIVORCE"
+      ],
+      "title": "Starting a divorce or legal separation",
+      "content": "To start a divorce (dissolution) or legal separation in California, you typically file a Petition (FL-100) and Summons (FL-110), plus other forms if you have children (such as FL-105). The other party must be served. There are disclosure and waiting-period rules. Use the divorce guided flow on this kiosk, then review with Self-Help. This is not legal advice.",
+      "content_es": "Para iniciar un divorcio o separación legal en California, normalmente presenta la Petición (FL-100) y la Citación (FL-110), y otros formularios si hay hijos (como FL-105). Debe notificar a la otra parte. Use el flujo de divorcio de este quiosco y revise con Autoayuda."
+    },
+    {
+      "id": "custody-support",
+      "topics": [
+        "custody",
+        "visitation",
+        "child support",
+        "parenting"
+      ],
+      "case_types": [
+        "DIVORCE",
+        "DVRO",
+        "CUSTODY"
+      ],
+      "title": "Custody, visitation, and support",
+      "content": "Child custody and visitation can be requested in divorce cases and, in limited ways, inside a DVRO (for example DV-105). Child support and spousal support have their own forms and income disclosures (often FL-150). Parenting and support issues are fact-specific — Self-Help and family law facilitators can explain local processes. For urgent safety with children, mention that in your restraining-order intake.",
+      "content_es": "La custodia y visitas pueden pedirse en divorcio y, de forma limitada, en una DVRO (por ejemplo DV-105). Manutención suele requerir divulgación de ingresos (FL-150). Consulte Autoayuda. Si hay peligro urgente con menores, indíquelo en la solicitud de orden de restricción."
+    },
+    {
+      "id": "respond-to-papers",
+      "topics": [
+        "served",
+        "response",
+        "answer",
+        "dv-120",
+        "fl-120"
+      ],
+      "case_types": [
+        "DVRO",
+        "CHRO",
+        "DIVORCE",
+        "OTHER"
+      ],
+      "title": "I was served with papers",
+      "content": "If you were served with a restraining order request, you may file a response (for example DV-120 for DVRO or CH-120 for civil harassment) before the hearing. If served with divorce papers, response forms such as FL-120 may apply and deadlines matter. Bring your papers to Self-Help as soon as possible. Do not ignore court papers.",
+      "content_es": "Si le notificaron una solicitud de orden de restricción, puede presentar una respuesta (DV-120 o CH-120 según el tipo) antes de la audiencia. Si son papeles de divorcio, pueden aplicar formularios como FL-120. Lleve los documentos a Autoayuda pronto. No ignore papeles judiciales."
+    },
+    {
+      "id": "fee-waiver",
+      "topics": [
+        "fee",
+        "cost",
+        "waiver",
+        "fw-001",
+        "afford"
+      ],
+      "case_types": [
+        "ALL"
+      ],
+      "title": "Court fees and fee waivers",
+      "content": "Many filings have fees, but you can ask the court to waive fees if you cannot afford them using fee waiver forms (commonly FW-001 and related forms). Self-Help can help you understand whether a fee waiver may apply. Fee waiver approval is decided by the court.",
+      "content_es": "Muchas presentaciones tienen cuotas, pero puede pedir exención con formularios (comúnmente FW-001). Autoayuda puede orientar. La corte decide si aprueba la exención."
+    },
+    {
+      "id": "self-help-role",
+      "topics": [
+        "self-help",
+        "facilitator",
+        "attorney",
+        "legal advice"
+      ],
+      "case_types": [
+        "ALL"
+      ],
+      "title": "What Self-Help can and cannot do",
+      "content": "Court Self-Help and facilitators can explain procedures, review forms for completeness, and help you understand next steps. They generally cannot give legal advice, represent you, or tell you what you should do in your personal case. For legal advice or representation, contact legal aid or a private attorney. This kiosk provides general procedural information only.",
+      "content_es": "Autoayuda puede explicar procedimientos y revisar formularios, pero generalmente no da asesoramiento legal ni representación. Para consejo legal, contacte ayuda legal o un abogado. Este quiosco solo da información general de procedimiento."
+    },
+    {
+      "id": "forms-dv-100",
+      "topics": [
+        "dv-100",
+        "forms",
+        "request"
+      ],
+      "case_types": [
+        "DVRO"
+      ],
+      "title": "Form DV-100",
+      "content": "DV-100 is the Request for Domestic Violence Restraining Order. You describe the relationship, what happened, and what orders you want. Attach CLETS-001 for law enforcement information. Related forms may include DV-109 (Notice of Court Hearing) and DV-110 (Temporary Restraining Order). Official forms are on courts.ca.gov; this kiosk links to packets when available.",
+      "content_es": "DV-100 es la Solicitud de Orden de Restricción por Violencia Doméstica. Describa la relación, los hechos y las órdenes que pide. Adjunte CLETS-001. Formularios relacionados: DV-109 y DV-110."
+    },
+    {
+      "id": "forms-ch-100",
+      "topics": [
+        "ch-100",
+        "forms"
+      ],
+      "case_types": [
+        "CHRO"
+      ],
+      "title": "Form CH-100",
+      "content": "CH-100 is the Request for Civil Harassment Restraining Orders. Use it when DVRO relationship rules do not apply. Related forms often include CLETS-001, CH-109, and CH-110. Complete forms carefully and ask Self-Help to review before filing.",
+      "content_es": "CH-100 es la Solicitud de Órdenes de Restricción por Acoso Civil. Formularios relacionados: CLETS-001, CH-109 y CH-110. Pida revisión en Autoayuda antes de presentar."
+    },
+    {
+      "id": "renew-modify",
+      "topics": [
+        "renew",
+        "modify",
+        "change",
+        "end",
+        "expire"
+      ],
+      "case_types": [
+        "DVRO",
+        "CHRO"
+      ],
+      "title": "Changing, ending, or renewing an order",
+      "content": "Existing restraining orders can sometimes be changed, ended, or renewed before they expire using specific Judicial Council forms (for DVRO examples include DV-300 series for renewals). Deadlines before expiration matter. Use the guided flow branches when available, or bring your current order to Self-Help.",
+      "content_es": "Las órdenes existentes a veces se pueden cambiar, terminar o renovar antes de vencer con formularios específicos. Los plazos importan. Use el flujo guiado o lleve su orden actual a Autoayuda."
+    },
+    {
+      "id": "language-access",
+      "topics": [
+        "spanish",
+        "interpreter",
+        "language"
+      ],
+      "case_types": [
+        "ALL"
+      ],
+      "title": "Language help",
+      "content": "This kiosk supports English and Spanish for many screens. Courts provide interpreters for hearings in many languages — ask the clerk or Self-Help how to request an interpreter for your hearing date.",
+      "content_es": "Este quiosco admite inglés y español en muchas pantallas. Los tribunales ofrecen intérpretes para audiencias — pregunte al secretario o Autoayuda cómo solicitar uno."
+    },
+    {
+      "id": "not-legal-advice",
+      "topics": [
+        "advice",
+        "lawyer",
+        "represent"
+      ],
+      "case_types": [
+        "ALL"
+      ],
+      "title": "Not legal advice",
+      "content": "Information on this kiosk is general procedural guidance about California family court processes and forms. It is not legal advice, does not create an attorney-client relationship, and cannot predict what a judge will do. For advice about your specific situation, speak with Self-Help staff or an attorney.",
+      "content_es": "La información de este quiosco es orientación general de procedimiento. No es asesoramiento legal ni predice lo que hará un juez. Para su situación específica, hable con Autoayuda o un abogado."
+    },
+    {
+      "id": "chro-respond",
+      "topics": [
+        "chro",
+        "respond",
+        "response",
+        "ch-120",
+        "served"
+      ],
+      "case_types": [
+        "CHRO"
+      ],
+      "title": "Responding to a CHRO",
+      "content": "If someone filed a Civil Harassment Restraining Order against you, you may respond with CH-120 (Response) and review CH-120-INFO. Note the hearing date on CH-109. Have someone else serve your response and file proof of service. Attend the hearing. Deadlines matter — bring papers to Self-Help quickly. This is general information, not legal advice.",
+      "content_es": "Si alguien presentó una orden por acoso civil en su contra, puede responder con CH-120 y revisar CH-120-INFO. Anote la fecha de audiencia en CH-109. Otra persona debe notificar su respuesta. Asista a la audiencia. Lleve los papeles a Autoayuda pronto. Esto no es asesoramiento legal."
+    },
+    {
+      "id": "chro-renew",
+      "topics": [
+        "chro",
+        "renew",
+        "extend",
+        "ch-700",
+        "expire"
+      ],
+      "case_types": [
+        "CHRO"
+      ],
+      "title": "Renewing a CHRO",
+      "content": "To renew a civil harassment restraining order before it expires, people typically use CH-700 and CH-710, then serve the other party and attend a hearing. If the order already expired, ask Self-Help whether a new request is needed instead. File early enough for service. This is general information, not legal advice.",
+      "content_es": "Para renovar una orden por acoso civil antes de que venza, generalmente se usan CH-700 y CH-710, luego se notifica y se asiste a una audiencia. Si ya venció, pregunte en Autoayuda si necesita una solicitud nueva. Esto no es asesoramiento legal."
+    },
+    {
+      "id": "chro-modify",
+      "topics": [
+        "chro",
+        "change",
+        "end",
+        "cancel",
+        "modify",
+        "ch-600"
+      ],
+      "case_types": [
+        "CHRO"
+      ],
+      "title": "Changing or ending a CHRO",
+      "content": "Existing civil harassment orders can sometimes be changed or ended using request forms (often in the CH-600 series). Bring your current order to Self-Help to confirm the correct current forms, file, serve the other party, and attend any hearing. This is general information, not legal advice.",
+      "content_es": "Las órdenes por acoso civil a veces se pueden cambiar o terminar con formularios de solicitud (a menudo serie CH-600). Lleve su orden actual a Autoayuda para confirmar formularios, presente, notifique y asista a la audiencia. Esto no es asesoramiento legal."
+    },
+    {
+      "id": "official-forms-fallback",
+      "topics": [
+        "forms",
+        "pdf",
+        "download",
+        "missing",
+        "ea",
+        "gv",
+        "wv"
+      ],
+      "case_types": [
+        "ALL",
+        "EA",
+        "GVRO",
+        "WVRO"
+      ],
+      "title": "Official form PDFs",
+      "content": "If a local packet PDF is missing on the kiosk, use the official Judicial Council forms on courts.ca.gov (search by form code such as EA-100, GV-100, WV-100). Self-Help can also print current forms. Prefer official URLs over outdated copies. This is general information, not legal advice.",
+      "content_es": "Si falta un PDF local en el quiosco, use los formularios oficiales del Judicial Council en courts.ca.gov (busque por código como EA-100, GV-100, WV-100). Autoayuda también puede imprimir formularios vigentes. Esto no es asesoramiento legal."
+    },
+    {
+      "id": "custody-hearing-prep",
+      "topics": [
+        "custody",
+        "hearing",
+        "court date",
+        "prepare"
+      ],
+      "case_types": [
+        "CUSTODY",
+        "DIVORCE",
+        "DVRO"
+      ],
+      "title": "Preparing for a family court date",
+      "content": "For an upcoming family court date: bring photo ID, filed forms, copies for the court and other party, and any evidence the judge asked for. Arrive early for security. If you need an interpreter, ask the clerk or Self-Help how to request one. This kiosk cannot predict outcomes. This is general information, not legal advice.",
+      "content_es": "Para una fecha de corte familiar: lleve identificación, formularios presentados, copias y evidencia. Llegue temprano. Si necesita intérprete, pregunte al secretario o Autoayuda. Esto no es asesoramiento legal."
+    }
+  ]
+}

@@ -135,3 +135,22 @@ export const createUser = async (userData, sessionToken) => {
     body: JSON.stringify(userData)
   }, sessionToken);
 };
+
+/**
+ * Staff case analysis from intake (real backend LLM / fallback brief)
+ */
+export const analyzeCaseAuthenticated = async (caseItem, sessionToken) => {
+  return await makeAuthenticatedRequest('/api/admin/case-analysis', {
+    method: 'POST',
+    body: JSON.stringify({ case: caseItem })
+  }, sessionToken);
+};
+
+/**
+ * Product analytics summary for staff
+ */
+export const getAnalyticsSummary = async (sessionToken, days = 14) => {
+  return await makeAuthenticatedRequest(`/api/analytics/summary?days=${days}`, {
+    method: 'GET'
+  }, sessionToken);
+};

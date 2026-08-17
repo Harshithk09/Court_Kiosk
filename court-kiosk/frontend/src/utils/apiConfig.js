@@ -93,6 +93,10 @@ export const API_ENDPOINTS = {
   
   // Health Check
   HEALTH: '/api/health',
+
+  // Family court RAG
+  FAMILY_COURT_RAG: '/api/family-court-rag',
+  ASK: '/api/ask',
 };
 
 // Helper function to build full API URLs

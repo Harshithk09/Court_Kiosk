@@ -4,11 +4,11 @@ import re
 class AskQuestionSchema(Schema):
     question = fields.Str(required=True, validate=[
         validate.Length(min=1, max=1000, error="Question must be between 1 and 1000 characters"),
-        validate.Regexp(r'^[a-zA-Z0-9\s\?\.\,\!\-\'\"]+$', error="Question contains invalid characters")
     ])
     language = fields.Str(validate=validate.OneOf(['en', 'es', 'zh', 'vi'], error="Invalid language code"))
     case_number = fields.Str(allow_none=True, validate=validate.Length(max=50))
     history = fields.Str(allow_none=True, validate=validate.Length(max=5000))
+    case_type = fields.Str(allow_none=True, validate=validate.Length(max=40))
 
 class SubmitSessionSchema(Schema):
     email = fields.Email(required=True)

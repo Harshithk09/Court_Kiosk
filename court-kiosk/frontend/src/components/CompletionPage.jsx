@@ -3,6 +3,9 @@ import { addToQueue } from '../utils/queueAPI';
 import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
 import { getLocalFormUrl, getOfficialFormUrl } from '../utils/formUtils';
 import { useToast } from './Toast';
+import FamilyCourtAsk from './FamilyCourtAsk';
+import { trackEvent } from '../utils/analytics';
+import '../styles/process-ui.css';
 
 const CASE_TYPE_CONFIG = {
   DVRO: {
@@ -157,6 +160,7 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
   const [queueNumber, setQueueNumber] = useState(null);
   const [isInQueue, setIsInQueue] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [usefulness, setUsefulness] = useState(null);
 
   const sessionIdRef = useRef(null);
   if (!sessionIdRef.current) {
@@ -765,6 +769,57 @@ const CompletionPage = ({ answers, history, flow, adminData, onBack, onHome }) =
                 <span className="font-medium">Disclaimer:</span> This summary is for informational purposes only and does not constitute legal advice. Please consult with an attorney for legal guidance.
               </p>
               </div>
+
+            <div className="mt-6">
+              <FamilyCourtAsk caseType={summary?.header?.case_type} />
+            </div>
+
+            <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <p className="text-sm font-medium text-slate-800 mb-2">
+                Was this guided process helpful?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={usefulness !== null}
+                  onClick={() => {
+                    setUsefulness('yes');
+                    trackEvent('usefulness', {
+                      flowType: caseTypeCode || summary?.header?.case_type,
+                      properties: { rating: 'yes', helpful: true },
+                    });
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border ${
+                    usefulness === 'yes'
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-emerald-50'
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  disabled={usefulness !== null}
+                  onClick={() => {
+                    setUsefulness('no');
+                    trackEvent('usefulness', {
+                      flowType: caseTypeCode || summary?.header?.case_type,
+                      properties: { rating: 'no', helpful: false },
+                    });
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border ${
+                    usefulness === 'no'
+                      ? 'bg-slate-700 text-white border-slate-700'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  No
+                </button>
+              </div>
+              {usefulness && (
+                <p className="text-xs text-slate-500 mt-2">Thanks — this helps us improve the kiosk.</p>
+              )}
+            </div>
           </div>
 
           {/* Options Section */}

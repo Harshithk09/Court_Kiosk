@@ -1,54 +1,68 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import '../styles/process-ui.css';
 
-const GuidedQuestionPage = ({ 
-  question, 
-  explanation, 
-  onAnswer, 
+const GuidedQuestionPage = ({
+  question,
+  explanation,
+  onAnswer,
   onBack,
   stepNumber = 1,
-  totalSteps = 2 
+  totalSteps = 2
 }) => {
   const { language, toggleLanguage } = useLanguage();
   const [selectedAnswer, setSelectedAnswer] = useState(null);
 
   const handleContinue = () => {
     if (selectedAnswer !== null && onAnswer) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
       onAnswer(selectedAnswer);
     }
   };
 
+  const pct = Math.round((stepNumber / Math.max(totalSteps, 1)) * 100);
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Simple Header */}
-      <div className="bg-blue-50 border-b border-blue-200 px-8 py-4">
-        <div className="flex justify-between items-center">
+    <div className="kiosk-page flex flex-col min-h-screen">
+      <div className="kiosk-page__header px-6 sm:px-8 py-4">
+        <div className="max-w-3xl mx-auto flex justify-between items-center">
           <button
             onClick={onBack}
             className="text-blue-700 hover:text-blue-900 font-medium"
           >
-            {language === 'es' ? '< Atrás' : '< Back'}
+            {language === 'es' ? '← Atrás' : '← Back'}
           </button>
           <button
             onClick={toggleLanguage}
-            className="px-4 py-2 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-white border border-slate-200 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
           >
             {language === 'es' ? 'English' : 'Español'}
           </button>
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="bg-gray-100 h-1">
-        <div 
-          className="bg-blue-600 h-full transition-all duration-300"
-          style={{ width: `${(stepNumber / totalSteps) * 100}%` }}
-        />
+      <div className="max-w-3xl mx-auto w-full px-6 sm:px-8 pt-6">
+        <div className="process-journey process-journey--compact">
+          <div className="process-journey__meta">
+            <div>
+              <p className="process-journey__kicker">
+                {language === 'es' ? 'Antes de comenzar' : 'Before you begin'}
+              </p>
+              <p className="process-journey__label">
+                {language === 'es'
+                  ? `Pregunta ${stepNumber} de ${totalSteps}`
+                  : `Question ${stepNumber} of ${totalSteps}`}
+              </p>
+            </div>
+            <div className="process-journey__pct">{pct}%</div>
+          </div>
+          <div className="process-journey__track">
+            <div className="process-journey__fill" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 py-16 max-w-3xl mx-auto w-full">
-        {/* Court Icon */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 py-10 max-w-3xl mx-auto w-full">
         <div className="mb-8">
           <div className="w-12 h-12 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,69 +71,54 @@ const GuidedQuestionPage = ({
           </div>
         </div>
 
-        {/* Question */}
-        <h1 className="text-4xl font-bold text-gray-900 mb-6 text-center leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6 text-center leading-tight">
           {question}
         </h1>
 
-        {/* Explanation */}
         {explanation && (
-          <p className="text-lg text-gray-600 mb-12 text-center max-w-2xl leading-relaxed">
+          <p className="text-lg text-slate-600 mb-10 text-center max-w-2xl leading-relaxed">
             {explanation}
           </p>
         )}
 
-        {/* Answer Buttons */}
-        <div className="w-full space-y-4 mb-12">
+        <div className="w-full space-y-4 mb-10">
           <button
             onClick={() => setSelectedAnswer('yes')}
-            className={`w-full px-8 py-6 rounded-lg transition-colors text-lg font-medium ${
+            className={`w-full px-8 py-6 rounded-xl transition-colors text-lg font-medium border ${
               selectedAnswer === 'yes'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
+                : 'bg-white text-blue-800 border-slate-200 hover:border-blue-300 hover:bg-blue-50'
             }`}
           >
-            {language === 'es' ? 'Sí, es sobre eso.' : 'Yes, it is about that.'}
+            {language === 'es' ? 'Sí' : 'Yes'}
           </button>
           <button
             onClick={() => setSelectedAnswer('no')}
-            className={`w-full px-8 py-6 rounded-lg transition-colors text-lg font-medium ${
+            className={`w-full px-8 py-6 rounded-xl transition-colors text-lg font-medium border ${
               selectedAnswer === 'no'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
+                : 'bg-white text-blue-800 border-slate-200 hover:border-blue-300 hover:bg-blue-50'
             }`}
           >
-            {language === 'es' ? 'No, es sobre otra cosa.' : "No, it's about something else."}
+            {language === 'es' ? 'No' : 'No'}
           </button>
         </div>
 
-        {/* Navigation */}
-        <div className="w-full flex justify-between items-center">
-          <button
-            onClick={onBack}
-            className="px-6 py-3 text-gray-600 hover:text-gray-900 font-medium"
-          >
-            {language === 'es' ? '< Atrás' : '< Back'}
-          </button>
-          <div className="text-sm text-gray-500">
-            {stepNumber} {language === 'es' ? 'de' : 'of'} {totalSteps}
-          </div>
-          <button
-            onClick={handleContinue}
-            disabled={selectedAnswer === null}
-            className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-              selectedAnswer !== null
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            {language === 'es' ? 'Continuar >' : 'Continue >'}
-          </button>
-        </div>
+        <button
+          onClick={handleContinue}
+          disabled={selectedAnswer === null}
+          className="w-full max-w-md px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {language === 'es' ? 'Continuar' : 'Continue'}
+        </button>
+        <p className="mt-4 text-sm text-slate-500 text-center">
+          {language === 'es'
+            ? 'Su respuesta nos ayuda a mostrar el camino correcto.'
+            : 'Your answer helps us show the right path next.'}
+        </p>
       </div>
     </div>
   );
 };
 
 export default GuidedQuestionPage;
-

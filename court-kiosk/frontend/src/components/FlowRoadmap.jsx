@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FileText, PlayCircle, AlertTriangle } from 'lucide-react';
+import { FileText, PlayCircle, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { STAGE_ICONS } from '../data/stageIcons';
+import '../styles/process-ui.css';
 
 const FlowRoadmap = ({ stages, title, onStart, onHome }) => {
   const { language, toggleLanguage } = useLanguage();
@@ -10,25 +11,25 @@ const FlowRoadmap = ({ stages, title, onStart, onHome }) => {
   const selectedStage = stages.find((stage) => stage.id === selectedStageId);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="kiosk-page min-h-screen">
+      <div className="kiosk-page__header px-6 py-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
             {onHome && (
               <button
                 onClick={onHome}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                className="px-4 py-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 ← {language === 'es' ? 'Inicio' : 'Home'}
               </button>
             )}
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-slate-900">
               {title[language]}
             </h1>
           </div>
           <button
             onClick={toggleLanguage}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
           >
             {language === 'es' ? 'English' : 'Español'}
           </button>
@@ -36,18 +37,18 @@ const FlowRoadmap = ({ stages, title, onStart, onHome }) => {
       </div>
 
       <div className="max-w-6xl mx-auto py-10 px-6">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-slate-900 mb-3">
             {language === 'es' ? 'Su Camino, Paso a Paso' : 'Your Path, Step by Step'}
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             {language === 'es'
               ? 'Aquí está todo el proceso de un vistazo. Toque cualquier paso para saber más antes de comenzar.'
               : "Here's the whole process at a glance. Tap any step to learn more before you begin."}
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">
           <div className="overflow-x-auto">
             <div className="flex items-start gap-1 min-w-max px-2 pb-2">
               {stages.map((stage, index) => {
@@ -71,20 +72,20 @@ const FlowRoadmap = ({ stages, title, onStart, onHome }) => {
                         <Icon className="w-6 h-6" />
                       </div>
                       <div
-                        className={`mt-2 text-xs font-bold ${isSelected ? 'text-blue-700' : 'text-gray-400'}`}
+                        className={`mt-2 text-xs font-bold ${isSelected ? 'text-blue-700' : 'text-slate-400'}`}
                       >
                         {language === 'es' ? 'PASO' : 'STEP'} {stage.number}
                       </div>
                       <div
                         className={`mt-0.5 text-sm leading-tight ${
-                          isSelected ? 'font-semibold text-gray-900' : 'text-gray-600'
+                          isSelected ? 'font-semibold text-slate-900' : 'text-slate-600'
                         }`}
                       >
                         {stage.label[language]}
                       </div>
                     </button>
                     {!isLast && (
-                      <div className="flex-1 min-w-[16px] h-0.5 bg-gray-200 mt-7" />
+                      <div className="flex-1 min-w-[16px] h-0.5 bg-slate-200 mt-7" />
                     )}
                   </React.Fragment>
                 );
@@ -94,7 +95,7 @@ const FlowRoadmap = ({ stages, title, onStart, onHome }) => {
         </div>
 
         {selectedStage && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-8">
             <div className="flex items-start space-x-4">
               <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
                 {(() => {
@@ -106,8 +107,8 @@ const FlowRoadmap = ({ stages, title, onStart, onHome }) => {
                 <p className="text-sm font-bold text-blue-600 mb-1">
                   {language === 'es' ? 'PASO' : 'STEP'} {selectedStage.number}
                 </p>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{selectedStage.label[language]}</h3>
-                <p className="text-gray-700 leading-relaxed">{selectedStage.description[language]}</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{selectedStage.label[language]}</h3>
+                <p className="text-slate-700 leading-relaxed">{selectedStage.description[language]}</p>
 
                 {selectedStage.videoUrl && (
                   <button className="mt-4 inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
@@ -132,14 +133,15 @@ const FlowRoadmap = ({ stages, title, onStart, onHome }) => {
         <div className="text-center">
           <button
             onClick={onStart}
-            className="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-lg shadow-sm transition-colors"
+            className="inline-flex items-center gap-2 px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-xl shadow-sm transition-colors"
           >
-            {language === 'es' ? 'Comenzar' : 'Start'}
+            <span>{language === 'es' ? 'Comenzar este camino' : 'Start this path'}</span>
+            <ArrowRight className="w-5 h-5" />
           </button>
-          <p className="mt-3 text-sm text-gray-500">
+          <p className="mt-3 text-sm text-slate-500">
             {language === 'es'
-              ? 'Le haremos algunas preguntas para asegurarnos de que este es el camino correcto.'
-              : "We'll ask a few questions first to make sure this is the right path for you."}
+              ? 'Le haremos algunas preguntas para asegurarnos de que este es el camino correcto. Luego verá su progreso en cada pantalla.'
+              : "We'll ask a few questions first to make sure this is the right path. Then you'll see your progress on every screen."}
           </p>
         </div>
       </div>

@@ -6,9 +6,11 @@ import ModernButton from './ModernButton';
 import { useToast } from './Toast';
 import { CheckCircle, User, Mail, Phone, ArrowLeft } from 'lucide-react';
 import { buildApiUrl, API_ENDPOINTS, getApiHeaders } from '../utils/apiConfig';
+import { DIVORCE_ROADMAP_STAGES } from '../data/divorceRoadmapStages';
 import './ModernHeader.css';
 import './ModernCard.css';
 import './ModernButton.css';
+import '../styles/process-ui.css';
 
 const DivorceFlowRunner = () => {
   const toast = useToast();
@@ -260,6 +262,7 @@ const DivorceFlowRunner = () => {
           onFinish={handleFlowFinish}
           onBack={() => window.history.back()}
           onHome={() => window.location.href = '/'}
+          roadmapStages={DIVORCE_ROADMAP_STAGES}
         />
       </div>
     </div>

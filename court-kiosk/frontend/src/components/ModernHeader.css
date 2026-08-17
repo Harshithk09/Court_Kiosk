@@ -11,7 +11,7 @@
 .header-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: 0.65rem 2rem;
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   align-items: center;
@@ -31,10 +31,10 @@
 }
 
 .logo-icon {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,8 +42,8 @@
 }
 
 .logo-scale {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   color: white;
 }
 
@@ -53,7 +53,7 @@
 }
 
 .logo-title {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #1a1a1a;
   margin: 0;
@@ -62,7 +62,7 @@
 }
 
 .logo-subtitle {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #6b7280;
   margin: 0;
   font-weight: 500;
@@ -80,7 +80,7 @@
 }
 
 .page-title {
-  font-size: 1.75rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0;
@@ -88,9 +88,9 @@
 }
 
 .page-subtitle {
-  font-size: 1rem;
+  font-size: 0.8rem;
   color: #6b7280;
-  margin: 0.5rem 0 0 0;
+  margin: 0.15rem 0 0 0;
   font-weight: 500;
 }
 
@@ -114,9 +114,9 @@
   background: #f8f9fa;
   border: 2px solid #e2e8f0;
   border-radius: 8px;
-  padding: 0.75rem 1rem;
+  padding: 0.4rem 0.75rem;
   color: #4a5568;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -149,9 +149,9 @@
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
   border-radius: 6px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.65rem;
   color: #166534;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
