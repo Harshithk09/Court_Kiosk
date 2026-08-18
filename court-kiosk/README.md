@@ -1,6 +1,6 @@
 # 🏛️ Court Kiosk - San Mateo Family Court
 
-A comprehensive self-service kiosk system for the San Mateo Family Court that guides users through legal processes, provides automated case summaries, and delivers comprehensive next steps via email.
+A bilingual AI-powered court kiosk system deployed at San Mateo Family Court, guiding users through Domestic Violence Restraining Order filing with an automated priority queue, RAG-powered legal search, and PDF case summaries.
 
 ## 🎯 **Project Overview**
 

@@ -1,6 +1,6 @@
 # Court Kiosk System - DVRO Flow
 
-A comprehensive court kiosk system for Domestic Violence Restraining Orders (DVRO) with improved error handling, configuration management, and testing.
+A bilingual AI-powered court kiosk system deployed at San Mateo Family Court, guiding users through Domestic Violence Restraining Order filing with an automated priority queue, RAG-powered legal search, and PDF case summaries.
 
 ## Recent Fixes Applied
 
